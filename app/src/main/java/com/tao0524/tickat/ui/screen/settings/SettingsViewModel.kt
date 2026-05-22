@@ -1,0 +1,139 @@
+package com.tao0524.tickat.ui.screen.settings
+
+import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.widget.TickAtWidgetReceiver
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+val Context.displaySettingsDataStore by preferencesDataStore(name = "tickat_display_settings")
+
+val KEY_BG_COLOR             = longPreferencesKey("bg_color")
+val KEY_BG_ALPHA             = intPreferencesKey("bg_alpha")
+val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
+val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
+val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
+val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
+val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
+val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
+val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
+val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
+val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
+val KEY_NOTIFICATION_SOUND    = stringPreferencesKey("notification_sound")
+val KEY_NOTIFICATION_DURATION = intPreferencesKey("notification_duration")
+val KEY_BG_IMAGE_URI           = stringPreferencesKey("bg_image_uri")
+val KEY_GRADIENT_COLOR_COUNT   = intPreferencesKey("gradient_color_count")
+val KEY_BG_COLOR2              = longPreferencesKey("bg_color2")
+val KEY_COMPACT_BG             = booleanPreferencesKey("compact_bg")
+val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
+val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
+
+enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
+enum class WidgetSize { S, M, L }
+enum class TextWeight { LIGHT, REGULAR, BOLD }
+enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
+enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
+
+data class AppSettings(
+    val bgColor:             Long        = 0xFF1C1B1FL,
+    val bgAlpha:             Int         = 100,
+    val bgGradientEnd:       Long        = 0L,
+    val textColor:           Long        = 0xFFE6E1E5L,
+    val use24Hour:           Boolean     = true,
+    val widgetSize:          WidgetSize  = WidgetSize.M,
+    val showSeconds:         Boolean     = false,
+    val showDate:            Boolean     = false,
+    val fontWeight:          TextWeight  = TextWeight.BOLD,
+    val cornerStyle:         CornerStyle = CornerStyle.PILL,
+    val dateTextColor:            Long   = 0x99E6E1E5L,
+    val notificationSoundUri:     String = "",
+    val notificationDuration:     Int    = 5,  // 秒
+    val bgImageUri:               String  = "",
+    val gradientColorCount:       Int     = 2,
+    val bgColor2:                 Long    = 0L,
+    val compactBg:                Boolean           = false,
+    val bgType:                   BackgroundType     = BackgroundType.SOLID,
+    val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL
+)
+
+class SettingsViewModel(private val context: Context) : ViewModel() {
+
+    val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
+        .map { prefs ->
+            AppSettings(
+                bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
+                bgAlpha       = prefs[KEY_BG_ALPHA]          ?: 100,
+                bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
+                textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
+                use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
+                widgetSize   = prefs[KEY_WIDGET_SIZE]
+                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
+                    ?: WidgetSize.M,
+                showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
+                showDate     = prefs[KEY_SHOW_DATE]    ?: false,
+                fontWeight   = prefs[KEY_FONT_WEIGHT]
+                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                    ?: TextWeight.BOLD,
+                cornerStyle  = prefs[KEY_CORNER_STYLE]
+                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
+                    ?: CornerStyle.PILL,
+                dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                bgColor2                 = prefs[KEY_BG_COLOR2]             ?: 0L,
+                compactBg                = prefs[KEY_COMPACT_BG]            ?: false,
+                bgType                   = prefs[KEY_BG_TYPE]
+                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                    ?: BackgroundType.SOLID,
+                gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
+                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                    ?: GradientDirection.DIAGONAL
+            )
+        }
+        .stateIn(
+            scope        = viewModelScope,
+            started      = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AppSettings()
+        )
+
+    fun save(s: AppSettings) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_BG_COLOR]           = s.bgColor
+                prefs[KEY_BG_ALPHA]           = s.bgAlpha
+                prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd
+                prefs[KEY_TEXT_COLOR]         = s.textColor
+                prefs[KEY_USE_24_HOUR]        = s.use24Hour
+                prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
+                prefs[KEY_SHOW_SECONDS]       = s.showSeconds
+                prefs[KEY_SHOW_DATE]          = s.showDate
+                prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
+                prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
+                prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
+                prefs[KEY_NOTIFICATION_SOUND]    = s.notificationSoundUri
+                prefs[KEY_NOTIFICATION_DURATION] = s.notificationDuration
+                prefs[KEY_BG_IMAGE_URI]          = s.bgImageUri
+                prefs[KEY_GRADIENT_COLOR_COUNT]  = s.gradientColorCount
+                prefs[KEY_BG_COLOR2]             = s.bgColor2
+                prefs[KEY_COMPACT_BG]            = s.compactBg
+                prefs[KEY_BG_TYPE]               = s.bgType.name
+                prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
+            }
+            TickAtWidgetReceiver.updateAll(context, s)
+        }
+    }
+
+    fun reset() = save(AppSettings())
+}

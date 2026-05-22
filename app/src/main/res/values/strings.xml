@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">TickAt</string>
+    <string name="notification_countdown_done">カウントダウン終了</string>
+</resources>
