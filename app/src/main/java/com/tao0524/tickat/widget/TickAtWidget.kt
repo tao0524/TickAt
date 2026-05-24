@@ -23,9 +23,10 @@ import com.tao0524.tickat.MainActivity
 import com.tao0524.tickat.R
 import com.tao0524.tickat.ui.screen.settings.AppSettings
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
-
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
@@ -134,28 +135,53 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
         val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
         val midColor   = (settings.bgColor2 and 0xFFFFFFFFL).toInt()
         if (settings.bgType == BackgroundType.RADIAL) {
-            val cx     = w / 2f
-            val cy     = h / 2f
-            val radius = maxOf(w.toFloat(), h.toFloat()) / 2f
+            val (cx, cy) = when (settings.gradientCenter) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
+                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
+            }
+            val dx     = maxOf(cx, w.toFloat() - cx)
+            val dy     = maxOf(cy, h.toFloat() - cy)
+            val radius = sqrt(dx * dx + dy * dy)
             paint.shader = if (use3)
                 RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
             else
                 RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
         } else {
-            paint.shader = when (settings.gradientDirection) {
-                GradientDirection.HORIZONTAL -> if (use3)
-                    LinearGradient(0f, h / 2f, w.toFloat(), h / 2f, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(0f, h / 2f, w.toFloat(), h / 2f, startColor, endColor, Shader.TileMode.CLAMP)
-                GradientDirection.VERTICAL -> if (use3)
-                    LinearGradient(w / 2f, 0f, w / 2f, h.toFloat(), intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(w / 2f, 0f, w / 2f, h.toFloat(), startColor, endColor, Shader.TileMode.CLAMP)
-                else -> if (use3)
-                    LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), startColor, endColor, Shader.TileMode.CLAMP)
+            val wf = w.toFloat()
+            val hf = h.toFloat()
+            val (x0, y0) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> wf to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
+                GradientCenter.CENTER        -> 0f to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to hf
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
+                GradientCenter.BOTTOM_RIGHT  -> wf to hf
             }
+            val (x1, y1) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> wf to hf
+                GradientCenter.TOP_CENTER    -> wf / 2f to hf
+                GradientCenter.TOP_RIGHT     -> 0f to hf
+                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
+                GradientCenter.CENTER        -> wf to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> wf to 0f
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            paint.shader = if (use3)
+                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
         }
         paint.alpha = a
     } else {

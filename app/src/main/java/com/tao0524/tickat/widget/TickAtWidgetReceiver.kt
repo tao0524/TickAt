@@ -20,6 +20,9 @@ import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
 import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
+import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -76,7 +79,13 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
                     ?: GradientDirection.DIAGONAL,
                 clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
-                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f
+                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
+                gradientCenter       = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)

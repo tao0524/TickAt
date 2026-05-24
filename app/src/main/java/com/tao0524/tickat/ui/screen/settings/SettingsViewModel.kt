@@ -40,12 +40,19 @@ val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
 val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
 val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
 val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
+val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
+val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { LIGHT, REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
+enum class GradientCenter {
+    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
+    CENTER_LEFT, CENTER, CENTER_RIGHT,
+    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+}
 
 data class AppSettings(
     val bgColor:             Long        = 0xFF1C1B1FL,
@@ -68,7 +75,9 @@ data class AppSettings(
     val bgType:                   BackgroundType     = BackgroundType.SOLID,
     val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
     val clockDateBalance:         Int                = 0,
-    val fontScale:                Float              = 1.0f
+    val fontScale:                Float              = 1.0f,
+    val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
+    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -105,7 +114,13 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
                     ?: GradientDirection.DIAGONAL,
                 clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
-                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f
+                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
+                gradientCenter           = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT
             )
         }
         .stateIn(
@@ -138,6 +153,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
                 prefs[KEY_CLOCK_DATE_BALANCE]    = s.clockDateBalance
                 prefs[KEY_FONT_SCALE]            = s.fontScale
+                prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
+                prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

@@ -95,6 +95,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.draw.scale
@@ -616,6 +617,34 @@ fun SettingsScreen(
                                 fontSize = 14.sp
                             )
                         }
+                    }
+                }
+
+                AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR) {
+                    Column(modifier = Modifier.padding(top = 0.dp)) {
+                        SectionHeader("グラデーションの始点")
+                        LinearStartPicker(
+                            selected           = draft.linearStartPoint,
+                            bgColor            = draft.bgColor,
+                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                            bgColor2           = draft.bgColor2,
+                            gradientColorCount = draft.gradientColorCount,
+                            onSelect           = { draft = draft.copy(linearStartPoint = it) }
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = draft.bgType == BackgroundType.RADIAL) {
+                    Column(modifier = Modifier.padding(top = 0.dp)) {
+                        SectionHeader("グラデーションの中心")
+                        RadialCenterPicker(
+                            selected           = draft.gradientCenter,
+                            bgColor            = draft.bgColor,
+                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                            bgColor2           = draft.bgColor2,
+                            gradientColorCount = draft.gradientColorCount,
+                            onSelect           = { draft = draft.copy(gradientCenter = it) }
+                        )
                     }
                 }
 
@@ -1483,7 +1512,8 @@ private fun WidgetPreview(draft: AppSettings) {
     LaunchedEffect(
         draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
         draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
-        draft.cornerStyle, draft.compactBg, draft.bgImageUri
+        draft.cornerStyle, draft.compactBg, draft.bgImageUri,
+        draft.linearStartPoint, draft.gradientCenter
     ) {
         withContext(Dispatchers.IO) {
             bgBitmap = buildBackgroundBitmap(context, draft)
@@ -1814,5 +1844,231 @@ private fun SelectOption(
             textAlign  = TextAlign.Center,
             lineHeight = 18.sp
         )
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LinearStartPicker
+// ────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun LinearStartPicker(
+    selected:           GradientCenter,
+    bgColor:            Long,
+    endColor:           Long,
+    bgColor2:           Long,
+    gradientColorCount: Int,
+    onSelect:           (GradientCenter) -> Unit
+) {
+    val positions = listOf(
+        GradientCenter.TOP_LEFT,    GradientCenter.TOP_CENTER,    GradientCenter.TOP_RIGHT,
+        GradientCenter.CENTER_LEFT, GradientCenter.CENTER,        GradientCenter.CENTER_RIGHT,
+        GradientCenter.BOTTOM_LEFT, GradientCenter.BOTTOM_CENTER, GradientCenter.BOTTOM_RIGHT
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val (sx, sy) = when (selected) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> 0f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h
+                GradientCenter.BOTTOM_RIGHT  -> w to h
+            }
+            val (ex, ey) = when (selected) {
+                GradientCenter.TOP_LEFT      -> w to h
+                GradientCenter.TOP_CENTER    -> w / 2f to h
+                GradientCenter.TOP_RIGHT     -> 0f to h
+                GradientCenter.CENTER_LEFT   -> w to h / 2f
+                GradientCenter.CENTER        -> w to h / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> w to 0f
+                GradientCenter.BOTTOM_CENTER -> w / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            val use3  = gradientColorCount == 3 && bgColor2 != 0L
+            val brush = if (use3) {
+                Brush.linearGradient(
+                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
+                    start  = Offset(sx, sy),
+                    end    = Offset(ex, ey)
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(Color(bgColor), Color(endColor)),
+                    start  = Offset(sx, sy),
+                    end    = Offset(ex, ey)
+                )
+            }
+            drawRect(brush = brush)
+        }
+        Column(
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            positions.chunked(3).forEach { row ->
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    row.forEach { pos ->
+                        val isSelected = selected == pos
+                        val isDisabled = pos == GradientCenter.CENTER
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when {
+                                        isDisabled -> Color.White.copy(alpha = 0.2f)
+                                        isSelected -> MaterialTheme.colorScheme.primary
+                                        else       -> Color.White.copy(alpha = 0.55f)
+                                    }
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    color = when {
+                                        isDisabled -> Color.White.copy(alpha = 0.3f)
+                                        isSelected -> MaterialTheme.colorScheme.primary
+                                        else       -> Color.White.copy(alpha = 0.85f)
+                                    },
+                                    shape = CircleShape
+                                )
+                                .then(
+                                    if (!isDisabled) Modifier.clickable { onSelect(pos) }
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Text(
+                                    "✓",
+                                    color      = Color.White,
+                                    fontSize   = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// RadialCenterPicker
+// ────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun RadialCenterPicker(
+    selected:           GradientCenter,
+    bgColor:            Long,
+    endColor:           Long,
+    bgColor2:           Long,
+    gradientColorCount: Int,
+    onSelect:           (GradientCenter) -> Unit
+) {
+    val positions = listOf(
+        GradientCenter.TOP_LEFT,    GradientCenter.TOP_CENTER,    GradientCenter.TOP_RIGHT,
+        GradientCenter.CENTER_LEFT, GradientCenter.CENTER,        GradientCenter.CENTER_RIGHT,
+        GradientCenter.BOTTOM_LEFT, GradientCenter.BOTTOM_CENTER, GradientCenter.BOTTOM_RIGHT
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w  = size.width
+            val h  = size.height
+            val (rcx, rcy) = when (selected) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h
+                GradientCenter.BOTTOM_RIGHT  -> w to h
+            }
+            val dx     = maxOf(rcx, w - rcx)
+            val dy     = maxOf(rcy, h - rcy)
+            val radius = sqrt(dx * dx + dy * dy)
+            val use3   = gradientColorCount == 3 && bgColor2 != 0L
+            val brush  = if (use3) {
+                Brush.radialGradient(
+                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
+                    center = Offset(rcx, rcy),
+                    radius = radius
+                )
+            } else {
+                Brush.radialGradient(
+                    colors = listOf(Color(bgColor), Color(endColor)),
+                    center = Offset(rcx, rcy),
+                    radius = radius
+                )
+            }
+            drawRect(brush = brush)
+        }
+        Column(
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            positions.chunked(3).forEach { row ->
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    row.forEach { pos ->
+                        val isSelected = selected == pos
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else Color.White.copy(alpha = 0.55f)
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else Color.White.copy(alpha = 0.85f),
+                                    shape = CircleShape
+                                )
+                                .clickable { onSelect(pos) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Text(
+                                    "✓",
+                                    color      = Color.White,
+                                    fontSize   = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }

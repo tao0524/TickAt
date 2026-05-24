@@ -3922,6 +3922,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.draw.scale
@@ -4443,6 +4444,34 @@ fun SettingsScreen(
                                 fontSize = 14.sp
                             )
                         }
+                    }
+                }
+
+                AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR) {
+                    Column(modifier = Modifier.padding(top = 0.dp)) {
+                        SectionHeader("グラデーションの始点")
+                        LinearStartPicker(
+                            selected           = draft.linearStartPoint,
+                            bgColor            = draft.bgColor,
+                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                            bgColor2           = draft.bgColor2,
+                            gradientColorCount = draft.gradientColorCount,
+                            onSelect           = { draft = draft.copy(linearStartPoint = it) }
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = draft.bgType == BackgroundType.RADIAL) {
+                    Column(modifier = Modifier.padding(top = 0.dp)) {
+                        SectionHeader("グラデーションの中心")
+                        RadialCenterPicker(
+                            selected           = draft.gradientCenter,
+                            bgColor            = draft.bgColor,
+                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                            bgColor2           = draft.bgColor2,
+                            gradientColorCount = draft.gradientColorCount,
+                            onSelect           = { draft = draft.copy(gradientCenter = it) }
+                        )
                     }
                 }
 
@@ -5310,7 +5339,8 @@ private fun WidgetPreview(draft: AppSettings) {
     LaunchedEffect(
         draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
         draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
-        draft.cornerStyle, draft.compactBg, draft.bgImageUri
+        draft.cornerStyle, draft.compactBg, draft.bgImageUri,
+        draft.linearStartPoint, draft.gradientCenter
     ) {
         withContext(Dispatchers.IO) {
             bgBitmap = buildBackgroundBitmap(context, draft)
@@ -5643,6 +5673,232 @@ private fun SelectOption(
         )
     }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// LinearStartPicker
+// ────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun LinearStartPicker(
+    selected:           GradientCenter,
+    bgColor:            Long,
+    endColor:           Long,
+    bgColor2:           Long,
+    gradientColorCount: Int,
+    onSelect:           (GradientCenter) -> Unit
+) {
+    val positions = listOf(
+        GradientCenter.TOP_LEFT,    GradientCenter.TOP_CENTER,    GradientCenter.TOP_RIGHT,
+        GradientCenter.CENTER_LEFT, GradientCenter.CENTER,        GradientCenter.CENTER_RIGHT,
+        GradientCenter.BOTTOM_LEFT, GradientCenter.BOTTOM_CENTER, GradientCenter.BOTTOM_RIGHT
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val (sx, sy) = when (selected) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> 0f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h
+                GradientCenter.BOTTOM_RIGHT  -> w to h
+            }
+            val (ex, ey) = when (selected) {
+                GradientCenter.TOP_LEFT      -> w to h
+                GradientCenter.TOP_CENTER    -> w / 2f to h
+                GradientCenter.TOP_RIGHT     -> 0f to h
+                GradientCenter.CENTER_LEFT   -> w to h / 2f
+                GradientCenter.CENTER        -> w to h / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> w to 0f
+                GradientCenter.BOTTOM_CENTER -> w / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            val use3  = gradientColorCount == 3 && bgColor2 != 0L
+            val brush = if (use3) {
+                Brush.linearGradient(
+                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
+                    start  = Offset(sx, sy),
+                    end    = Offset(ex, ey)
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(Color(bgColor), Color(endColor)),
+                    start  = Offset(sx, sy),
+                    end    = Offset(ex, ey)
+                )
+            }
+            drawRect(brush = brush)
+        }
+        Column(
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            positions.chunked(3).forEach { row ->
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    row.forEach { pos ->
+                        val isSelected = selected == pos
+                        val isDisabled = pos == GradientCenter.CENTER
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    when {
+                                        isDisabled -> Color.White.copy(alpha = 0.2f)
+                                        isSelected -> MaterialTheme.colorScheme.primary
+                                        else       -> Color.White.copy(alpha = 0.55f)
+                                    }
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    color = when {
+                                        isDisabled -> Color.White.copy(alpha = 0.3f)
+                                        isSelected -> MaterialTheme.colorScheme.primary
+                                        else       -> Color.White.copy(alpha = 0.85f)
+                                    },
+                                    shape = CircleShape
+                                )
+                                .then(
+                                    if (!isDisabled) Modifier.clickable { onSelect(pos) }
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Text(
+                                    "✓",
+                                    color      = Color.White,
+                                    fontSize   = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// RadialCenterPicker
+// ────────────────────────────────────────────────────────────────────────────
+
+@Composable
+private fun RadialCenterPicker(
+    selected:           GradientCenter,
+    bgColor:            Long,
+    endColor:           Long,
+    bgColor2:           Long,
+    gradientColorCount: Int,
+    onSelect:           (GradientCenter) -> Unit
+) {
+    val positions = listOf(
+        GradientCenter.TOP_LEFT,    GradientCenter.TOP_CENTER,    GradientCenter.TOP_RIGHT,
+        GradientCenter.CENTER_LEFT, GradientCenter.CENTER,        GradientCenter.CENTER_RIGHT,
+        GradientCenter.BOTTOM_LEFT, GradientCenter.BOTTOM_CENTER, GradientCenter.BOTTOM_RIGHT
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(140.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w  = size.width
+            val h  = size.height
+            val (rcx, rcy) = when (selected) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h
+                GradientCenter.BOTTOM_RIGHT  -> w to h
+            }
+            val dx     = maxOf(rcx, w - rcx)
+            val dy     = maxOf(rcy, h - rcy)
+            val radius = sqrt(dx * dx + dy * dy)
+            val use3   = gradientColorCount == 3 && bgColor2 != 0L
+            val brush  = if (use3) {
+                Brush.radialGradient(
+                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
+                    center = Offset(rcx, rcy),
+                    radius = radius
+                )
+            } else {
+                Brush.radialGradient(
+                    colors = listOf(Color(bgColor), Color(endColor)),
+                    center = Offset(rcx, rcy),
+                    radius = radius
+                )
+            }
+            drawRect(brush = brush)
+        }
+        Column(
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            positions.chunked(3).forEach { row ->
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    row.forEach { pos ->
+                        val isSelected = selected == pos
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primary
+                                    else Color.White.copy(alpha = 0.55f)
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else Color.White.copy(alpha = 0.85f),
+                                    shape = CircleShape
+                                )
+                                .clickable { onSelect(pos) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Text(
+                                    "✓",
+                                    color      = Color.White,
+                                    fontSize   = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/settings/SettingsViewModel.kt">
@@ -5688,12 +5944,19 @@ val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
 val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
 val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
 val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
+val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
+val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { LIGHT, REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
+enum class GradientCenter {
+    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
+    CENTER_LEFT, CENTER, CENTER_RIGHT,
+    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+}
 
 data class AppSettings(
     val bgColor:             Long        = 0xFF1C1B1FL,
@@ -5716,7 +5979,9 @@ data class AppSettings(
     val bgType:                   BackgroundType     = BackgroundType.SOLID,
     val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
     val clockDateBalance:         Int                = 0,
-    val fontScale:                Float              = 1.0f
+    val fontScale:                Float              = 1.0f,
+    val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
+    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -5753,7 +6018,13 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
                     ?: GradientDirection.DIAGONAL,
                 clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
-                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f
+                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
+                gradientCenter           = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT
             )
         }
         .stateIn(
@@ -5786,6 +6057,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
                 prefs[KEY_CLOCK_DATE_BALANCE]    = s.clockDateBalance
                 prefs[KEY_FONT_SCALE]            = s.fontScale
+                prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
+                prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
@@ -5821,9 +6094,10 @@ import com.tao0524.tickat.MainActivity
 import com.tao0524.tickat.R
 import com.tao0524.tickat.ui.screen.settings.AppSettings
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
-
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
@@ -5932,28 +6206,53 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
         val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
         val midColor   = (settings.bgColor2 and 0xFFFFFFFFL).toInt()
         if (settings.bgType == BackgroundType.RADIAL) {
-            val cx     = w / 2f
-            val cy     = h / 2f
-            val radius = maxOf(w.toFloat(), h.toFloat()) / 2f
+            val (cx, cy) = when (settings.gradientCenter) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
+                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
+            }
+            val dx     = maxOf(cx, w.toFloat() - cx)
+            val dy     = maxOf(cy, h.toFloat() - cy)
+            val radius = sqrt(dx * dx + dy * dy)
             paint.shader = if (use3)
                 RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
             else
                 RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
         } else {
-            paint.shader = when (settings.gradientDirection) {
-                GradientDirection.HORIZONTAL -> if (use3)
-                    LinearGradient(0f, h / 2f, w.toFloat(), h / 2f, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(0f, h / 2f, w.toFloat(), h / 2f, startColor, endColor, Shader.TileMode.CLAMP)
-                GradientDirection.VERTICAL -> if (use3)
-                    LinearGradient(w / 2f, 0f, w / 2f, h.toFloat(), intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(w / 2f, 0f, w / 2f, h.toFloat(), startColor, endColor, Shader.TileMode.CLAMP)
-                else -> if (use3)
-                    LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-                else
-                    LinearGradient(0f, 0f, w.toFloat(), h.toFloat(), startColor, endColor, Shader.TileMode.CLAMP)
+            val wf = w.toFloat()
+            val hf = h.toFloat()
+            val (x0, y0) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> wf to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
+                GradientCenter.CENTER        -> 0f to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to hf
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
+                GradientCenter.BOTTOM_RIGHT  -> wf to hf
             }
+            val (x1, y1) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> wf to hf
+                GradientCenter.TOP_CENTER    -> wf / 2f to hf
+                GradientCenter.TOP_RIGHT     -> 0f to hf
+                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
+                GradientCenter.CENTER        -> wf to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> wf to 0f
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            paint.shader = if (use3)
+                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
         }
         paint.alpha = a
     } else {
@@ -5988,6 +6287,9 @@ import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
 import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
+import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -6044,7 +6346,13 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
                     ?: GradientDirection.DIAGONAL,
                 clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
-                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f
+                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
+                gradientCenter       = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)
