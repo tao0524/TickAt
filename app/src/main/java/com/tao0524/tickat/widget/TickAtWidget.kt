@@ -22,13 +22,13 @@ import android.widget.RemoteViews
 import com.tao0524.tickat.MainActivity
 import com.tao0524.tickat.R
 import com.tao0524.tickat.ui.screen.settings.AppSettings
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
+import kotlin.math.roundToInt
 import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 
 object TickAtWidget {
 
-    fun buildViews(context: Context, settings: AppSettings): RemoteViews {
+    fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
         val layoutRes = if (settings.fontWeight == TextWeight.BOLD) {
             R.layout.widget_tickat_bold
         } else {
@@ -44,7 +44,9 @@ object TickAtWidget {
         views.setTextColor(R.id.widget_date, settings.dateTextColor.toInt())
 
         // フォントサイズ
-        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, settings.clockFontSize.toFloat())
+        val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
+        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
+        views.setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
 
         // 時刻フォーマット（秒数・12h/24h の組み合わせ）
         val format = when {
@@ -75,6 +77,13 @@ object TickAtWidget {
 
         return views
     }
+}
+
+internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float = 1.0f): Pair<Int, Int> {
+    val t       = (balance + 10f) / 20f
+    val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
+    val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
+    return clockSp to dateSp
 }
 
 internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {

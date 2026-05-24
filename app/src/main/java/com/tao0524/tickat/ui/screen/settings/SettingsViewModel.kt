@@ -2,6 +2,7 @@ package com.tao0524.tickat.ui.screen.settings
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -37,7 +38,8 @@ val KEY_BG_COLOR2              = longPreferencesKey("bg_color2")
 val KEY_COMPACT_BG             = booleanPreferencesKey("compact_bg")
 val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
 val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
-val KEY_CLOCK_FONT_SIZE        = intPreferencesKey("clock_font_size")
+val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
+val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -65,7 +67,8 @@ data class AppSettings(
     val compactBg:                Boolean           = false,
     val bgType:                   BackgroundType     = BackgroundType.SOLID,
     val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
-    val clockFontSize:            Int                = 20
+    val clockDateBalance:         Int                = 0,
+    val fontScale:                Float              = 1.0f
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -101,7 +104,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
                     ?: GradientDirection.DIAGONAL,
-                clockFontSize            = prefs[KEY_CLOCK_FONT_SIZE]           ?: 20
+                clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
+                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f
             )
         }
         .stateIn(
@@ -132,7 +136,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_COMPACT_BG]            = s.compactBg
                 prefs[KEY_BG_TYPE]               = s.bgType.name
                 prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
-                prefs[KEY_CLOCK_FONT_SIZE]       = s.clockFontSize
+                prefs[KEY_CLOCK_DATE_BALANCE]    = s.clockDateBalance
+                prefs[KEY_FONT_SCALE]            = s.fontScale
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

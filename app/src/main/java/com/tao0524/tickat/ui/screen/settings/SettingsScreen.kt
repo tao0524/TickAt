@@ -97,12 +97,12 @@ import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.draw.scale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
+import com.tao0524.tickat.widget.calcFontSizes
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -325,11 +325,12 @@ fun SettingsScreen(
 
     if (showFontSizeDialog) {
         FontSizePickerDialog(
-            currentSize = draft.clockFontSize,
-            draft       = draft,
-            onDismiss   = { showFontSizeDialog = false },
-            onConfirm   = { size ->
-                draft = draft.copy(clockFontSize = size)
+            currentBalance = draft.clockDateBalance,
+            currentScale   = draft.fontScale,
+            draft          = draft,
+            onDismiss      = { showFontSizeDialog = false },
+            onConfirm      = { balance, scale ->
+                draft = draft.copy(clockDateBalance = balance, fontScale = scale)
                 showFontSizeDialog = false
             }
         )
@@ -785,8 +786,15 @@ fun SettingsScreen(
                         verticalAlignment     = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("時刻のフォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                            Text("${draft.clockFontSize} sp", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text(
+                                text = "%.1f".format(draft.fontScale) + "×  " + when {
+                                    draft.clockDateBalance == 0 -> "均等"
+                                    draft.clockDateBalance < 0  -> "時刻寄り"
+                                    else                        -> "日付寄り"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
+                            )
                         }
                         Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
                     }
@@ -1534,14 +1542,16 @@ private fun WidgetPreview(draft: AppSettings) {
                     }
                 },
                 update = { view ->
+                    val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
                     view.findViewById<android.widget.TextClock>(R.id.widget_time)?.apply {
                         setTextColor(draft.textColor.toInt())
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, draft.clockFontSize.toFloat())
+                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
                         format24Hour = format
                         format12Hour = format
                     }
                     view.findViewById<android.widget.TextClock>(R.id.widget_date)?.apply {
                         setTextColor(draft.dateTextColor.toInt())
+                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
                         visibility = if (draft.showDate) android.view.View.VISIBLE else android.view.View.GONE
                     }
                     bgBitmap?.let {
@@ -1559,12 +1569,15 @@ private fun WidgetPreview(draft: AppSettings) {
 
 @Composable
 private fun FontSizePickerDialog(
-    currentSize: Int,
-    draft:       AppSettings,
-    onDismiss:   () -> Unit,
-    onConfirm:   (Int) -> Unit
+    currentBalance: Int,
+    currentScale:   Float,
+    draft:          AppSettings,
+    onDismiss:      () -> Unit,
+    onConfirm:      (Int, Float) -> Unit
 ) {
-    var tempSize by remember { mutableStateOf(currentSize) }
+    var tempBalance by remember { mutableStateOf(currentBalance.toFloat()) }
+    var tempScale   by remember { mutableStateOf(currentScale) }
+    val balance = tempBalance.roundToInt()
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -1575,46 +1588,51 @@ private fun FontSizePickerDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    "時刻のフォントサイズ",
+                    "フォントサイズ",
                     fontSize   = 17.sp,
                     fontWeight = FontWeight.Medium,
                     color      = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(16.dp))
-                WidgetPreview(draft = draft.copy(clockFontSize = tempSize, showDate = true))
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    "${tempSize} sp",
-                    fontSize = 13.sp,
-                    color    = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, showDate = true))
                 Spacer(Modifier.height(16.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier              = Modifier.fillMaxWidth()
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Button(
-                        onClick  = { if (tempSize > 12) tempSize-- },
-                        modifier = Modifier.weight(1f),
-                        shape    = RoundedCornerShape(50.dp)
-                    ) {
-                        Text("-", fontSize = 22.sp)
-                    }
-                    Button(
-                        onClick  = { if (tempSize < 48) tempSize++ },
-                        modifier = Modifier.weight(1f),
-                        shape    = RoundedCornerShape(50.dp)
-                    ) {
-                        Text("+", fontSize = 22.sp)
-                    }
+                    Text("小さく", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("%.1f".format(tempScale) + "×", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                    Text("大きく", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                Slider(
+                    value         = tempScale,
+                    onValueChange = { tempScale = it },
+                    valueRange    = 0.5f..1.5f,
+                    steps         = 9,
+                    modifier      = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("時刻優先", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("日付優先", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Slider(
+                    value         = tempBalance,
+                    onValueChange = { tempBalance = it },
+                    valueRange    = -10f..10f,
+                    steps         = 19,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) { Text("キャンセル") }
-                    TextButton(onClick = { onConfirm(tempSize) }) { Text("OK") }
+                    TextButton(onClick = { onConfirm(balance, tempScale) }) { Text("OK") }
                 }
             }
         }
