@@ -42,10 +42,11 @@ val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
 val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
 val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
+val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
-enum class TextWeight { LIGHT, REGULAR, BOLD }
+enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
 enum class GradientCenter {
@@ -77,7 +78,8 @@ data class AppSettings(
     val clockDateBalance:         Int                = 0,
     val fontScale:                Float              = 1.0f,
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
-    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT
+    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
+    val isItalic:                 Boolean            = false
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -120,7 +122,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?: GradientCenter.CENTER,
                 linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT
+                    ?: GradientCenter.TOP_LEFT,
+                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false
             )
         }
         .stateIn(
@@ -155,6 +158,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_FONT_SCALE]            = s.fontScale
                 prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
+                prefs[KEY_IS_ITALIC]             = s.isItalic
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

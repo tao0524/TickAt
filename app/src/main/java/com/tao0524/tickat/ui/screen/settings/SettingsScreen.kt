@@ -791,7 +791,6 @@ fun SettingsScreen(
                         Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
-                                TextWeight.LIGHT   to "Light\n細め",
                                 TextWeight.REGULAR to "Regular\n標準",
                                 TextWeight.BOLD    to "Bold\n太め"
                             ).forEach { (weight, label) ->
@@ -805,6 +804,13 @@ fun SettingsScreen(
                         }
                     }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "斜体",
+                        sub      = "イタリック体で表示",
+                        checked  = draft.isItalic,
+                        onToggle = { draft = draft.copy(isItalic = it) }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Row(
                         modifier = Modifier
@@ -1520,10 +1526,11 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val layoutRes = if (draft.fontWeight == TextWeight.BOLD) {
-        R.layout.widget_tickat_bold
-    } else {
-        R.layout.widget_tickat
+    val layoutRes = when {
+        draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
+        draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
+        draft.isItalic                                        -> R.layout.widget_tickat_italic
+        else                                                  -> R.layout.widget_tickat
     }
     val format = when {
         draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"

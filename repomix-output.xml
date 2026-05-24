@@ -80,7 +80,9 @@ app/src/main/res/drawable/widget_bg_soft.xml
 app/src/main/res/drawable/widget_bg_square.xml
 app/src/main/res/drawable/widget_tickat.xml
 app/src/main/res/layout/tickat_widget_loading.xml
+app/src/main/res/layout/widget_tickat_bold_italic.xml
 app/src/main/res/layout/widget_tickat_bold.xml
+app/src/main/res/layout/widget_tickat_italic.xml
 app/src/main/res/layout/widget_tickat.xml
 app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 app/src/main/res/mipmap-hdpi/ic_launcher.png
@@ -112,6 +114,100 @@ settings.gradle.kts
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/src/main/res/layout/widget_tickat_bold_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:textStyle="bold|italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:textStyle="bold|italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
 
 <file path=".gitignore">
 *.iml
@@ -4618,7 +4714,6 @@ fun SettingsScreen(
                         Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
-                                TextWeight.LIGHT   to "Light\n細め",
                                 TextWeight.REGULAR to "Regular\n標準",
                                 TextWeight.BOLD    to "Bold\n太め"
                             ).forEach { (weight, label) ->
@@ -4632,6 +4727,13 @@ fun SettingsScreen(
                         }
                     }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "斜体",
+                        sub      = "イタリック体で表示",
+                        checked  = draft.isItalic,
+                        onToggle = { draft = draft.copy(isItalic = it) }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Row(
                         modifier = Modifier
@@ -5347,10 +5449,11 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val layoutRes = if (draft.fontWeight == TextWeight.BOLD) {
-        R.layout.widget_tickat_bold
-    } else {
-        R.layout.widget_tickat
+    val layoutRes = when {
+        draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
+        draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
+        draft.isItalic                                        -> R.layout.widget_tickat_italic
+        else                                                  -> R.layout.widget_tickat
     }
     val format = when {
         draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
@@ -5946,10 +6049,11 @@ val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
 val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
 val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
+val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
-enum class TextWeight { LIGHT, REGULAR, BOLD }
+enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
 enum class GradientCenter {
@@ -5981,7 +6085,8 @@ data class AppSettings(
     val clockDateBalance:         Int                = 0,
     val fontScale:                Float              = 1.0f,
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
-    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT
+    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
+    val isItalic:                 Boolean            = false
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -6024,7 +6129,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?: GradientCenter.CENTER,
                 linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT
+                    ?: GradientCenter.TOP_LEFT,
+                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false
             )
         }
         .stateIn(
@@ -6059,6 +6165,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_FONT_SCALE]            = s.fontScale
                 prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
+                prefs[KEY_IS_ITALIC]             = s.isItalic
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
@@ -6101,13 +6208,13 @@ import com.tao0524.tickat.ui.screen.settings.TextWeight
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = if (settings.fontWeight == TextWeight.BOLD) {
-            R.layout.widget_tickat_bold
-        } else {
-            R.layout.widget_tickat
+        val layoutRes = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
+            settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
+            settings.isItalic                                           -> R.layout.widget_tickat_italic
+            else                                                        -> R.layout.widget_tickat
         }
         val views = RemoteViews(context.packageName, layoutRes)
-
         // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
 
@@ -6290,6 +6397,7 @@ import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
 import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
+import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -6352,7 +6460,8 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                     ?: GradientCenter.CENTER,
                 linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT
+                    ?: GradientCenter.TOP_LEFT,
+                isItalic             = prefs[KEY_IS_ITALIC]            ?: false
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)

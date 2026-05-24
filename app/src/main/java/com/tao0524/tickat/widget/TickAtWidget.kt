@@ -30,13 +30,13 @@ import com.tao0524.tickat.ui.screen.settings.TextWeight
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = if (settings.fontWeight == TextWeight.BOLD) {
-            R.layout.widget_tickat_bold
-        } else {
-            R.layout.widget_tickat
+        val layoutRes = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
+            settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
+            settings.isItalic                                           -> R.layout.widget_tickat_italic
+            else                                                        -> R.layout.widget_tickat
         }
         val views = RemoteViews(context.packageName, layoutRes)
-
         // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
 
