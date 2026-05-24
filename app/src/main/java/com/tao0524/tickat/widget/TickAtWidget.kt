@@ -44,12 +44,7 @@ object TickAtWidget {
         views.setTextColor(R.id.widget_date, settings.dateTextColor.toInt())
 
         // フォントサイズ
-        val fontSize = when (settings.widgetSize) {
-            WidgetSize.S -> 15f
-            WidgetSize.M -> 20f
-            WidgetSize.L -> 26f
-        }
-        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, fontSize)
+        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, settings.clockFontSize.toFloat())
 
         // 時刻フォーマット（秒数・12h/24h の組み合わせ）
         val format = when {
@@ -82,7 +77,7 @@ object TickAtWidget {
     }
 }
 
-private fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
+internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
     val w = 512
     val h = 200
     val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)

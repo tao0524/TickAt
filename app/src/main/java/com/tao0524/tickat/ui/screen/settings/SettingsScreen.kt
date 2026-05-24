@@ -65,6 +65,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -94,6 +95,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
+import android.view.LayoutInflater
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.draw.scale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.tao0524.tickat.R
+import com.tao0524.tickat.widget.buildBackgroundBitmap
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -274,6 +283,7 @@ fun SettingsScreen(
     }
 
     var formatExpanded by remember { mutableStateOf(false) }
+    var showFontSizeDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
 
@@ -309,6 +319,18 @@ fun SettingsScreen(
                     else       -> draft.copy(bgColor2 = color)
                 }
                 pickerTarget.value = null
+            }
+        )
+    }
+
+    if (showFontSizeDialog) {
+        FontSizePickerDialog(
+            currentSize = draft.clockFontSize,
+            draft       = draft,
+            onDismiss   = { showFontSizeDialog = false },
+            onConfirm   = { size ->
+                draft = draft.copy(clockFontSize = size)
+                showFontSizeDialog = false
             }
         )
     }
@@ -753,6 +775,21 @@ fun SettingsScreen(
                         }
                     }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showFontSizeDialog = true }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("時刻のフォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text("${draft.clockFontSize} sp", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                         Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
@@ -1432,36 +1469,52 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
 
 @Composable
 private fun WidgetPreview(draft: AppSettings) {
-    val bgColor     = Color(draft.bgColor)
-    val textColor   = Color(draft.textColor)
-    val isGradient  = (draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) && draft.bgGradientEnd != 0L
-    val endColor  = Color(draft.bgGradientEnd)
-    val pillBrush = when {
-        !isGradient -> null
-        draft.bgType == BackgroundType.RADIAL -> Brush.radialGradient(listOf(bgColor, endColor))
-        draft.gradientDirection == GradientDirection.HORIZONTAL -> Brush.horizontalGradient(listOf(bgColor, endColor))
-        draft.gradientDirection == GradientDirection.VERTICAL -> Brush.verticalGradient(listOf(bgColor, endColor))
-        else -> Brush.linearGradient(listOf(bgColor, endColor))
+    val context = LocalContext.current
+    var bgBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+
+    LaunchedEffect(
+        draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
+        draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
+        draft.cornerStyle, draft.compactBg, draft.bgImageUri
+    ) {
+        withContext(Dispatchers.IO) {
+            bgBitmap = buildBackgroundBitmap(context, draft)
+        }
     }
-    val isTransparent = draft.bgType == BackgroundType.TRANSPARENT
-    val pillColor   = if (isTransparent) Color.Transparent else bgColor.copy(alpha = draft.bgAlpha / 100f)
-    val cornerShape = when (draft.cornerStyle) {
-        CornerStyle.PILL    -> RoundedCornerShape(50.dp)
-        CornerStyle.ROUNDED -> RoundedCornerShape(24.dp)
-        CornerStyle.SOFT    -> RoundedCornerShape(8.dp)
-        CornerStyle.SQUARE  -> RoundedCornerShape(2.dp)
+
+    val layoutRes = if (draft.fontWeight == TextWeight.BOLD) {
+        R.layout.widget_tickat_bold
+    } else {
+        R.layout.widget_tickat
     }
-    val fontSize = when (draft.widgetSize) {
-        WidgetSize.S -> 15.sp
-        WidgetSize.M -> 20.sp
-        WidgetSize.L -> 26.sp
+    val format = when {
+        draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
+        draft.use24Hour && !draft.showSeconds -> "HH:mm"
+        !draft.use24Hour && draft.showSeconds -> "h:mm:ss a"
+        else                                  -> "h:mm a"
     }
-    val timeText = when {
-        draft.use24Hour  && draft.showSeconds  -> "14:32:00"
-        draft.use24Hour  && !draft.showSeconds -> "14:32"
-        !draft.use24Hour && draft.showSeconds  -> "2:32:00 PM"
-        else                                   -> "2:32 PM"
+
+    val (actualW, actualH) = remember {
+        val manager = android.appwidget.AppWidgetManager.getInstance(context)
+        val ids = manager.getAppWidgetIds(
+            android.content.ComponentName(
+                context,
+                com.tao0524.tickat.widget.TickAtWidgetReceiver::class.java
+            )
+        )
+        if (ids.isNotEmpty()) {
+            val opts = manager.getAppWidgetOptions(ids[0])
+            val w = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).toFloat()
+            val h = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44).toFloat()
+            w to h
+        } else {
+            110f to 44f
+        }
     }
+
+    val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
+    val scale = minOf(screenWidthDp * 0.90f / actualW, 110f / actualH)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1470,27 +1523,98 @@ private fun WidgetPreview(draft: AppSettings) {
             .background(Color(0xFFC0C0C0)),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.90f)
-                .height(110.dp)
-                .clip(cornerShape)
-                .then(
-                    if (pillBrush != null) Modifier.background(pillBrush)
-                    else Modifier.background(pillColor)
-                )
-                .padding(horizontal = 24.dp, vertical = 20.dp),
-            contentAlignment = Alignment.Center
+        key(layoutRes) {
+            AndroidView(
+                factory = { ctx ->
+                    LayoutInflater.from(ctx).inflate(layoutRes, null, false).also { view ->
+                        view.layoutParams = android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                update = { view ->
+                    view.findViewById<android.widget.TextClock>(R.id.widget_time)?.apply {
+                        setTextColor(draft.textColor.toInt())
+                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, draft.clockFontSize.toFloat())
+                        format24Hour = format
+                        format12Hour = format
+                    }
+                    view.findViewById<android.widget.TextClock>(R.id.widget_date)?.apply {
+                        setTextColor(draft.dateTextColor.toInt())
+                        visibility = if (draft.showDate) android.view.View.VISIBLE else android.view.View.GONE
+                    }
+                    bgBitmap?.let {
+                        view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
+                    }
+                },
+                modifier = Modifier
+                    .width(actualW.dp)
+                    .height(actualH.dp)
+                    .scale(scale)
+            )
+        }
+    }
+}
+
+@Composable
+private fun FontSizePickerDialog(
+    currentSize: Int,
+    draft:       AppSettings,
+    onDismiss:   () -> Unit,
+    onConfirm:   (Int) -> Unit
+) {
+    var tempSize by remember { mutableStateOf(currentSize) }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                val previewFontWeight = when (draft.fontWeight) {
-                    TextWeight.LIGHT   -> FontWeight.Light
-                    TextWeight.REGULAR -> FontWeight.Normal
-                    TextWeight.BOLD    -> FontWeight.Bold
+            Column(
+                modifier            = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    "時刻のフォントサイズ",
+                    fontSize   = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color      = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(16.dp))
+                WidgetPreview(draft = draft.copy(clockFontSize = tempSize, showDate = true))
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "${tempSize} sp",
+                    fontSize = 13.sp,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier              = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick  = { if (tempSize > 12) tempSize-- },
+                        modifier = Modifier.weight(1f),
+                        shape    = RoundedCornerShape(50.dp)
+                    ) {
+                        Text("-", fontSize = 22.sp)
+                    }
+                    Button(
+                        onClick  = { if (tempSize < 48) tempSize++ },
+                        modifier = Modifier.weight(1f),
+                        shape    = RoundedCornerShape(50.dp)
+                    ) {
+                        Text("+", fontSize = 22.sp)
+                    }
                 }
-                Text(text = timeText, color = textColor, fontSize = fontSize, fontWeight = previewFontWeight)
-                if (draft.showDate) {
-                    Text(text = "5/14 (木)", color = Color(draft.dateTextColor), fontSize = 11.sp)
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) { Text("キャンセル") }
+                    TextButton(onClick = { onConfirm(tempSize) }) { Text("OK") }
                 }
             }
         }

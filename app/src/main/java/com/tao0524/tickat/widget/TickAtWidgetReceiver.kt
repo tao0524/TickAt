@@ -18,6 +18,8 @@ import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
+import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_FONT_SIZE
+import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_FONT_SIZE
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -72,7 +74,8 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                     ?: BackgroundType.SOLID,
                 gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL
+                    ?: GradientDirection.DIAGONAL,
+                clockFontSize        = prefs[KEY_CLOCK_FONT_SIZE]       ?: 20
             )
             val views = TickAtWidget.buildViews(context, settings)
             for (id in appWidgetIds) {

@@ -37,6 +37,7 @@ val KEY_BG_COLOR2              = longPreferencesKey("bg_color2")
 val KEY_COMPACT_BG             = booleanPreferencesKey("compact_bg")
 val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
 val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
+val KEY_CLOCK_FONT_SIZE        = intPreferencesKey("clock_font_size")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -63,9 +64,9 @@ data class AppSettings(
     val bgColor2:                 Long    = 0L,
     val compactBg:                Boolean           = false,
     val bgType:                   BackgroundType     = BackgroundType.SOLID,
-    val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL
+    val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
+    val clockFontSize:            Int                = 20
 )
-
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
@@ -99,7 +100,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?: BackgroundType.SOLID,
                 gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
                     ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL
+                    ?: GradientDirection.DIAGONAL,
+                clockFontSize            = prefs[KEY_CLOCK_FONT_SIZE]           ?: 20
             )
         }
         .stateIn(
@@ -130,6 +132,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_COMPACT_BG]            = s.compactBg
                 prefs[KEY_BG_TYPE]               = s.bgType.name
                 prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
+                prefs[KEY_CLOCK_FONT_SIZE]       = s.clockFontSize
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
