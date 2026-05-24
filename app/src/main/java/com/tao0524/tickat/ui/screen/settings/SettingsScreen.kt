@@ -788,6 +788,26 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                WidgetFont.ROBOTO    to "Roboto\n標準",
+                                WidgetFont.SERIF     to "Serif\nセリフ",
+                                WidgetFont.CONDENSED to "Cond.\n細身",
+                                WidgetFont.MONO      to "Mono\n等幅"
+                            ).forEach { (font, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontFamily == font,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontFamily = font) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                         Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
@@ -1526,11 +1546,31 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val layoutRes = when {
-        draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
-        draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
-        draft.isItalic                                        -> R.layout.widget_tickat_italic
-        else                                                  -> R.layout.widget_tickat
+    val layoutRes = when (draft.fontFamily) {
+        WidgetFont.SERIF -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_serif_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_serif_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_serif_italic
+            else                                                  -> R.layout.widget_tickat_serif
+        }
+        WidgetFont.CONDENSED -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_condensed_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_condensed_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_condensed_italic
+            else                                                  -> R.layout.widget_tickat_condensed
+        }
+        WidgetFont.MONO -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_mono_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_mono_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_mono_italic
+            else                                                  -> R.layout.widget_tickat_mono
+        }
+        else -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_italic
+            else                                                  -> R.layout.widget_tickat
+        }
     }
     val format = when {
         draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"

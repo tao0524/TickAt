@@ -43,6 +43,7 @@ val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
 val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
+val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -54,6 +55,7 @@ enum class GradientCenter {
     CENTER_LEFT, CENTER, CENTER_RIGHT,
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
+enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
 
 data class AppSettings(
     val bgColor:             Long        = 0xFF1C1B1FL,
@@ -79,7 +81,8 @@ data class AppSettings(
     val fontScale:                Float              = 1.0f,
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
     val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
-    val isItalic:                 Boolean            = false
+    val isItalic:                 Boolean            = false,
+    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -123,7 +126,10 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
                     ?: GradientCenter.TOP_LEFT,
-                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false
+                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily               = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO
             )
         }
         .stateIn(
@@ -159,6 +165,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
                 prefs[KEY_IS_ITALIC]             = s.isItalic
+                prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

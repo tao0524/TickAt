@@ -82,7 +82,19 @@ app/src/main/res/drawable/widget_tickat.xml
 app/src/main/res/layout/tickat_widget_loading.xml
 app/src/main/res/layout/widget_tickat_bold_italic.xml
 app/src/main/res/layout/widget_tickat_bold.xml
+app/src/main/res/layout/widget_tickat_condensed_bold_italic.xml
+app/src/main/res/layout/widget_tickat_condensed_bold.xml
+app/src/main/res/layout/widget_tickat_condensed_italic.xml
+app/src/main/res/layout/widget_tickat_condensed.xml
 app/src/main/res/layout/widget_tickat_italic.xml
+app/src/main/res/layout/widget_tickat_mono_bold_italic.xml
+app/src/main/res/layout/widget_tickat_mono_bold.xml
+app/src/main/res/layout/widget_tickat_mono_italic.xml
+app/src/main/res/layout/widget_tickat_mono.xml
+app/src/main/res/layout/widget_tickat_serif_bold_italic.xml
+app/src/main/res/layout/widget_tickat_serif_bold.xml
+app/src/main/res/layout/widget_tickat_serif_italic.xml
+app/src/main/res/layout/widget_tickat_serif.xml
 app/src/main/res/layout/widget_tickat.xml
 app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 app/src/main/res/mipmap-hdpi/ic_launcher.png
@@ -162,6 +174,202 @@ This section contains the contents of the repository's files.
 </FrameLayout>
 </file>
 
+<file path="app/src/main/res/layout/widget_tickat_condensed_bold_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_condensed_bold.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_condensed_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_condensed.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="normal"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-condensed"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
 <file path="app/src/main/res/layout/widget_tickat_italic.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -202,6 +410,398 @@ This section contains the contents of the repository's files.
             android:format24Hour="M/d (E)"
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_mono_bold_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="monospace"
+            android:textStyle="italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_mono_bold.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_mono_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="monospace"
+            android:textStyle="italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_mono.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="monospace"
+            android:textStyle="normal"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_serif_bold_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="serif"
+            android:textStyle="bold|italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="serif"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_serif_bold.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="serif"
+            android:textStyle="bold"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="serif"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_serif_italic.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="serif"
+            android:textStyle="italic"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="serif"
+            android:textColor="#FFE6E1E5"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_serif.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/widget_bg_pill"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <TextClock
+            android:id="@+id/widget_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="HH:mm"
+            android:format12Hour="h:mm a"
+            android:textSize="20sp"
+            android:fontFamily="serif"
+            android:textStyle="normal"
+            android:textColor="#FFE6E1E5" />
+
+        <TextClock
+            android:id="@+id/widget_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format24Hour="M/d (E)"
+            android:format12Hour="M/d (E)"
+            android:textSize="11sp"
+            android:fontFamily="serif"
             android:textColor="#FFE6E1E5"
             android:visibility="gone" />
 
@@ -4711,6 +5311,26 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                WidgetFont.ROBOTO    to "Roboto\n標準",
+                                WidgetFont.SERIF     to "Serif\nセリフ",
+                                WidgetFont.CONDENSED to "Cond.\n細身",
+                                WidgetFont.MONO      to "Mono\n等幅"
+                            ).forEach { (font, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontFamily == font,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontFamily = font) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                         Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
@@ -5449,11 +6069,31 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val layoutRes = when {
-        draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
-        draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
-        draft.isItalic                                        -> R.layout.widget_tickat_italic
-        else                                                  -> R.layout.widget_tickat
+    val layoutRes = when (draft.fontFamily) {
+        WidgetFont.SERIF -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_serif_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_serif_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_serif_italic
+            else                                                  -> R.layout.widget_tickat_serif
+        }
+        WidgetFont.CONDENSED -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_condensed_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_condensed_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_condensed_italic
+            else                                                  -> R.layout.widget_tickat_condensed
+        }
+        WidgetFont.MONO -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_mono_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_mono_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_mono_italic
+            else                                                  -> R.layout.widget_tickat_mono
+        }
+        else -> when {
+            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
+            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
+            draft.isItalic                                        -> R.layout.widget_tickat_italic
+            else                                                  -> R.layout.widget_tickat
+        }
     }
     val format = when {
         draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
@@ -6050,6 +6690,7 @@ val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
 val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
+val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -6061,6 +6702,7 @@ enum class GradientCenter {
     CENTER_LEFT, CENTER, CENTER_RIGHT,
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
+enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
 
 data class AppSettings(
     val bgColor:             Long        = 0xFF1C1B1FL,
@@ -6086,7 +6728,8 @@ data class AppSettings(
     val fontScale:                Float              = 1.0f,
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
     val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
-    val isItalic:                 Boolean            = false
+    val isItalic:                 Boolean            = false,
+    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO
 )
 class SettingsViewModel(private val context: Context) : ViewModel() {
 
@@ -6130,7 +6773,10 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
                     ?: GradientCenter.TOP_LEFT,
-                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false
+                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily               = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO
             )
         }
         .stateIn(
@@ -6166,6 +6812,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
                 prefs[KEY_IS_ITALIC]             = s.isItalic
+                prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
@@ -6205,14 +6852,35 @@ import kotlin.math.sqrt
 import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = when {
-            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
-            settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
-            settings.isItalic                                           -> R.layout.widget_tickat_italic
-            else                                                        -> R.layout.widget_tickat
+        val layoutRes = when (settings.fontFamily) {
+            WidgetFont.SERIF -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_serif_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_serif_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_serif_italic
+                else                                                        -> R.layout.widget_tickat_serif
+            }
+            WidgetFont.CONDENSED -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_condensed_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_condensed_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_condensed_italic
+                else                                                        -> R.layout.widget_tickat_condensed
+            }
+            WidgetFont.MONO -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_mono_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_mono_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_mono_italic
+                else                                                        -> R.layout.widget_tickat_mono
+            }
+            else -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_italic
+                else                                                        -> R.layout.widget_tickat
+            }
         }
         val views = RemoteViews(context.packageName, layoutRes)
         // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
@@ -6398,6 +7066,8 @@ import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
 import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -6461,7 +7131,10 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
                     ?: GradientCenter.TOP_LEFT,
-                isItalic             = prefs[KEY_IS_ITALIC]            ?: false
+                isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily           = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)

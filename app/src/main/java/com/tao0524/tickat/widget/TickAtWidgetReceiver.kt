@@ -24,6 +24,8 @@ import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
 import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
@@ -87,7 +89,10 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
                     ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
                     ?: GradientCenter.TOP_LEFT,
-                isItalic             = prefs[KEY_IS_ITALIC]            ?: false
+                isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily           = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)

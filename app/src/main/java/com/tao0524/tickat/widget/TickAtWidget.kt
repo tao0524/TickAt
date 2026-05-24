@@ -27,14 +27,35 @@ import kotlin.math.sqrt
 import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = when {
-            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
-            settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
-            settings.isItalic                                           -> R.layout.widget_tickat_italic
-            else                                                        -> R.layout.widget_tickat
+        val layoutRes = when (settings.fontFamily) {
+            WidgetFont.SERIF -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_serif_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_serif_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_serif_italic
+                else                                                        -> R.layout.widget_tickat_serif
+            }
+            WidgetFont.CONDENSED -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_condensed_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_condensed_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_condensed_italic
+                else                                                        -> R.layout.widget_tickat_condensed
+            }
+            WidgetFont.MONO -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_mono_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_mono_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_mono_italic
+                else                                                        -> R.layout.widget_tickat_mono
+            }
+            else -> when {
+                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
+                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
+                settings.isItalic                                           -> R.layout.widget_tickat_italic
+                else                                                        -> R.layout.widget_tickat
+            }
         }
         val views = RemoteViews(context.packageName, layoutRes)
         // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
