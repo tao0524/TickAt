@@ -95,6 +95,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
@@ -310,16 +314,21 @@ fun SettingsScreen(
             title        = dialogTitle,
             presets      = colorPresets,
             initialColor = currentColor,
-            initialAlpha = draft.bgAlpha,
-            showAlpha    = target == "bg" || target == "date",
+            initialAlpha = when (target) {
+                "bg"       -> draft.bgAlpha
+                "bgColor2" -> draft.bgColor2Alpha
+                "gradEnd"  -> draft.bgGradientEndAlpha
+                else       -> 100
+            },
+            showAlpha    = target == "bg" || target == "date" || target == "bgColor2" || target == "gradEnd",
             onDismiss    = { pickerTarget.value = null },
             onConfirm    = { color, alpha ->
                 draft = when (target) {
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
                     "text"     -> draft.copy(textColor = color)
                     "date"     -> draft.copy(dateTextColor = color)
-                    "gradEnd"  -> draft.copy(bgGradientEnd = color)
-                    else       -> draft.copy(bgColor2 = color)
+                    "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
+                    else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
             }
@@ -691,6 +700,17 @@ fun SettingsScreen(
                         color   = draft.bgColor,
                         onClick = { pickerTarget.value = "bg" }
                     )
+                    AnimatedVisibility(visible = draft.bgType != BackgroundType.TRANSPARENT && draft.bgType != BackgroundType.IMAGE) {
+                        Column {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgAlpha,
+                                    onChange = { draft = draft.copy(bgAlpha = it) }
+                                )
+                            }
+                        }
+                    }
                     AnimatedVisibility(visible = (draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) && draft.gradientColorCount == 3) {
                         Column {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -701,6 +721,13 @@ fun SettingsScreen(
                                 color   = bgColor2Display,
                                 onClick = { pickerTarget.value = "bgColor2" }
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgColor2Alpha,
+                                    onChange = { draft = draft.copy(bgColor2Alpha = it) }
+                                )
+                            }
                         }
                     }
                     AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
@@ -712,6 +739,13 @@ fun SettingsScreen(
                                 color   = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L,
                                 onClick = { pickerTarget.value = "gradEnd" }
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgGradientEndAlpha,
+                                    onChange = { draft = draft.copy(bgGradientEndAlpha = it) }
+                                )
+                            }
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -1576,6 +1610,7 @@ private fun HexInputRow(
 /** 不透明度スライダー行 */
 @Composable
 private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
+    var localValue by remember(alpha) { mutableFloatStateOf(alpha / 100f) }
     Row(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1583,12 +1618,15 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
     ) {
         Text("不透明度", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.width(52.dp))
         Slider(
-            value         = alpha / 100f,
-            onValueChange = { onChange((it * 100).roundToInt()) },
+            value         = localValue,
+            onValueChange = { v ->
+                localValue = v
+                onChange((v * 100).roundToInt())
+            },
             modifier      = Modifier.weight(1f)
         )
         Text(
-            "${alpha}%",
+            "${(localValue * 100).roundToInt()}%",
             color     = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize  = 12.sp,
             textAlign = TextAlign.End,
@@ -1610,7 +1648,8 @@ private fun WidgetPreview(draft: AppSettings) {
         draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
         draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
         draft.cornerStyle, draft.compactBg, draft.bgImageUri,
-        draft.linearStartPoint, draft.gradientCenter
+        draft.linearStartPoint, draft.gradientCenter,
+        draft.bgColor2Alpha, draft.bgGradientEndAlpha
     ) {
         withContext(Dispatchers.IO) {
             bgBitmap = buildBackgroundBitmap(context, draft)

@@ -49,6 +49,8 @@ val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
 val KEY_AM_PM_POSITION         = stringPreferencesKey("am_pm_position")
 val KEY_AM_PM_LABEL            = stringPreferencesKey("am_pm_label")
 val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
+val KEY_BG_COLOR2_ALPHA        = intPreferencesKey("bg_color2_alpha")
+val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -93,7 +95,9 @@ data class AppSettings(
     val showTextShadow:           Boolean            = false,
     val amPmPosition:             AmPmPosition       = AmPmPosition.AFTER,
     val amPmLabel:                AmPmLabel          = AmPmLabel.JAPANESE,
-    val amPmScale:                Float              = 0.55f
+    val amPmScale:                Float              = 0.55f,
+    val bgColor2Alpha:            Int                = 100,
+    val bgGradientEndAlpha:       Int                = 100
 )
 
 class SettingsViewModel(private val context: Context) : ViewModel() {
@@ -150,7 +154,9 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 amPmLabel                = prefs[KEY_AM_PM_LABEL]
                     ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
                     ?: AmPmLabel.JAPANESE,
-                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f
+                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100
             )
         }
         .stateIn(
@@ -192,6 +198,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_AM_PM_POSITION]        = s.amPmPosition.name
                 prefs[KEY_AM_PM_LABEL]           = s.amPmLabel.name
                 prefs[KEY_AM_PM_SCALE]           = s.amPmScale
+                prefs[KEY_BG_COLOR2_ALPHA]       = s.bgColor2Alpha
+                prefs[KEY_BG_GRADIENT_END_ALPHA] = s.bgGradientEndAlpha
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

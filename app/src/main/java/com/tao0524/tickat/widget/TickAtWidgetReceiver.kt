@@ -31,6 +31,8 @@ import com.tao0524.tickat.ui.screen.settings.AmPmPosition
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
 import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
@@ -108,7 +110,9 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 amPmLabel            = prefs[KEY_AM_PM_LABEL]
                     ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
                     ?: AmPmLabel.JAPANESE,
-                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f
+                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100
             )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)

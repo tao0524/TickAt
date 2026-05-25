@@ -4672,6 +4672,669 @@ include(":app")
 </FrameLayout>
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/settings/SettingsViewModel.kt">
+package com.tao0524.tickat.ui.screen.settings
+
+import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.widget.TickAtWidgetReceiver
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+val Context.displaySettingsDataStore by preferencesDataStore(name = "tickat_display_settings")
+
+val KEY_BG_COLOR             = longPreferencesKey("bg_color")
+val KEY_BG_ALPHA             = intPreferencesKey("bg_alpha")
+val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
+val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
+val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
+val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
+val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
+val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
+val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
+val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
+val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
+val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
+val KEY_NOTIFICATION_SOUND    = stringPreferencesKey("notification_sound")
+val KEY_NOTIFICATION_DURATION = intPreferencesKey("notification_duration")
+val KEY_BG_IMAGE_URI           = stringPreferencesKey("bg_image_uri")
+val KEY_GRADIENT_COLOR_COUNT   = intPreferencesKey("gradient_color_count")
+val KEY_BG_COLOR2              = longPreferencesKey("bg_color2")
+val KEY_COMPACT_BG             = booleanPreferencesKey("compact_bg")
+val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
+val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
+val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
+val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
+val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
+val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
+val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
+val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
+val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
+val KEY_AM_PM_POSITION         = stringPreferencesKey("am_pm_position")
+val KEY_AM_PM_LABEL            = stringPreferencesKey("am_pm_label")
+val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
+val KEY_BG_COLOR2_ALPHA        = intPreferencesKey("bg_color2_alpha")
+val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
+enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
+enum class WidgetSize { S, M, L }
+enum class TextWeight { REGULAR, BOLD }
+enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
+enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
+enum class GradientCenter {
+    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
+    CENTER_LEFT, CENTER, CENTER_RIGHT,
+    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+}
+enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
+enum class AmPmPosition { AFTER, BEFORE }
+enum class AmPmLabel    { JAPANESE, ENGLISH }
+
+data class AppSettings(
+    val bgColor:             Long        = 0xFF1C1B1FL,
+    val bgAlpha:             Int         = 100,
+    val bgGradientEnd:       Long        = 0L,
+    val textColor:           Long        = 0xFFE6E1E5L,
+    val use24Hour:           Boolean     = true,
+    val widgetSize:          WidgetSize  = WidgetSize.M,
+    val showTime:            Boolean     = true,
+    val showSeconds:         Boolean     = false,
+    val showDate:            Boolean     = false,
+    val fontWeight:          TextWeight  = TextWeight.BOLD,
+    val cornerStyle:         CornerStyle = CornerStyle.PILL,
+    val dateTextColor:            Long   = 0x99E6E1E5L,
+    val notificationSoundUri:     String = "",
+    val notificationDuration:     Int    = 5,  // 秒
+    val bgImageUri:               String  = "",
+    val gradientColorCount:       Int     = 2,
+    val bgColor2:                 Long    = 0L,
+    val compactBg:                Boolean           = false,
+    val bgType:                   BackgroundType     = BackgroundType.SOLID,
+    val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
+    val clockDateBalance:         Int                = 0,
+    val fontScale:                Float              = 1.0f,
+    val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
+    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
+    val isItalic:                 Boolean            = false,
+    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO,
+    val showTextShadow:           Boolean            = false,
+    val amPmPosition:             AmPmPosition       = AmPmPosition.AFTER,
+    val amPmLabel:                AmPmLabel          = AmPmLabel.JAPANESE,
+    val amPmScale:                Float              = 0.55f,
+    val bgColor2Alpha:            Int                = 100,
+    val bgGradientEndAlpha:       Int                = 100
+)
+
+class SettingsViewModel(private val context: Context) : ViewModel() {
+
+    val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
+        .map { prefs ->
+            AppSettings(
+                bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
+                bgAlpha       = prefs[KEY_BG_ALPHA]          ?: 100,
+                bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
+                textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
+                use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
+                widgetSize   = prefs[KEY_WIDGET_SIZE]
+                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
+                    ?: WidgetSize.M,
+                showTime     = prefs[KEY_SHOW_TIME]    ?: true,
+                showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
+                showDate     = prefs[KEY_SHOW_DATE]    ?: false,
+                fontWeight   = prefs[KEY_FONT_WEIGHT]
+                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                    ?: TextWeight.BOLD,
+                cornerStyle  = prefs[KEY_CORNER_STYLE]
+                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
+                    ?: CornerStyle.PILL,
+                dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                bgColor2                 = prefs[KEY_BG_COLOR2]             ?: 0L,
+                compactBg                = prefs[KEY_COMPACT_BG]            ?: false,
+                bgType                   = prefs[KEY_BG_TYPE]
+                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                    ?: BackgroundType.SOLID,
+                gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
+                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                    ?: GradientDirection.DIAGONAL,
+                clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
+                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
+                gradientCenter           = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT,
+                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily               = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                amPmPosition             = prefs[KEY_AM_PM_POSITION]
+                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                    ?: AmPmPosition.AFTER,
+                amPmLabel                = prefs[KEY_AM_PM_LABEL]
+                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                    ?: AmPmLabel.JAPANESE,
+                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100
+            )
+        }
+        .stateIn(
+            scope        = viewModelScope,
+            started      = SharingStarted.WhileSubscribed(5_000),
+            initialValue = AppSettings()
+        )
+
+    fun save(s: AppSettings) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_BG_COLOR]           = s.bgColor
+                prefs[KEY_BG_ALPHA]           = s.bgAlpha
+                prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd
+                prefs[KEY_TEXT_COLOR]         = s.textColor
+                prefs[KEY_USE_24_HOUR]        = s.use24Hour
+                prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
+                prefs[KEY_SHOW_TIME]          = s.showTime
+                prefs[KEY_SHOW_SECONDS]       = s.showSeconds
+                prefs[KEY_SHOW_DATE]          = s.showDate
+                prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
+                prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
+                prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
+                prefs[KEY_NOTIFICATION_SOUND]    = s.notificationSoundUri
+                prefs[KEY_NOTIFICATION_DURATION] = s.notificationDuration
+                prefs[KEY_BG_IMAGE_URI]          = s.bgImageUri
+                prefs[KEY_GRADIENT_COLOR_COUNT]  = s.gradientColorCount
+                prefs[KEY_BG_COLOR2]             = s.bgColor2
+                prefs[KEY_COMPACT_BG]            = s.compactBg
+                prefs[KEY_BG_TYPE]               = s.bgType.name
+                prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
+                prefs[KEY_CLOCK_DATE_BALANCE]    = s.clockDateBalance
+                prefs[KEY_FONT_SCALE]            = s.fontScale
+                prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
+                prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
+                prefs[KEY_IS_ITALIC]             = s.isItalic
+                prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
+                prefs[KEY_SHOW_TEXT_SHADOW]      = s.showTextShadow
+                prefs[KEY_AM_PM_POSITION]        = s.amPmPosition.name
+                prefs[KEY_AM_PM_LABEL]           = s.amPmLabel.name
+                prefs[KEY_AM_PM_SCALE]           = s.amPmScale
+                prefs[KEY_BG_COLOR2_ALPHA]       = s.bgColor2Alpha
+                prefs[KEY_BG_GRADIENT_END_ALPHA] = s.bgGradientEndAlpha
+            }
+            TickAtWidgetReceiver.updateAll(context, s)
+        }
+    }
+
+    fun reset() = save(AppSettings())
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt">
+package com.tao0524.tickat.widget
+
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.LinearGradient
+import android.graphics.RadialGradient
+import com.tao0524.tickat.ui.screen.settings.BackgroundType
+import com.tao0524.tickat.ui.screen.settings.GradientDirection
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
+import android.graphics.Shader
+import android.net.Uri
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.util.TypedValue
+import android.view.View
+import android.widget.RemoteViews
+import com.tao0524.tickat.MainActivity
+import com.tao0524.tickat.R
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
+import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import android.graphics.Canvas
+import android.graphics.Typeface
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+object TickAtWidget {
+
+    fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+
+        // 背景
+        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
+
+        // Typeface
+        val typefaceStyle = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
+            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
+            settings.isItalic                                           -> Typeface.ITALIC
+            else                                                        -> Typeface.NORMAL
+        }
+        val typeface = when (settings.fontFamily) {
+            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+        }
+
+        // フォントサイズ（px変換）
+        val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
+        val scaledDensity = context.resources.displayMetrics.scaledDensity
+        val clockPx = clockSp * scaledDensity
+        val datePx  = dateSp  * scaledDensity
+
+        // 時刻・日付文字列
+        val now        = Calendar.getInstance()
+        val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+        val timeBitmap = if (settings.use24Hour) {
+            val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        } else {
+            val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+            val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+            val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale)
+        }
+        val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
+
+        // テキストBitmap
+        views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
+        views.setImageViewBitmap(
+            R.id.widget_date_img,
+            buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+        )
+
+        // 時刻の表示/非表示
+        views.setViewVisibility(
+            R.id.widget_time_img,
+            if (settings.showTime) View.VISIBLE else View.GONE
+        )
+        // 日付の表示/非表示（showTime=OFF のときは強制表示）
+        views.setViewVisibility(
+            R.id.widget_date_img,
+            if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
+        )
+
+        // タップ → ExpandedScreen
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("show_expanded", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+
+        return views
+    }
+}
+
+internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float = 1.0f): Pair<Int, Int> {
+    val t       = (balance + 10f) / 20f
+    val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
+    val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
+    return clockSp to dateSp
+}
+
+internal fun buildTextBitmap(
+    text:       String,
+    textSizePx: Float,
+    textColor:  Int,
+    typeface:   Typeface,
+    hasShadow:  Boolean
+): Bitmap {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = textSizePx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val textWidth = paint.measureText(text)
+    val fm        = paint.fontMetrics
+    val pad       = 8f
+    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas    = Canvas(bitmap)
+    canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    return bitmap
+}
+
+internal fun buildTimeWithAmPmBitmap(
+    timeText:    String,
+    amPmText:    String,
+    clockPx:     Float,
+    textColor:   Int,
+    typeface:    Typeface,
+    hasShadow:   Boolean,
+    amPmPosition: AmPmPosition,
+    amPmScale:   Float = 0.55f
+): Bitmap {
+    val pad    = 8f
+    val amPmPx = clockPx * amPmScale
+    val gap    = 6f
+
+    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = clockPx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = amPmPx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(6f, 3f, 3f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+
+    val timeW  = timePaint.measureText(timeText)
+    val amPmW  = amPmPaint.measureText(amPmText)
+    val timeFm = timePaint.fontMetrics
+    val amPmFm = amPmPaint.fontMetrics
+
+    val bitmapW = (timeW + amPmW + gap + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapH = (timeFm.descent - timeFm.ascent + pad * 2).toInt().coerceAtLeast(1)
+
+    val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    val timeBaseline = -timeFm.ascent + pad
+    val amPmH        = -amPmFm.ascent + amPmFm.descent
+    val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
+
+    when (amPmPosition) {
+        AmPmPosition.AFTER  -> {
+            canvas.drawText(timeText, pad, timeBaseline, timePaint)
+            canvas.drawText(amPmText, pad + timeW + gap, amPmBaseline, amPmPaint)
+        }
+        AmPmPosition.BEFORE -> {
+            canvas.drawText(amPmText, pad, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, pad + amPmW + gap, timeBaseline, timePaint)
+        }
+    }
+
+    return bitmap
+}
+
+internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
+    val w = 512
+    val h = 200
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    if (settings.bgType == BackgroundType.TRANSPARENT) return bitmap
+    val canvas = android.graphics.Canvas(bitmap)
+    val r = when (settings.cornerStyle) {
+        CornerStyle.PILL    -> h / 2f
+        CornerStyle.ROUNDED -> h * 0.27f
+        CornerStyle.SOFT    -> h * 0.09f
+        CornerStyle.SQUARE  -> 4f
+    }
+    val topPad = if (settings.compactBg) 20f else 0f
+    val botPad = if (settings.compactBg) 20f else 0f
+    val rect = RectF(0f, topPad, w.toFloat(), h.toFloat() - botPad)
+
+    if (settings.bgImageUri.isNotEmpty()) {
+        runCatching {
+            val uri = Uri.parse(settings.bgImageUri)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val srcBitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            if (srcBitmap != null) {
+                val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                canvas.drawRoundRect(rect, r, r, clipPaint)
+                val xferPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                }
+                val scale = maxOf(w.toFloat() / srcBitmap.width, h.toFloat() / srcBitmap.height)
+                val scaledW = (srcBitmap.width * scale).toInt()
+                val scaledH = (srcBitmap.height * scale).toInt()
+                val scaledBitmap = Bitmap.createScaledBitmap(srcBitmap, scaledW, scaledH, true)
+                val left = (w - scaledW) / 2f
+                val top = (h - scaledH) / 2f
+                canvas.drawBitmap(scaledBitmap, left, top, xferPaint)
+                return bitmap
+            }
+        }
+    }
+
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    val aStart = (settings.bgAlpha            * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aEnd   = (settings.bgGradientEndAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aMid   = (settings.bgColor2Alpha      * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    if (settings.bgType == BackgroundType.LINEAR || settings.bgType == BackgroundType.RADIAL) {
+        val startColor = ((settings.bgColor       and 0x00FFFFFFL).toInt()) or (aStart shl 24)
+        val endColor   = ((settings.bgGradientEnd and 0x00FFFFFFL).toInt()) or (aEnd   shl 24)
+        val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
+        val midColor   = ((settings.bgColor2 and 0x00FFFFFFL).toInt()) or (aMid shl 24)
+        if (settings.bgType == BackgroundType.RADIAL) {
+            val (cx, cy) = when (settings.gradientCenter) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
+                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
+            }
+            val dx     = maxOf(cx, w.toFloat() - cx)
+            val dy     = maxOf(cy, h.toFloat() - cy)
+            val radius = sqrt(dx * dx + dy * dy)
+            paint.shader = if (use3)
+                RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
+        } else {
+            val wf = w.toFloat()
+            val hf = h.toFloat()
+            val (x0, y0) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> wf to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
+                GradientCenter.CENTER        -> 0f to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to hf
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
+                GradientCenter.BOTTOM_RIGHT  -> wf to hf
+            }
+            val (x1, y1) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> wf to hf
+                GradientCenter.TOP_CENTER    -> wf / 2f to hf
+                GradientCenter.TOP_RIGHT     -> 0f to hf
+                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
+                GradientCenter.CENTER        -> wf to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> wf to 0f
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            paint.shader = if (use3)
+                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
+        }
+    } else {
+        val rgb = (settings.bgColor and 0xFFFFFFFFL).toInt() and 0x00FFFFFF
+        paint.color = (aStart shl 24) or rgb
+    }
+    canvas.drawRoundRect(rect, r, r, paint)
+    return bitmap
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.Context
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.BackgroundType
+import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientDirection
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
+import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
+import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
+import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
+import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
+import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_DATE
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
+import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
+import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
+import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetSize
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class TickAtWidgetReceiver : AppWidgetProvider() {
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val prefs = context.displaySettingsDataStore.data.first()
+            val settings = AppSettings(
+                bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
+                bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
+                bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
+                textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
+                use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
+                widgetSize           = prefs[KEY_WIDGET_SIZE]
+                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
+                    ?: WidgetSize.M,
+                showTime             = prefs[KEY_SHOW_TIME]          ?: true,
+                showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
+                showDate             = prefs[KEY_SHOW_DATE]          ?: false,
+                fontWeight           = prefs[KEY_FONT_WEIGHT]
+                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                    ?: TextWeight.BOLD,
+                cornerStyle          = prefs[KEY_CORNER_STYLE]
+                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
+                    ?: CornerStyle.PILL,
+                dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
+                compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
+                bgType               = prefs[KEY_BG_TYPE]
+                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                    ?: BackgroundType.SOLID,
+                gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
+                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                    ?: GradientDirection.DIAGONAL,
+                clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
+                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
+                gradientCenter       = prefs[KEY_GRADIENT_CENTER]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.CENTER,
+                linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
+                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                    ?: GradientCenter.TOP_LEFT,
+                isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
+                fontFamily           = prefs[KEY_FONT_FAMILY]
+                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                amPmPosition         = prefs[KEY_AM_PM_POSITION]
+                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                    ?: AmPmPosition.AFTER,
+                amPmLabel            = prefs[KEY_AM_PM_LABEL]
+                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                    ?: AmPmLabel.JAPANESE,
+                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100
+            )
+            for (id in appWidgetIds) {
+                val opts = appWidgetManager.getAppWidgetOptions(id)
+                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
+                val views = TickAtWidget.buildViews(context, settings, h)
+                appWidgetManager.updateAppWidget(id, views)
+            }
+        }
+    }
+
+    companion object {
+        fun updateAll(context: Context, settings: AppSettings) {
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(
+                android.content.ComponentName(context, TickAtWidgetReceiver::class.java)
+            )
+            if (ids.isEmpty()) return
+            for (id in ids) {
+                val opts = manager.getAppWidgetOptions(id)
+                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
+                val views = TickAtWidget.buildViews(context, settings, h)
+                manager.updateAppWidget(id, views)
+            }
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/settings/SettingsScreen.kt">
 package com.tao0524.tickat.ui.screen.settings
 
@@ -4770,6 +5433,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
@@ -4985,16 +5652,21 @@ fun SettingsScreen(
             title        = dialogTitle,
             presets      = colorPresets,
             initialColor = currentColor,
-            initialAlpha = draft.bgAlpha,
-            showAlpha    = target == "bg" || target == "date",
+            initialAlpha = when (target) {
+                "bg"       -> draft.bgAlpha
+                "bgColor2" -> draft.bgColor2Alpha
+                "gradEnd"  -> draft.bgGradientEndAlpha
+                else       -> 100
+            },
+            showAlpha    = target == "bg" || target == "date" || target == "bgColor2" || target == "gradEnd",
             onDismiss    = { pickerTarget.value = null },
             onConfirm    = { color, alpha ->
                 draft = when (target) {
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
                     "text"     -> draft.copy(textColor = color)
                     "date"     -> draft.copy(dateTextColor = color)
-                    "gradEnd"  -> draft.copy(bgGradientEnd = color)
-                    else       -> draft.copy(bgColor2 = color)
+                    "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
+                    else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
             }
@@ -5366,6 +6038,17 @@ fun SettingsScreen(
                         color   = draft.bgColor,
                         onClick = { pickerTarget.value = "bg" }
                     )
+                    AnimatedVisibility(visible = draft.bgType != BackgroundType.TRANSPARENT && draft.bgType != BackgroundType.IMAGE) {
+                        Column {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgAlpha,
+                                    onChange = { draft = draft.copy(bgAlpha = it) }
+                                )
+                            }
+                        }
+                    }
                     AnimatedVisibility(visible = (draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) && draft.gradientColorCount == 3) {
                         Column {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -5376,6 +6059,13 @@ fun SettingsScreen(
                                 color   = bgColor2Display,
                                 onClick = { pickerTarget.value = "bgColor2" }
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgColor2Alpha,
+                                    onChange = { draft = draft.copy(bgColor2Alpha = it) }
+                                )
+                            }
                         }
                     }
                     AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
@@ -5387,6 +6077,13 @@ fun SettingsScreen(
                                 color   = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L,
                                 onClick = { pickerTarget.value = "gradEnd" }
                             )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                AlphaSliderRow(
+                                    alpha    = draft.bgGradientEndAlpha,
+                                    onChange = { draft = draft.copy(bgGradientEndAlpha = it) }
+                                )
+                            }
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -6251,6 +6948,7 @@ private fun HexInputRow(
 /** 不透明度スライダー行 */
 @Composable
 private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
+    var localValue by remember(alpha) { mutableFloatStateOf(alpha / 100f) }
     Row(
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -6258,12 +6956,15 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
     ) {
         Text("不透明度", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.width(52.dp))
         Slider(
-            value         = alpha / 100f,
-            onValueChange = { onChange((it * 100).roundToInt()) },
+            value         = localValue,
+            onValueChange = { v ->
+                localValue = v
+                onChange((v * 100).roundToInt())
+            },
             modifier      = Modifier.weight(1f)
         )
         Text(
-            "${alpha}%",
+            "${(localValue * 100).roundToInt()}%",
             color     = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize  = 12.sp,
             textAlign = TextAlign.End,
@@ -6285,7 +6986,8 @@ private fun WidgetPreview(draft: AppSettings) {
         draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
         draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
         draft.cornerStyle, draft.compactBg, draft.bgImageUri,
-        draft.linearStartPoint, draft.gradientCenter
+        draft.linearStartPoint, draft.gradientCenter,
+        draft.bgColor2Alpha, draft.bgGradientEndAlpha
     ) {
         withContext(Dispatchers.IO) {
             bgBitmap = buildBackgroundBitmap(context, draft)
@@ -6850,656 +7552,6 @@ private fun RadialCenterPicker(
                         }
                     }
                 }
-            }
-        }
-    }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/settings/SettingsViewModel.kt">
-package com.tao0524.tickat.ui.screen.settings
-
-import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.widget.TickAtWidgetReceiver
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-
-val Context.displaySettingsDataStore by preferencesDataStore(name = "tickat_display_settings")
-
-val KEY_BG_COLOR             = longPreferencesKey("bg_color")
-val KEY_BG_ALPHA             = intPreferencesKey("bg_alpha")
-val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
-val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
-val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
-val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
-val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
-val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
-val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
-val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
-val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
-val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
-val KEY_NOTIFICATION_SOUND    = stringPreferencesKey("notification_sound")
-val KEY_NOTIFICATION_DURATION = intPreferencesKey("notification_duration")
-val KEY_BG_IMAGE_URI           = stringPreferencesKey("bg_image_uri")
-val KEY_GRADIENT_COLOR_COUNT   = intPreferencesKey("gradient_color_count")
-val KEY_BG_COLOR2              = longPreferencesKey("bg_color2")
-val KEY_COMPACT_BG             = booleanPreferencesKey("compact_bg")
-val KEY_BG_TYPE                = stringPreferencesKey("bg_type")
-val KEY_GRADIENT_DIRECTION     = stringPreferencesKey("gradient_direction")
-val KEY_CLOCK_DATE_BALANCE     = intPreferencesKey("clock_date_balance")
-val KEY_FONT_SCALE             = floatPreferencesKey("font_scale")
-val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
-val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
-val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
-val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
-val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
-val KEY_AM_PM_POSITION         = stringPreferencesKey("am_pm_position")
-val KEY_AM_PM_LABEL            = stringPreferencesKey("am_pm_label")
-val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
-enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
-enum class WidgetSize { S, M, L }
-enum class TextWeight { REGULAR, BOLD }
-enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
-enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
-enum class GradientCenter {
-    TOP_LEFT, TOP_CENTER, TOP_RIGHT,
-    CENTER_LEFT, CENTER, CENTER_RIGHT,
-    BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
-}
-enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
-enum class AmPmPosition { AFTER, BEFORE }
-enum class AmPmLabel    { JAPANESE, ENGLISH }
-
-data class AppSettings(
-    val bgColor:             Long        = 0xFF1C1B1FL,
-    val bgAlpha:             Int         = 100,
-    val bgGradientEnd:       Long        = 0L,
-    val textColor:           Long        = 0xFFE6E1E5L,
-    val use24Hour:           Boolean     = true,
-    val widgetSize:          WidgetSize  = WidgetSize.M,
-    val showTime:            Boolean     = true,
-    val showSeconds:         Boolean     = false,
-    val showDate:            Boolean     = false,
-    val fontWeight:          TextWeight  = TextWeight.BOLD,
-    val cornerStyle:         CornerStyle = CornerStyle.PILL,
-    val dateTextColor:            Long   = 0x99E6E1E5L,
-    val notificationSoundUri:     String = "",
-    val notificationDuration:     Int    = 5,  // 秒
-    val bgImageUri:               String  = "",
-    val gradientColorCount:       Int     = 2,
-    val bgColor2:                 Long    = 0L,
-    val compactBg:                Boolean           = false,
-    val bgType:                   BackgroundType     = BackgroundType.SOLID,
-    val gradientDirection:        GradientDirection  = GradientDirection.DIAGONAL,
-    val clockDateBalance:         Int                = 0,
-    val fontScale:                Float              = 1.0f,
-    val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
-    val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
-    val isItalic:                 Boolean            = false,
-    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO,
-    val showTextShadow:           Boolean            = false,
-    val amPmPosition:             AmPmPosition       = AmPmPosition.AFTER,
-    val amPmLabel:                AmPmLabel          = AmPmLabel.JAPANESE,
-    val amPmScale:                Float              = 0.55f
-)
-
-class SettingsViewModel(private val context: Context) : ViewModel() {
-
-    val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
-        .map { prefs ->
-            AppSettings(
-                bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
-                bgAlpha       = prefs[KEY_BG_ALPHA]          ?: 100,
-                bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
-                textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
-                use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
-                widgetSize   = prefs[KEY_WIDGET_SIZE]
-                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                    ?: WidgetSize.M,
-                showTime     = prefs[KEY_SHOW_TIME]    ?: true,
-                showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
-                showDate     = prefs[KEY_SHOW_DATE]    ?: false,
-                fontWeight   = prefs[KEY_FONT_WEIGHT]
-                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
-                    ?: TextWeight.BOLD,
-                cornerStyle  = prefs[KEY_CORNER_STYLE]
-                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                    ?: CornerStyle.PILL,
-                dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
-                notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
-                notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
-                bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
-                gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
-                bgColor2                 = prefs[KEY_BG_COLOR2]             ?: 0L,
-                compactBg                = prefs[KEY_COMPACT_BG]            ?: false,
-                bgType                   = prefs[KEY_BG_TYPE]
-                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
-                    ?: BackgroundType.SOLID,
-                gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
-                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL,
-                clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
-                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
-                gradientCenter           = prefs[KEY_GRADIENT_CENTER]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.CENTER,
-                linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT,
-                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
-                fontFamily               = prefs[KEY_FONT_FAMILY]
-                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO,
-                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
-                amPmPosition             = prefs[KEY_AM_PM_POSITION]
-                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
-                    ?: AmPmPosition.AFTER,
-                amPmLabel                = prefs[KEY_AM_PM_LABEL]
-                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
-                    ?: AmPmLabel.JAPANESE,
-                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f
-            )
-        }
-        .stateIn(
-            scope        = viewModelScope,
-            started      = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AppSettings()
-        )
-
-    fun save(s: AppSettings) {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_BG_COLOR]           = s.bgColor
-                prefs[KEY_BG_ALPHA]           = s.bgAlpha
-                prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd
-                prefs[KEY_TEXT_COLOR]         = s.textColor
-                prefs[KEY_USE_24_HOUR]        = s.use24Hour
-                prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
-                prefs[KEY_SHOW_TIME]          = s.showTime
-                prefs[KEY_SHOW_SECONDS]       = s.showSeconds
-                prefs[KEY_SHOW_DATE]          = s.showDate
-                prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
-                prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
-                prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
-                prefs[KEY_NOTIFICATION_SOUND]    = s.notificationSoundUri
-                prefs[KEY_NOTIFICATION_DURATION] = s.notificationDuration
-                prefs[KEY_BG_IMAGE_URI]          = s.bgImageUri
-                prefs[KEY_GRADIENT_COLOR_COUNT]  = s.gradientColorCount
-                prefs[KEY_BG_COLOR2]             = s.bgColor2
-                prefs[KEY_COMPACT_BG]            = s.compactBg
-                prefs[KEY_BG_TYPE]               = s.bgType.name
-                prefs[KEY_GRADIENT_DIRECTION]    = s.gradientDirection.name
-                prefs[KEY_CLOCK_DATE_BALANCE]    = s.clockDateBalance
-                prefs[KEY_FONT_SCALE]            = s.fontScale
-                prefs[KEY_GRADIENT_CENTER]       = s.gradientCenter.name
-                prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
-                prefs[KEY_IS_ITALIC]             = s.isItalic
-                prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
-                prefs[KEY_SHOW_TEXT_SHADOW]      = s.showTextShadow
-                prefs[KEY_AM_PM_POSITION]        = s.amPmPosition.name
-                prefs[KEY_AM_PM_LABEL]           = s.amPmLabel.name
-                prefs[KEY_AM_PM_SCALE]           = s.amPmScale
-            }
-            TickAtWidgetReceiver.updateAll(context, s)
-        }
-    }
-
-    fun reset() = save(AppSettings())
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt">
-package com.tao0524.tickat.widget
-
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.LinearGradient
-import android.graphics.RadialGradient
-import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.GradientDirection
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.RectF
-import android.graphics.Shader
-import android.net.Uri
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.util.TypedValue
-import android.view.View
-import android.widget.RemoteViews
-import com.tao0524.tickat.MainActivity
-import com.tao0524.tickat.R
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
-import com.tao0524.tickat.ui.screen.settings.GradientCenter
-import com.tao0524.tickat.ui.screen.settings.TextWeight
-import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import android.graphics.Canvas
-import android.graphics.Typeface
-import com.tao0524.tickat.ui.screen.settings.AmPmPosition
-import com.tao0524.tickat.ui.screen.settings.AmPmLabel
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-object TickAtWidget {
-
-    fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
-
-        // 背景
-        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
-
-        // Typeface
-        val typefaceStyle = when {
-            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
-            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
-            settings.isItalic                                           -> Typeface.ITALIC
-            else                                                        -> Typeface.NORMAL
-        }
-        val typeface = when (settings.fontFamily) {
-            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-        }
-
-        // フォントサイズ（px変換）
-        val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
-        val scaledDensity = context.resources.displayMetrics.scaledDensity
-        val clockPx = clockSp * scaledDensity
-        val datePx  = dateSp  * scaledDensity
-
-        // 時刻・日付文字列
-        val now        = Calendar.getInstance()
-        val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
-        val timeBitmap = if (settings.use24Hour) {
-            val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
-            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
-        } else {
-            val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
-            val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
-            val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
-            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale)
-        }
-        val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
-
-        // テキストBitmap
-        views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
-        views.setImageViewBitmap(
-            R.id.widget_date_img,
-            buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
-        )
-
-        // 時刻の表示/非表示
-        views.setViewVisibility(
-            R.id.widget_time_img,
-            if (settings.showTime) View.VISIBLE else View.GONE
-        )
-        // 日付の表示/非表示（showTime=OFF のときは強制表示）
-        views.setViewVisibility(
-            R.id.widget_date_img,
-            if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
-        )
-
-        // タップ → ExpandedScreen
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("show_expanded", true)
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
-
-        return views
-    }
-}
-
-internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float = 1.0f): Pair<Int, Int> {
-    val t       = (balance + 10f) / 20f
-    val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
-    val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
-    return clockSp to dateSp
-}
-
-internal fun buildTextBitmap(
-    text:       String,
-    textSizePx: Float,
-    textColor:  Int,
-    typeface:   Typeface,
-    hasShadow:  Boolean
-): Bitmap {
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = textSizePx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-    val textWidth = paint.measureText(text)
-    val fm        = paint.fontMetrics
-    val pad       = 8f
-    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
-    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
-    val canvas    = Canvas(bitmap)
-    canvas.drawText(text, pad, -fm.ascent + pad, paint)
-    return bitmap
-}
-
-internal fun buildTimeWithAmPmBitmap(
-    timeText:    String,
-    amPmText:    String,
-    clockPx:     Float,
-    textColor:   Int,
-    typeface:    Typeface,
-    hasShadow:   Boolean,
-    amPmPosition: AmPmPosition,
-    amPmScale:   Float = 0.55f
-): Bitmap {
-    val pad    = 8f
-    val amPmPx = clockPx * amPmScale
-    val gap    = 6f
-
-    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = clockPx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = amPmPx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(6f, 3f, 3f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-
-    val timeW  = timePaint.measureText(timeText)
-    val amPmW  = amPmPaint.measureText(amPmText)
-    val timeFm = timePaint.fontMetrics
-    val amPmFm = amPmPaint.fontMetrics
-
-    val bitmapW = (timeW + amPmW + gap + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (timeFm.descent - timeFm.ascent + pad * 2).toInt().coerceAtLeast(1)
-
-    val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val timeBaseline = -timeFm.ascent + pad
-    val amPmH        = -amPmFm.ascent + amPmFm.descent
-    val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
-
-    when (amPmPosition) {
-        AmPmPosition.AFTER  -> {
-            canvas.drawText(timeText, pad, timeBaseline, timePaint)
-            canvas.drawText(amPmText, pad + timeW + gap, amPmBaseline, amPmPaint)
-        }
-        AmPmPosition.BEFORE -> {
-            canvas.drawText(amPmText, pad, amPmBaseline, amPmPaint)
-            canvas.drawText(timeText, pad + amPmW + gap, timeBaseline, timePaint)
-        }
-    }
-
-    return bitmap
-}
-
-internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
-    val w = 512
-    val h = 200
-    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-    if (settings.bgType == BackgroundType.TRANSPARENT) return bitmap
-    val canvas = android.graphics.Canvas(bitmap)
-    val r = when (settings.cornerStyle) {
-        CornerStyle.PILL    -> h / 2f
-        CornerStyle.ROUNDED -> h * 0.27f
-        CornerStyle.SOFT    -> h * 0.09f
-        CornerStyle.SQUARE  -> 4f
-    }
-    val topPad = if (settings.compactBg) 20f else 0f
-    val botPad = if (settings.compactBg) 20f else 0f
-    val rect = RectF(0f, topPad, w.toFloat(), h.toFloat() - botPad)
-
-    if (settings.bgImageUri.isNotEmpty()) {
-        runCatching {
-            val uri = Uri.parse(settings.bgImageUri)
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val srcBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            if (srcBitmap != null) {
-                val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                canvas.drawRoundRect(rect, r, r, clipPaint)
-                val xferPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-                }
-                val scale = maxOf(w.toFloat() / srcBitmap.width, h.toFloat() / srcBitmap.height)
-                val scaledW = (srcBitmap.width * scale).toInt()
-                val scaledH = (srcBitmap.height * scale).toInt()
-                val scaledBitmap = Bitmap.createScaledBitmap(srcBitmap, scaledW, scaledH, true)
-                val left = (w - scaledW) / 2f
-                val top = (h - scaledH) / 2f
-                canvas.drawBitmap(scaledBitmap, left, top, xferPaint)
-                return bitmap
-            }
-        }
-    }
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    val a = (settings.bgAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
-    if (settings.bgType == BackgroundType.LINEAR || settings.bgType == BackgroundType.RADIAL) {
-        val startColor = (settings.bgColor       and 0xFFFFFFFFL).toInt()
-        val endColor   = (settings.bgGradientEnd and 0xFFFFFFFFL).toInt()
-        val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
-        val midColor   = (settings.bgColor2 and 0xFFFFFFFFL).toInt()
-        if (settings.bgType == BackgroundType.RADIAL) {
-            val (cx, cy) = when (settings.gradientCenter) {
-                GradientCenter.TOP_LEFT      -> 0f to 0f
-                GradientCenter.TOP_CENTER    -> w / 2f to 0f
-                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
-                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
-                GradientCenter.CENTER        -> w / 2f to h / 2f
-                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
-                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
-                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
-                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
-            }
-            val dx     = maxOf(cx, w.toFloat() - cx)
-            val dy     = maxOf(cy, h.toFloat() - cy)
-            val radius = sqrt(dx * dx + dy * dy)
-            paint.shader = if (use3)
-                RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-            else
-                RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
-        } else {
-            val wf = w.toFloat()
-            val hf = h.toFloat()
-            val (x0, y0) = when (settings.linearStartPoint) {
-                GradientCenter.TOP_LEFT      -> 0f to 0f
-                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
-                GradientCenter.TOP_RIGHT     -> wf to 0f
-                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
-                GradientCenter.CENTER        -> 0f to hf / 2f
-                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
-                GradientCenter.BOTTOM_LEFT   -> 0f to hf
-                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
-                GradientCenter.BOTTOM_RIGHT  -> wf to hf
-            }
-            val (x1, y1) = when (settings.linearStartPoint) {
-                GradientCenter.TOP_LEFT      -> wf to hf
-                GradientCenter.TOP_CENTER    -> wf / 2f to hf
-                GradientCenter.TOP_RIGHT     -> 0f to hf
-                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
-                GradientCenter.CENTER        -> wf to hf / 2f
-                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
-                GradientCenter.BOTTOM_LEFT   -> wf to 0f
-                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
-                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
-            }
-            paint.shader = if (use3)
-                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-            else
-                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
-        }
-        paint.alpha = a
-    } else {
-        val rgb = (settings.bgColor and 0xFFFFFFFFL).toInt() and 0x00FFFFFF
-        paint.color = (a shl 24) or rgb
-    }
-    canvas.drawRoundRect(rect, r, r, paint)
-    return bitmap
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt">
-package com.tao0524.tickat.widget
-
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
-import android.content.Context
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
-import com.tao0524.tickat.ui.screen.settings.GradientDirection
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
-import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
-import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
-import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
-import com.tao0524.tickat.ui.screen.settings.GradientCenter
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
-import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
-import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
-import com.tao0524.tickat.ui.screen.settings.AmPmPosition
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
-import com.tao0524.tickat.ui.screen.settings.AmPmLabel
-import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_DATE
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
-import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
-import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
-import com.tao0524.tickat.ui.screen.settings.TextWeight
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-
-class TickAtWidgetReceiver : AppWidgetProvider() {
-
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val prefs = context.displaySettingsDataStore.data.first()
-            val settings = AppSettings(
-                bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
-                bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
-                bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
-                textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
-                use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
-                widgetSize           = prefs[KEY_WIDGET_SIZE]
-                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                    ?: WidgetSize.M,
-                showTime             = prefs[KEY_SHOW_TIME]          ?: true,
-                showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
-                showDate             = prefs[KEY_SHOW_DATE]          ?: false,
-                fontWeight           = prefs[KEY_FONT_WEIGHT]
-                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
-                    ?: TextWeight.BOLD,
-                cornerStyle          = prefs[KEY_CORNER_STYLE]
-                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                    ?: CornerStyle.PILL,
-                dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
-                notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
-                notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
-                bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
-                gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
-                bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
-                compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
-                bgType               = prefs[KEY_BG_TYPE]
-                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
-                    ?: BackgroundType.SOLID,
-                gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
-                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL,
-                clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
-                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
-                gradientCenter       = prefs[KEY_GRADIENT_CENTER]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.CENTER,
-                linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT,
-                isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
-                fontFamily           = prefs[KEY_FONT_FAMILY]
-                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO,
-                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
-                amPmPosition         = prefs[KEY_AM_PM_POSITION]
-                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
-                    ?: AmPmPosition.AFTER,
-                amPmLabel            = prefs[KEY_AM_PM_LABEL]
-                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
-                    ?: AmPmLabel.JAPANESE,
-                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f
-            )
-            for (id in appWidgetIds) {
-                val opts = appWidgetManager.getAppWidgetOptions(id)
-                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-                val views = TickAtWidget.buildViews(context, settings, h)
-                appWidgetManager.updateAppWidget(id, views)
-            }
-        }
-    }
-
-    companion object {
-        fun updateAll(context: Context, settings: AppSettings) {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(
-                android.content.ComponentName(context, TickAtWidgetReceiver::class.java)
-            )
-            if (ids.isEmpty()) return
-            for (id in ids) {
-                val opts = manager.getAppWidgetOptions(id)
-                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-                val views = TickAtWidget.buildViews(context, settings, h)
-                manager.updateAppWidget(id, views)
             }
         }
     }

@@ -238,12 +238,14 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
     }
 
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    val a = (settings.bgAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aStart = (settings.bgAlpha            * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aEnd   = (settings.bgGradientEndAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aMid   = (settings.bgColor2Alpha      * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
     if (settings.bgType == BackgroundType.LINEAR || settings.bgType == BackgroundType.RADIAL) {
-        val startColor = (settings.bgColor       and 0xFFFFFFFFL).toInt()
-        val endColor   = (settings.bgGradientEnd and 0xFFFFFFFFL).toInt()
+        val startColor = ((settings.bgColor       and 0x00FFFFFFL).toInt()) or (aStart shl 24)
+        val endColor   = ((settings.bgGradientEnd and 0x00FFFFFFL).toInt()) or (aEnd   shl 24)
         val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
-        val midColor   = (settings.bgColor2 and 0xFFFFFFFFL).toInt()
+        val midColor   = ((settings.bgColor2 and 0x00FFFFFFL).toInt()) or (aMid shl 24)
         if (settings.bgType == BackgroundType.RADIAL) {
             val (cx, cy) = when (settings.gradientCenter) {
                 GradientCenter.TOP_LEFT      -> 0f to 0f
@@ -293,10 +295,9 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
             else
                 LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
         }
-        paint.alpha = a
     } else {
         val rgb = (settings.bgColor and 0xFFFFFFFFL).toInt() and 0x00FFFFFF
-        paint.color = (a shl 24) or rgb
+        paint.color = (aStart shl 24) or rgb
     }
     canvas.drawRoundRect(rect, r, r, paint)
     return bitmap
