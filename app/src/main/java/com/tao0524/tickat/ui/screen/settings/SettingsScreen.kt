@@ -105,6 +105,7 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
+import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -746,7 +747,13 @@ fun SettingsScreen(
                         Column {
                             Text("時間表示形式", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             Text(
-                                if (draft.use24Hour) "24時間制 — 14:32" else "12時間制 — 2:32 PM",
+                                when {
+                                    draft.use24Hour -> "24時間制 — 14:32"
+                                    draft.amPmPosition == AmPmPosition.AFTER && draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 2:32 午後"
+                                    draft.amPmPosition == AmPmPosition.AFTER -> "12時間制 — 2:32 PM"
+                                    draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 午後 2:32"
+                                    else -> "12時間制 — PM 2:32"
+                                },
                                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
                             )
                         }
@@ -757,17 +764,66 @@ fun SettingsScreen(
                         enter   = expandVertically(tween(250)) + fadeIn(tween(250)),
                         exit    = shrinkVertically(tween(200)) + fadeOut(tween(150))
                     ) {
-                        Row(
-                            modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf(true to "24時間制\n14:32", false to "12時間制\n2:32 PM").forEach { (is24, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.use24Hour == is24,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(use24Hour = is24) }
-                                )
+                        Column {
+                            Row(
+                                modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(true to "24時間制\n14:32", false to "12時間制\n2:32 PM").forEach { (is24, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.use24Hour == is24,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(use24Hour = is24) }
+                                    )
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = !draft.use24Hour,
+                                enter   = expandVertically(tween(200)) + fadeIn(tween(200)),
+                                exit    = shrinkVertically(tween(150)) + fadeOut(tween(150))
+                            ) {
+                                Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp)) {
+                                    Text("AM/PM位置", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        listOf(AmPmPosition.BEFORE to "前\n午後 3:52", AmPmPosition.AFTER to "後ろ\n3:52 午後").forEach { (pos, label) ->
+                                            SelectOption(
+                                                label      = label,
+                                                isSelected = draft.amPmPosition == pos,
+                                                modifier   = Modifier.weight(1f),
+                                                onSelect   = { draft = draft.copy(amPmPosition = pos) }
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("AM/PM表記", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        listOf(AmPmLabel.JAPANESE to "日本語\n午前/午後", AmPmLabel.ENGLISH to "英語\nAM/PM").forEach { (lbl, label) ->
+                                            SelectOption(
+                                                label      = label,
+                                                isSelected = draft.amPmLabel == lbl,
+                                                modifier   = Modifier.weight(1f),
+                                                onSelect   = { draft = draft.copy(amPmLabel = lbl) }
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        modifier              = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment     = Alignment.CenterVertically
+                                    ) {
+                                        Text("AM/PMサイズ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                        Text("${(draft.amPmScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                    }
+                                    Slider(
+                                        value         = draft.amPmScale,
+                                        onValueChange = { draft = draft.copy(amPmScale = it) },
+                                        valueRange    = 0.3f..0.8f,
+                                        steps         = 4,
+                                        modifier      = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
                         }
                     }
@@ -1650,15 +1706,19 @@ private fun WidgetPreview(draft: AppSettings) {
                     else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
                 }
                 val now      = java.util.Calendar.getInstance()
-                val timeFmt  = when {
-                    draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
-                    draft.use24Hour                       -> "HH:mm"
-                    else                                  -> "h:mm a"
+                val timeLocale = if (draft.amPmLabel == AmPmLabel.ENGLISH) java.util.Locale.ENGLISH else java.util.Locale.JAPANESE
+                val timeBitmap = if (draft.use24Hour) {
+                    val fmt = if (draft.showSeconds) "HH:mm:ss" else "HH:mm"
+                    buildTextBitmap(java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time), clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow)
+                } else {
+                    val fmt      = if (draft.showSeconds) "h:mm:ss" else "h:mm"
+                    val timeOnly = java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time)
+                    val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
+                    buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale)
                 }
-                val timeText = java.text.SimpleDateFormat(timeFmt, java.util.Locale.getDefault()).format(now.time)
                 val dateText = java.text.SimpleDateFormat("M/d (E)", java.util.Locale.getDefault()).format(now.time)
                 view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
-                    setImageBitmap(buildTextBitmap(timeText, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow))
+                    setImageBitmap(timeBitmap)
                     visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
                 }
                 view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {

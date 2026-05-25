@@ -26,6 +26,11 @@ import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
@@ -96,7 +101,15 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 fontFamily           = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
                     ?: WidgetFont.ROBOTO,
-                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false            )
+                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                amPmPosition         = prefs[KEY_AM_PM_POSITION]
+                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                    ?: AmPmPosition.AFTER,
+                amPmLabel            = prefs[KEY_AM_PM_LABEL]
+                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                    ?: AmPmLabel.JAPANESE,
+                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f
+            )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)
                 val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)

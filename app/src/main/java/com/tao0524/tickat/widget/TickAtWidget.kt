@@ -30,6 +30,8 @@ import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import android.graphics.Canvas
 import android.graphics.Typeface
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -62,21 +64,21 @@ object TickAtWidget {
         val datePx  = dateSp  * scaledDensity
 
         // 時刻・日付文字列
-        val now     = Calendar.getInstance()
-        val timeFmt = when {
-            settings.use24Hour  && settings.showSeconds  -> "HH:mm:ss"
-            settings.use24Hour                           -> "HH:mm"
-            !settings.use24Hour && settings.showSeconds  -> "h:mm a"
-            else                                         -> "h:mm a"
+        val now        = Calendar.getInstance()
+        val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+        val timeBitmap = if (settings.use24Hour) {
+            val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        } else {
+            val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+            val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+            val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale)
         }
-        val timeText = SimpleDateFormat(timeFmt, Locale.getDefault()).format(now.time)
         val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
 
         // テキストBitmap
-        views.setImageViewBitmap(
-            R.id.widget_time_img,
-            buildTextBitmap(timeText, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
-        )
+        views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
         views.setImageViewBitmap(
             R.id.widget_date_img,
             buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
@@ -136,6 +138,62 @@ internal fun buildTextBitmap(
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
     canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    return bitmap
+}
+
+internal fun buildTimeWithAmPmBitmap(
+    timeText:    String,
+    amPmText:    String,
+    clockPx:     Float,
+    textColor:   Int,
+    typeface:    Typeface,
+    hasShadow:   Boolean,
+    amPmPosition: AmPmPosition,
+    amPmScale:   Float = 0.55f
+): Bitmap {
+    val pad    = 8f
+    val amPmPx = clockPx * amPmScale
+    val gap    = 6f
+
+    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = clockPx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = amPmPx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(6f, 3f, 3f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+
+    val timeW  = timePaint.measureText(timeText)
+    val amPmW  = amPmPaint.measureText(amPmText)
+    val timeFm = timePaint.fontMetrics
+    val amPmFm = amPmPaint.fontMetrics
+
+    val bitmapW = (timeW + amPmW + gap + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapH = (timeFm.descent - timeFm.ascent + pad * 2).toInt().coerceAtLeast(1)
+
+    val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    val timeBaseline = -timeFm.ascent + pad
+    val amPmH        = -amPmFm.ascent + amPmFm.descent
+    val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
+
+    when (amPmPosition) {
+        AmPmPosition.AFTER  -> {
+            canvas.drawText(timeText, pad, timeBaseline, timePaint)
+            canvas.drawText(amPmText, pad + timeW + gap, amPmBaseline, amPmPaint)
+        }
+        AmPmPosition.BEFORE -> {
+            canvas.drawText(amPmText, pad, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, pad + amPmW + gap, timeBaseline, timePaint)
+        }
+    }
+
     return bitmap
 }
 

@@ -46,7 +46,9 @@ val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
 val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
 val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
-
+val KEY_AM_PM_POSITION         = stringPreferencesKey("am_pm_position")
+val KEY_AM_PM_LABEL            = stringPreferencesKey("am_pm_label")
+val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -58,6 +60,8 @@ enum class GradientCenter {
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
 enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
+enum class AmPmPosition { AFTER, BEFORE }
+enum class AmPmLabel    { JAPANESE, ENGLISH }
 
 data class AppSettings(
     val bgColor:             Long        = 0xFF1C1B1FL,
@@ -86,8 +90,13 @@ data class AppSettings(
     val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
     val isItalic:                 Boolean            = false,
     val fontFamily:               WidgetFont         = WidgetFont.ROBOTO,
-    val showTextShadow:           Boolean            = false
-)class SettingsViewModel(private val context: Context) : ViewModel() {
+    val showTextShadow:           Boolean            = false,
+    val amPmPosition:             AmPmPosition       = AmPmPosition.AFTER,
+    val amPmLabel:                AmPmLabel          = AmPmLabel.JAPANESE,
+    val amPmScale:                Float              = 0.55f
+)
+
+class SettingsViewModel(private val context: Context) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
         .map { prefs ->
@@ -134,7 +143,14 @@ data class AppSettings(
                 fontFamily               = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
                     ?: WidgetFont.ROBOTO,
-                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false
+                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                amPmPosition             = prefs[KEY_AM_PM_POSITION]
+                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                    ?: AmPmPosition.AFTER,
+                amPmLabel                = prefs[KEY_AM_PM_LABEL]
+                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                    ?: AmPmLabel.JAPANESE,
+                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f
             )
         }
         .stateIn(
@@ -173,6 +189,9 @@ data class AppSettings(
                 prefs[KEY_IS_ITALIC]             = s.isItalic
                 prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
                 prefs[KEY_SHOW_TEXT_SHADOW]      = s.showTextShadow
+                prefs[KEY_AM_PM_POSITION]        = s.amPmPosition.name
+                prefs[KEY_AM_PM_LABEL]           = s.amPmLabel.name
+                prefs[KEY_AM_PM_SCALE]           = s.amPmScale
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
