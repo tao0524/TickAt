@@ -29,6 +29,7 @@ import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_DATE
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
 import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
@@ -60,6 +61,7 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 widgetSize           = prefs[KEY_WIDGET_SIZE]
                     ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
                     ?: WidgetSize.M,
+                showTime             = prefs[KEY_SHOW_TIME]          ?: true,
                 showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
                 showDate             = prefs[KEY_SHOW_DATE]          ?: false,
                 fontWeight           = prefs[KEY_FONT_WEIGHT]

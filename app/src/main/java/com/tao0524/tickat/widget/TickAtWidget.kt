@@ -80,10 +80,15 @@ object TickAtWidget {
         views.setCharSequence(R.id.widget_time, "setFormat24Hour", format)
         views.setCharSequence(R.id.widget_time, "setFormat12Hour", format)
 
-        // 日付の表示/非表示
+        // 時刻の表示/非表示
+        views.setViewVisibility(
+            R.id.widget_time,
+            if (settings.showTime) View.VISIBLE else View.GONE
+        )
+        // 日付の表示/非表示（showTime=OFF のときは強制表示）
         views.setViewVisibility(
             R.id.widget_date,
-            if (settings.showDate) View.VISIBLE else View.GONE
+            if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
         )
 
         // タップ → ExpandedScreen

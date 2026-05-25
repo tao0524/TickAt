@@ -875,6 +875,13 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
+                        label    = "時刻を表示",
+                        sub      = "時刻の表示・非表示",
+                        checked  = draft.showTime,
+                        onToggle = { draft = draft.copy(showTime = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
                         label    = "秒数を表示",
                         sub      = if (draft.showSeconds) "14:32:00" else "14:32",
                         checked  = draft.showSeconds,
@@ -1625,11 +1632,12 @@ private fun WidgetPreview(draft: AppSettings) {
                         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
                         format24Hour = format
                         format12Hour = format
+                        visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
                     }
                     view.findViewById<android.widget.TextClock>(R.id.widget_date)?.apply {
                         setTextColor(draft.dateTextColor.toInt())
                         setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
-                        visibility = if (draft.showDate) android.view.View.VISIBLE else android.view.View.GONE
+                        visibility = if (draft.showDate || !draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
                     }
                     bgBitmap?.let {
                         view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)

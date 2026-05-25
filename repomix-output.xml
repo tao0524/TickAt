@@ -5398,6 +5398,13 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
+                        label    = "時刻を表示",
+                        sub      = "時刻の表示・非表示",
+                        checked  = draft.showTime,
+                        onToggle = { draft = draft.copy(showTime = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
                         label    = "秒数を表示",
                         sub      = if (draft.showSeconds) "14:32:00" else "14:32",
                         checked  = draft.showSeconds,
@@ -6672,6 +6679,7 @@ val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
 val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
 val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
 val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
+val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
 val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
 val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
 val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
@@ -6711,6 +6719,7 @@ data class AppSettings(
     val textColor:           Long        = 0xFFE6E1E5L,
     val use24Hour:           Boolean     = true,
     val widgetSize:          WidgetSize  = WidgetSize.M,
+    val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
     val showDate:            Boolean     = false,
     val fontWeight:          TextWeight  = TextWeight.BOLD,
@@ -6744,6 +6753,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 widgetSize   = prefs[KEY_WIDGET_SIZE]
                     ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
                     ?: WidgetSize.M,
+                showTime     = prefs[KEY_SHOW_TIME]    ?: true,
                 showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
                 showDate     = prefs[KEY_SHOW_DATE]    ?: false,
                 fontWeight   = prefs[KEY_FONT_WEIGHT]
@@ -6794,6 +6804,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_TEXT_COLOR]         = s.textColor
                 prefs[KEY_USE_24_HOUR]        = s.use24Hour
                 prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
+                prefs[KEY_SHOW_TIME]          = s.showTime
                 prefs[KEY_SHOW_SECONDS]       = s.showSeconds
                 prefs[KEY_SHOW_DATE]          = s.showDate
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
@@ -6905,10 +6916,15 @@ object TickAtWidget {
         views.setCharSequence(R.id.widget_time, "setFormat24Hour", format)
         views.setCharSequence(R.id.widget_time, "setFormat12Hour", format)
 
-        // 日付の表示/非表示
+        // 時刻の表示/非表示
+        views.setViewVisibility(
+            R.id.widget_time,
+            if (settings.showTime) View.VISIBLE else View.GONE
+        )
+        // 日付の表示/非表示（showTime=OFF のときは強制表示）
         views.setViewVisibility(
             R.id.widget_date,
-            if (settings.showDate) View.VISIBLE else View.GONE
+            if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
         )
 
         // タップ → ExpandedScreen
@@ -7071,6 +7087,7 @@ import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_DATE
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
 import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
@@ -7102,6 +7119,7 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 widgetSize           = prefs[KEY_WIDGET_SIZE]
                     ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
                     ?: WidgetSize.M,
+                showTime             = prefs[KEY_SHOW_TIME]          ?: true,
                 showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
                 showDate             = prefs[KEY_SHOW_DATE]          ?: false,
                 fontWeight           = prefs[KEY_FONT_WEIGHT]

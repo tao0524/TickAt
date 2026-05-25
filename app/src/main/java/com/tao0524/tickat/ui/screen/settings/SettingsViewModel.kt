@@ -25,6 +25,7 @@ val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
 val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
 val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
 val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
+val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
 val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
 val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
 val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
@@ -64,6 +65,7 @@ data class AppSettings(
     val textColor:           Long        = 0xFFE6E1E5L,
     val use24Hour:           Boolean     = true,
     val widgetSize:          WidgetSize  = WidgetSize.M,
+    val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
     val showDate:            Boolean     = false,
     val fontWeight:          TextWeight  = TextWeight.BOLD,
@@ -97,6 +99,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 widgetSize   = prefs[KEY_WIDGET_SIZE]
                     ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
                     ?: WidgetSize.M,
+                showTime     = prefs[KEY_SHOW_TIME]    ?: true,
                 showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
                 showDate     = prefs[KEY_SHOW_DATE]    ?: false,
                 fontWeight   = prefs[KEY_FONT_WEIGHT]
@@ -147,6 +150,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_TEXT_COLOR]         = s.textColor
                 prefs[KEY_USE_24_HOUR]        = s.use24Hour
                 prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
+                prefs[KEY_SHOW_TIME]          = s.showTime
                 prefs[KEY_SHOW_SECONDS]       = s.showSeconds
                 prefs[KEY_SHOW_DATE]          = s.showDate
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
