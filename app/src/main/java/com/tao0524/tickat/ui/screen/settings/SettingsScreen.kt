@@ -1617,39 +1617,6 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val layoutRes = when (draft.fontFamily) {
-        WidgetFont.SERIF -> when {
-            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_serif_bold_italic
-            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_serif_bold
-            draft.isItalic                                        -> R.layout.widget_tickat_serif_italic
-            else                                                  -> R.layout.widget_tickat_serif
-        }
-        WidgetFont.CONDENSED -> when {
-            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_condensed_bold_italic
-            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_condensed_bold
-            draft.isItalic                                        -> R.layout.widget_tickat_condensed_italic
-            else                                                  -> R.layout.widget_tickat_condensed
-        }
-        WidgetFont.MONO -> when {
-            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_mono_bold_italic
-            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_mono_bold
-            draft.isItalic                                        -> R.layout.widget_tickat_mono_italic
-            else                                                  -> R.layout.widget_tickat_mono
-        }
-        else -> when {
-            draft.fontWeight == TextWeight.BOLD && draft.isItalic -> R.layout.widget_tickat_bold_italic
-            draft.fontWeight == TextWeight.BOLD                   -> R.layout.widget_tickat_bold
-            draft.isItalic                                        -> R.layout.widget_tickat_italic
-            else                                                  -> R.layout.widget_tickat
-        }
-    }
-    val format = when {
-        draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
-        draft.use24Hour && !draft.showSeconds -> "HH:mm"
-        !draft.use24Hour && draft.showSeconds -> "h:mm:ss a"
-        else                                  -> "h:mm a"
-    }
-
     val (actualW, actualH) = remember {
         val manager = android.appwidget.AppWidgetManager.getInstance(context)
         val ids = manager.getAppWidgetIds(
