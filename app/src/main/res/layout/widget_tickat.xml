@@ -28,7 +28,11 @@
             android:format12Hour="h:mm a"
             android:textSize="20sp"
             android:textStyle="normal"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -38,6 +42,10 @@
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>

@@ -104,6 +104,7 @@ import kotlinx.coroutines.withContext
 import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
+import com.tao0524.tickat.widget.buildTextBitmap
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -830,6 +831,13 @@ fun SettingsScreen(
                         sub      = "イタリック体で表示",
                         checked  = draft.isItalic,
                         onToggle = { draft = draft.copy(isItalic = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "テキストシャドウ",
+                        sub      = "文字に影をつける",
+                        checked  = draft.showTextShadow,
+                        onToggle = { draft = draft.copy(showTextShadow = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Row(
@@ -1615,40 +1623,57 @@ private fun WidgetPreview(draft: AppSettings) {
             .background(Color(0xFFC0C0C0)),
         contentAlignment = Alignment.Center
     ) {
-        key(layoutRes) {
-            AndroidView(
-                factory = { ctx ->
-                    LayoutInflater.from(ctx).inflate(layoutRes, null, false).also { view ->
-                        view.layoutParams = android.view.ViewGroup.LayoutParams(
-                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
-                },
-                update = { view ->
-                    val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
-                    view.findViewById<android.widget.TextClock>(R.id.widget_time)?.apply {
-                        setTextColor(draft.textColor.toInt())
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
-                        format24Hour = format
-                        format12Hour = format
-                        visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
-                    }
-                    view.findViewById<android.widget.TextClock>(R.id.widget_date)?.apply {
-                        setTextColor(draft.dateTextColor.toInt())
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
-                        visibility = if (draft.showDate || !draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
-                    }
-                    bgBitmap?.let {
-                        view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
-                    }
-                },
-                modifier = Modifier
-                    .width(actualW.dp)
-                    .height(actualH.dp)
-                    .scale(scale)
-            )
-        }
+        AndroidView(
+            factory = { ctx ->
+                LayoutInflater.from(ctx).inflate(R.layout.widget_tickat_base, null, false).also { view ->
+                    view.layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                }
+            },
+            update = { view ->
+                val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
+                val scaledDensity = view.context.resources.displayMetrics.scaledDensity
+                val clockPx = clockSp * scaledDensity
+                val datePx  = dateSp  * scaledDensity
+                val typefaceStyle = when {
+                    draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
+                    draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
+                    draft.isItalic                                        -> android.graphics.Typeface.ITALIC
+                    else                                                  -> android.graphics.Typeface.NORMAL
+                }
+                val typeface = when (draft.fontFamily) {
+                    WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
+                    WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
+                    WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
+                    else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
+                }
+                val now      = java.util.Calendar.getInstance()
+                val timeFmt  = when {
+                    draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
+                    draft.use24Hour                       -> "HH:mm"
+                    else                                  -> "h:mm a"
+                }
+                val timeText = java.text.SimpleDateFormat(timeFmt, java.util.Locale.getDefault()).format(now.time)
+                val dateText = java.text.SimpleDateFormat("M/d (E)", java.util.Locale.getDefault()).format(now.time)
+                view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
+                    setImageBitmap(buildTextBitmap(timeText, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow))
+                    visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                }
+                view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
+                    setImageBitmap(buildTextBitmap(dateText, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                    visibility = if (draft.showDate || !draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                }
+                bgBitmap?.let {
+                    view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
+                }
+            },
+            modifier = Modifier
+                .width(actualW.dp)
+                .height(actualH.dp)
+                .scale(scale)
+        )
     }
 }
 

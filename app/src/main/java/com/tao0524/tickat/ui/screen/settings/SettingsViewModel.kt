@@ -45,6 +45,7 @@ val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
 val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
+val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -84,9 +85,9 @@ data class AppSettings(
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
     val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
     val isItalic:                 Boolean            = false,
-    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO
-)
-class SettingsViewModel(private val context: Context) : ViewModel() {
+    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO,
+    val showTextShadow:           Boolean            = false
+)class SettingsViewModel(private val context: Context) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
         .map { prefs ->
@@ -132,7 +133,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
                 fontFamily               = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false
             )
         }
         .stateIn(
@@ -170,6 +172,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
                 prefs[KEY_IS_ITALIC]             = s.isItalic
                 prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
+                prefs[KEY_SHOW_TEXT_SHADOW]      = s.showTextShadow
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

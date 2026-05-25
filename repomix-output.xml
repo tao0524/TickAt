@@ -80,6 +80,7 @@ app/src/main/res/drawable/widget_bg_soft.xml
 app/src/main/res/drawable/widget_bg_square.xml
 app/src/main/res/drawable/widget_tickat.xml
 app/src/main/res/layout/tickat_widget_loading.xml
+app/src/main/res/layout/widget_tickat_base.xml
 app/src/main/res/layout/widget_tickat_bold_italic.xml
 app/src/main/res/layout/widget_tickat_bold.xml
 app/src/main/res/layout/widget_tickat_condensed_bold_italic.xml
@@ -127,6 +128,43 @@ settings.gradle.kts
 <files>
 This section contains the contents of the repository's files.
 
+<file path="app/src/main/res/layout/widget_tickat_base.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/widget_time_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <ImageView
+            android:id="@+id/widget_date_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
 <file path="app/src/main/res/layout/widget_tickat_bold_italic.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -158,7 +196,11 @@ This section contains the contents of the repository's files.
             android:format12Hour="h:mm a"
             android:textSize="20sp"
             android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -168,6 +210,10 @@ This section contains the contents of the repository's files.
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -255,7 +301,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="sans-serif-condensed"
             android:textStyle="bold"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -266,6 +316,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="sans-serif-condensed"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -304,7 +358,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="sans-serif-condensed"
             android:textStyle="italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -315,6 +373,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="sans-serif-condensed"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -353,7 +415,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="sans-serif-condensed"
             android:textStyle="normal"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -364,6 +430,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="sans-serif-condensed"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -401,7 +471,11 @@ This section contains the contents of the repository's files.
             android:format12Hour="h:mm a"
             android:textSize="20sp"
             android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -411,6 +485,10 @@ This section contains the contents of the repository's files.
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -449,7 +527,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="monospace"
             android:textStyle="italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -460,6 +542,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="monospace"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -498,7 +584,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="monospace"
             android:textStyle="bold"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -509,6 +599,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="monospace"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -547,7 +641,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="monospace"
             android:textStyle="italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -558,6 +656,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="monospace"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -596,17 +698,24 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="monospace"
             android:textStyle="normal"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
+            android:id="@+id/widget_date"            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:format24Hour="M/d (E)"
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:fontFamily="monospace"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -645,7 +754,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="serif"
             android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -656,6 +769,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="serif"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -694,7 +811,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="serif"
             android:textStyle="bold"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -705,6 +826,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="serif"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -743,7 +868,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="serif"
             android:textStyle="italic"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -754,8 +883,11 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="serif"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
-
     </LinearLayout>
 </FrameLayout>
 </file>
@@ -792,7 +924,11 @@ This section contains the contents of the repository's files.
             android:textSize="20sp"
             android:fontFamily="serif"
             android:textStyle="normal"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -803,6 +939,10 @@ This section contains the contents of the repository's files.
             android:textSize="11sp"
             android:fontFamily="serif"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -3877,6 +4017,10 @@ class CountdownAlarmReceiver : BroadcastReceiver() {
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -3914,7 +4058,11 @@ class CountdownAlarmReceiver : BroadcastReceiver() {
             android:format12Hour="h:mm a"
             android:textSize="20sp"
             android:textStyle="normal"
-            android:textColor="#FFE6E1E5" />
+            android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
 
         <TextClock
             android:id="@+id/widget_date"
@@ -3924,6 +4072,10 @@ class CountdownAlarmReceiver : BroadcastReceiver() {
             android:format12Hour="M/d (E)"
             android:textSize="11sp"
             android:textColor="#FFE6E1E5"
+            android:shadowColor="#80000000"
+            android:shadowDx="0"
+            android:shadowDy="2"
+            android:shadowRadius="4"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -4627,6 +4779,7 @@ import kotlinx.coroutines.withContext
 import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
+import com.tao0524.tickat.widget.buildTextBitmap
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -5353,6 +5506,13 @@ fun SettingsScreen(
                         sub      = "イタリック体で表示",
                         checked  = draft.isItalic,
                         onToggle = { draft = draft.copy(isItalic = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "テキストシャドウ",
+                        sub      = "文字に影をつける",
+                        checked  = draft.showTextShadow,
+                        onToggle = { draft = draft.copy(showTextShadow = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Row(
@@ -6138,39 +6298,57 @@ private fun WidgetPreview(draft: AppSettings) {
             .background(Color(0xFFC0C0C0)),
         contentAlignment = Alignment.Center
     ) {
-        key(layoutRes) {
-            AndroidView(
-                factory = { ctx ->
-                    LayoutInflater.from(ctx).inflate(layoutRes, null, false).also { view ->
-                        view.layoutParams = android.view.ViewGroup.LayoutParams(
-                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                    }
-                },
-                update = { view ->
-                    val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
-                    view.findViewById<android.widget.TextClock>(R.id.widget_time)?.apply {
-                        setTextColor(draft.textColor.toInt())
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
-                        format24Hour = format
-                        format12Hour = format
-                    }
-                    view.findViewById<android.widget.TextClock>(R.id.widget_date)?.apply {
-                        setTextColor(draft.dateTextColor.toInt())
-                        setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
-                        visibility = if (draft.showDate) android.view.View.VISIBLE else android.view.View.GONE
-                    }
-                    bgBitmap?.let {
-                        view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
-                    }
-                },
-                modifier = Modifier
-                    .width(actualW.dp)
-                    .height(actualH.dp)
-                    .scale(scale)
-            )
-        }
+        AndroidView(
+            factory = { ctx ->
+                LayoutInflater.from(ctx).inflate(R.layout.widget_tickat_base, null, false).also { view ->
+                    view.layoutParams = android.view.ViewGroup.LayoutParams(
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                }
+            },
+            update = { view ->
+                val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
+                val scaledDensity = view.context.resources.displayMetrics.scaledDensity
+                val clockPx = clockSp * scaledDensity
+                val datePx  = dateSp  * scaledDensity
+                val typefaceStyle = when {
+                    draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
+                    draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
+                    draft.isItalic                                        -> android.graphics.Typeface.ITALIC
+                    else                                                  -> android.graphics.Typeface.NORMAL
+                }
+                val typeface = when (draft.fontFamily) {
+                    WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
+                    WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
+                    WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
+                    else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
+                }
+                val now      = java.util.Calendar.getInstance()
+                val timeFmt  = when {
+                    draft.use24Hour && draft.showSeconds  -> "HH:mm:ss"
+                    draft.use24Hour                       -> "HH:mm"
+                    else                                  -> "h:mm a"
+                }
+                val timeText = java.text.SimpleDateFormat(timeFmt, java.util.Locale.getDefault()).format(now.time)
+                val dateText = java.text.SimpleDateFormat("M/d (E)", java.util.Locale.getDefault()).format(now.time)
+                view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
+                    setImageBitmap(buildTextBitmap(timeText, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow))
+                    visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                }
+                view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
+                    setImageBitmap(buildTextBitmap(dateText, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                    visibility = if (draft.showDate || !draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                }
+                bgBitmap?.let {
+                    view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
+                }
+            },
+            modifier = Modifier
+                .width(actualW.dp)
+                .height(actualH.dp)
+                .scale(scale)
+        )
     }
 }
 
@@ -6699,6 +6877,7 @@ val KEY_GRADIENT_CENTER        = stringPreferencesKey("gradient_center")
 val KEY_LINEAR_START_POINT     = stringPreferencesKey("linear_start_point")
 val KEY_IS_ITALIC              = booleanPreferencesKey("is_italic")
 val KEY_FONT_FAMILY            = stringPreferencesKey("font_family")
+val KEY_SHOW_TEXT_SHADOW       = booleanPreferencesKey("show_text_shadow")
 
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
@@ -6738,9 +6917,9 @@ data class AppSettings(
     val gradientCenter:           GradientCenter     = GradientCenter.CENTER,
     val linearStartPoint:         GradientCenter     = GradientCenter.TOP_LEFT,
     val isItalic:                 Boolean            = false,
-    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO
-)
-class SettingsViewModel(private val context: Context) : ViewModel() {
+    val fontFamily:               WidgetFont         = WidgetFont.ROBOTO,
+    val showTextShadow:           Boolean            = false
+)class SettingsViewModel(private val context: Context) : ViewModel() {
 
     val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
         .map { prefs ->
@@ -6786,7 +6965,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
                 fontFamily               = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false
             )
         }
         .stateIn(
@@ -6824,6 +7004,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_LINEAR_START_POINT]    = s.linearStartPoint.name
                 prefs[KEY_IS_ITALIC]             = s.isItalic
                 prefs[KEY_FONT_FAMILY]           = s.fontFamily.name
+                prefs[KEY_SHOW_TEXT_SHADOW]      = s.showTextShadow
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }
@@ -6864,66 +7045,68 @@ import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import android.graphics.Canvas
+import android.graphics.Typeface
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = when (settings.fontFamily) {
-            WidgetFont.SERIF -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_serif_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_serif_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_serif_italic
-                else                                                        -> R.layout.widget_tickat_serif
-            }
-            WidgetFont.CONDENSED -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_condensed_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_condensed_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_condensed_italic
-                else                                                        -> R.layout.widget_tickat_condensed
-            }
-            WidgetFont.MONO -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_mono_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_mono_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_mono_italic
-                else                                                        -> R.layout.widget_tickat_mono
-            }
-            else -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_italic
-                else                                                        -> R.layout.widget_tickat
-            }
-        }
-        val views = RemoteViews(context.packageName, layoutRes)
-        // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
+        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+
+        // 背景
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
 
-        // テキスト色
-        views.setTextColor(R.id.widget_time, settings.textColor.toInt())
-        views.setTextColor(R.id.widget_date, settings.dateTextColor.toInt())
+        // Typeface
+        val typefaceStyle = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
+            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
+            settings.isItalic                                           -> Typeface.ITALIC
+            else                                                        -> Typeface.NORMAL
+        }
+        val typeface = when (settings.fontFamily) {
+            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+        }
 
-        // フォントサイズ
+        // フォントサイズ（px変換）
         val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
-        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
-        views.setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
+        val scaledDensity = context.resources.displayMetrics.scaledDensity
+        val clockPx = clockSp * scaledDensity
+        val datePx  = dateSp  * scaledDensity
 
-        // 時刻フォーマット（秒数・12h/24h の組み合わせ）
-        val format = when {
+        // 時刻・日付文字列
+        val now     = Calendar.getInstance()
+        val timeFmt = when {
             settings.use24Hour  && settings.showSeconds  -> "HH:mm:ss"
-            settings.use24Hour  && !settings.showSeconds -> "HH:mm"
-            !settings.use24Hour && settings.showSeconds  -> "h:mm:ss a"
+            settings.use24Hour                           -> "HH:mm"
+            !settings.use24Hour && settings.showSeconds  -> "h:mm a"
             else                                         -> "h:mm a"
         }
-        views.setCharSequence(R.id.widget_time, "setFormat24Hour", format)
-        views.setCharSequence(R.id.widget_time, "setFormat12Hour", format)
+        val timeText = SimpleDateFormat(timeFmt, Locale.getDefault()).format(now.time)
+        val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
+
+        // テキストBitmap
+        views.setImageViewBitmap(
+            R.id.widget_time_img,
+            buildTextBitmap(timeText, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        )
+        views.setImageViewBitmap(
+            R.id.widget_date_img,
+            buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+        )
 
         // 時刻の表示/非表示
         views.setViewVisibility(
-            R.id.widget_time,
+            R.id.widget_time_img,
             if (settings.showTime) View.VISIBLE else View.GONE
         )
         // 日付の表示/非表示（showTime=OFF のときは強制表示）
         views.setViewVisibility(
-            R.id.widget_date,
+            R.id.widget_date_img,
             if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
         )
 
@@ -6947,6 +7130,30 @@ internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float =
     val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
     val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
     return clockSp to dateSp
+}
+
+internal fun buildTextBitmap(
+    text:       String,
+    textSizePx: Float,
+    textColor:  Int,
+    typeface:   Typeface,
+    hasShadow:  Boolean
+): Bitmap {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = textSizePx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val textWidth = paint.measureText(text)
+    val fm        = paint.fontMetrics
+    val pad       = 8f
+    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas    = Canvas(bitmap)
+    canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    return bitmap
 }
 
 internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
@@ -7083,6 +7290,7 @@ import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
 import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
@@ -7152,8 +7360,8 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
                 fontFamily           = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO
-            )
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false            )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)
                 val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)

@@ -28,66 +28,68 @@ import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import android.graphics.Canvas
+import android.graphics.Typeface
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val layoutRes = when (settings.fontFamily) {
-            WidgetFont.SERIF -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_serif_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_serif_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_serif_italic
-                else                                                        -> R.layout.widget_tickat_serif
-            }
-            WidgetFont.CONDENSED -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_condensed_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_condensed_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_condensed_italic
-                else                                                        -> R.layout.widget_tickat_condensed
-            }
-            WidgetFont.MONO -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_mono_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_mono_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_mono_italic
-                else                                                        -> R.layout.widget_tickat_mono
-            }
-            else -> when {
-                settings.fontWeight == TextWeight.BOLD && settings.isItalic -> R.layout.widget_tickat_bold_italic
-                settings.fontWeight == TextWeight.BOLD                      -> R.layout.widget_tickat_bold
-                settings.isItalic                                           -> R.layout.widget_tickat_italic
-                else                                                        -> R.layout.widget_tickat
-            }
-        }
-        val views = RemoteViews(context.packageName, layoutRes)
-        // 背景（グラデーション/ソリッドカラー 統一Bitmap方式）
+        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+
+        // 背景
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
 
-        // テキスト色
-        views.setTextColor(R.id.widget_time, settings.textColor.toInt())
-        views.setTextColor(R.id.widget_date, settings.dateTextColor.toInt())
+        // Typeface
+        val typefaceStyle = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
+            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
+            settings.isItalic                                           -> Typeface.ITALIC
+            else                                                        -> Typeface.NORMAL
+        }
+        val typeface = when (settings.fontFamily) {
+            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+        }
 
-        // フォントサイズ
+        // フォントサイズ（px変換）
         val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
-        views.setTextViewTextSize(R.id.widget_time, TypedValue.COMPLEX_UNIT_SP, clockSp.toFloat())
-        views.setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_SP, dateSp.toFloat())
+        val scaledDensity = context.resources.displayMetrics.scaledDensity
+        val clockPx = clockSp * scaledDensity
+        val datePx  = dateSp  * scaledDensity
 
-        // 時刻フォーマット（秒数・12h/24h の組み合わせ）
-        val format = when {
+        // 時刻・日付文字列
+        val now     = Calendar.getInstance()
+        val timeFmt = when {
             settings.use24Hour  && settings.showSeconds  -> "HH:mm:ss"
-            settings.use24Hour  && !settings.showSeconds -> "HH:mm"
-            !settings.use24Hour && settings.showSeconds  -> "h:mm:ss a"
+            settings.use24Hour                           -> "HH:mm"
+            !settings.use24Hour && settings.showSeconds  -> "h:mm a"
             else                                         -> "h:mm a"
         }
-        views.setCharSequence(R.id.widget_time, "setFormat24Hour", format)
-        views.setCharSequence(R.id.widget_time, "setFormat12Hour", format)
+        val timeText = SimpleDateFormat(timeFmt, Locale.getDefault()).format(now.time)
+        val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
+
+        // テキストBitmap
+        views.setImageViewBitmap(
+            R.id.widget_time_img,
+            buildTextBitmap(timeText, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        )
+        views.setImageViewBitmap(
+            R.id.widget_date_img,
+            buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+        )
 
         // 時刻の表示/非表示
         views.setViewVisibility(
-            R.id.widget_time,
+            R.id.widget_time_img,
             if (settings.showTime) View.VISIBLE else View.GONE
         )
         // 日付の表示/非表示（showTime=OFF のときは強制表示）
         views.setViewVisibility(
-            R.id.widget_date,
+            R.id.widget_date_img,
             if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
         )
 
@@ -111,6 +113,30 @@ internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float =
     val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
     val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
     return clockSp to dateSp
+}
+
+internal fun buildTextBitmap(
+    text:       String,
+    textSizePx: Float,
+    textColor:  Int,
+    typeface:   Typeface,
+    hasShadow:  Boolean
+): Bitmap {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = textSizePx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val textWidth = paint.measureText(text)
+    val fm        = paint.fontMetrics
+    val pad       = 8f
+    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas    = Canvas(bitmap)
+    canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    return bitmap
 }
 
 internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {

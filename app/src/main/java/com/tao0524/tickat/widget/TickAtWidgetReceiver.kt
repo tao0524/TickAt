@@ -25,6 +25,7 @@ import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
 import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
 import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
 import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
@@ -94,8 +95,8 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
                 isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
                 fontFamily           = prefs[KEY_FONT_FAMILY]
                     ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO
-            )
+                    ?: WidgetFont.ROBOTO,
+                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false            )
             for (id in appWidgetIds) {
                 val opts = appWidgetManager.getAppWidgetOptions(id)
                 val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
