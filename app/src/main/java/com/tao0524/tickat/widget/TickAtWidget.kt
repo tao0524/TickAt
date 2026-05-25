@@ -75,14 +75,32 @@ object TickAtWidget {
             val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
             buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
         }
-        val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
+        val datePart    = if (settings.dateFormat.isNotEmpty())
+            SimpleDateFormat(settings.dateFormat, Locale.getDefault()).format(now.time)
+        else ""
+        val weekdayPart = if (settings.weekdayFormat.isNotEmpty())
+            SimpleDateFormat(settings.weekdayFormat, Locale.getDefault()).format(now.time)
+        else ""
+        val dateText = when {
+            weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
+                if (settings.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
+                else "$weekdayPart, $datePart"
+            weekdayPart.isNotEmpty() -> weekdayPart
+            datePart.isNotEmpty()    -> datePart
+            else                     -> ""
+        }
+        val fallbackDate = if (dateText.isEmpty() && !settings.showTime)
+            SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
+        val displayDate = dateText.ifEmpty { fallbackDate }
 
         // テキストBitmap
         views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
-        views.setImageViewBitmap(
-            R.id.widget_date_img,
-            buildTextBitmap(dateText, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
-        )
+        if (displayDate.isNotEmpty()) {
+            views.setImageViewBitmap(
+                R.id.widget_date_img,
+                buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+            )
+        }
 
         // 時刻の表示/非表示
         views.setViewVisibility(
@@ -92,7 +110,7 @@ object TickAtWidget {
         // 日付の表示/非表示（showTime=OFF のときは強制表示）
         views.setViewVisibility(
             R.id.widget_date_img,
-            if (settings.showDate || !settings.showTime) View.VISIBLE else View.GONE
+            if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE
         )
 
         // タップ → ExpandedScreen

@@ -27,7 +27,9 @@ val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
 val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
 val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
 val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
-val KEY_SHOW_DATE            = booleanPreferencesKey("show_date")
+val KEY_DATE_FORMAT          = stringPreferencesKey("date_format")
+val KEY_WEEKDAY_FORMAT       = stringPreferencesKey("weekday_format")
+val KEY_DATE_WEEKDAY_ORDER   = stringPreferencesKey("date_weekday_order")
 val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
 val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
 val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
@@ -75,7 +77,9 @@ data class AppSettings(
     val widgetSize:          WidgetSize  = WidgetSize.M,
     val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
-    val showDate:            Boolean     = false,
+    val dateFormat:          String      = "",
+    val weekdayFormat:       String      = "",
+    val dateWeekdayOrder:    String      = "WEEKDAY_FIRST",
     val fontWeight:          TextWeight  = TextWeight.BOLD,
     val cornerStyle:         CornerStyle = CornerStyle.PILL,
     val dateTextColor:            Long   = 0x99E6E1E5L,
@@ -117,7 +121,9 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?: WidgetSize.M,
                 showTime     = prefs[KEY_SHOW_TIME]    ?: true,
                 showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
-                showDate     = prefs[KEY_SHOW_DATE]    ?: false,
+                dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
+                weekdayFormat    = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
+                dateWeekdayOrder = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
                 fontWeight   = prefs[KEY_FONT_WEIGHT]
                     ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                     ?: TextWeight.BOLD,
@@ -179,7 +185,9 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
                 prefs[KEY_SHOW_TIME]          = s.showTime
                 prefs[KEY_SHOW_SECONDS]       = s.showSeconds
-                prefs[KEY_SHOW_DATE]          = s.showDate
+                prefs[KEY_DATE_FORMAT]        = s.dateFormat
+                prefs[KEY_WEEKDAY_FORMAT]     = s.weekdayFormat
+                prefs[KEY_DATE_WEEKDAY_ORDER] = s.dateWeekdayOrder
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
                 prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
                 prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor

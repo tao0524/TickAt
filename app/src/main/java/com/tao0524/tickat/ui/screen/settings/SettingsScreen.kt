@@ -997,12 +997,52 @@ fun SettingsScreen(
                         onToggle = { draft = draft.copy(showSeconds = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "日付を表示",
-                        sub      = "5/14 (木) を時刻の下に表示",
-                        checked  = draft.showDate,
-                        onToggle = { draft = draft.copy(showDate = it) }
-                    )
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("" to "なし", "M月d日" to "5月25日", "MM/dd" to "05/25", "M/d" to "5/25").forEach { (fmt, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.dateFormat == fmt,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(dateFormat = fmt) }
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("曜日の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            listOf("" to "なし", "EEE" to "月", "(EEE)" to "(月)", "EEEE" to "月曜日").forEach { (fmt, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.weekdayFormat == fmt,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(weekdayFormat = fmt) }
+                                )
+                            }
+                        }
+                        AnimatedVisibility(visible = draft.dateFormat.isNotEmpty() && draft.weekdayFormat.isNotEmpty()) {
+                            val weekdayExample = java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(java.util.Date())
+                            val dateExample    = java.text.SimpleDateFormat(draft.dateFormat,    java.util.Locale.getDefault()).format(java.util.Date())
+                            val preview = if (draft.dateWeekdayOrder == "DATE_FIRST") "$dateExample, $weekdayExample" else "$weekdayExample, $dateExample"
+                            Row(
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier              = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp)
+                            ) {
+                                Text(preview, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                TextButton(onClick = {
+                                    draft = draft.copy(
+                                        dateWeekdayOrder = if (draft.dateWeekdayOrder == "WEEKDAY_FIRST") "DATE_FIRST" else "WEEKDAY_FIRST"
+                                    )
+                                }) {
+                                    Text("⇄ 入れ替え", fontSize = 13.sp)
+                                }
+                            }
+                        }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
                         label    = "コンパクトな背景",
@@ -1733,14 +1773,30 @@ private fun WidgetPreview(draft: AppSettings) {
                     val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
                     buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale, if (draft.amPmColor != 0L) draft.amPmColor.toInt() else draft.textColor.toInt())
                 }
-                val dateText = java.text.SimpleDateFormat("M/d (E)", java.util.Locale.getDefault()).format(now.time)
+                val datePart    = if (draft.dateFormat.isNotEmpty())
+                    java.text.SimpleDateFormat(draft.dateFormat, java.util.Locale.getDefault()).format(now.time)
+                else ""
+                val weekdayPart = if (draft.weekdayFormat.isNotEmpty())
+                    java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(now.time)
+                else ""
+                val dateText = when {
+                    weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
+                        if (draft.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
+                        else "$weekdayPart, $datePart"
+                    weekdayPart.isNotEmpty() -> weekdayPart
+                    datePart.isNotEmpty()    -> datePart
+                    else                     -> ""
+                }
+                val fallbackDate = if (dateText.isEmpty() && !draft.showTime)
+                    java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault()).format(now.time) else ""
+                val displayDate = dateText.ifEmpty { fallbackDate }
                 view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
                     setImageBitmap(timeBitmap)
                     visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
                 }
                 view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
-                    setImageBitmap(buildTextBitmap(dateText, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
-                    visibility = if (draft.showDate || !draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                    if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                    visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 }
                 bgBitmap?.let {
                     view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
@@ -1781,7 +1837,7 @@ private fun FontSizePickerDialog(
                     color      = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(16.dp))
-                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, showDate = true))
+                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, dateFormat = "M月d日"))
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
