@@ -51,6 +51,7 @@ val KEY_AM_PM_LABEL            = stringPreferencesKey("am_pm_label")
 val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
 val KEY_BG_COLOR2_ALPHA        = intPreferencesKey("bg_color2_alpha")
 val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
+val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -97,7 +98,8 @@ data class AppSettings(
     val amPmLabel:                AmPmLabel          = AmPmLabel.JAPANESE,
     val amPmScale:                Float              = 0.55f,
     val bgColor2Alpha:            Int                = 100,
-    val bgGradientEndAlpha:       Int                = 100
+    val bgGradientEndAlpha:       Int                = 100,
+    val amPmColor:                Long               = 0L
 )
 
 class SettingsViewModel(private val context: Context) : ViewModel() {
@@ -156,7 +158,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                     ?: AmPmLabel.JAPANESE,
                 amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
                 bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
-                bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100
+                bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
+                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L
             )
         }
         .stateIn(
@@ -200,6 +203,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_AM_PM_SCALE]           = s.amPmScale
                 prefs[KEY_BG_COLOR2_ALPHA]       = s.bgColor2Alpha
                 prefs[KEY_BG_GRADIENT_END_ALPHA] = s.bgGradientEndAlpha
+                prefs[KEY_AM_PM_COLOR]           = s.amPmColor
             }
             TickAtWidgetReceiver.updateAll(context, s)
         }

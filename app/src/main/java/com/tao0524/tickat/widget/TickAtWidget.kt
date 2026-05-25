@@ -73,7 +73,7 @@ object TickAtWidget {
             val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
             val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
             val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
-            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale)
+            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
         }
         val dateText = SimpleDateFormat("M/d (E)", Locale.getDefault()).format(now.time)
 
@@ -149,11 +149,13 @@ internal fun buildTimeWithAmPmBitmap(
     typeface:    Typeface,
     hasShadow:   Boolean,
     amPmPosition: AmPmPosition,
-    amPmScale:   Float = 0.55f
+    amPmScale:   Float = 0.55f,
+    amPmColor:   Int = 0
 ): Bitmap {
-    val pad    = 8f
-    val amPmPx = clockPx * amPmScale
-    val gap    = 6f
+    val pad         = 8f
+    val amPmPx      = clockPx * amPmScale
+    val gap         = 6f
+    val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
 
     val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.typeface = typeface
@@ -164,8 +166,8 @@ internal fun buildTimeWithAmPmBitmap(
     val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.typeface = typeface
         this.textSize = amPmPx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(6f, 3f, 3f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+        this.color    = resolvedAmPmColor
+        if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
 
     val timeW  = timePaint.measureText(timeText)

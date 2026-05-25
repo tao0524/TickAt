@@ -301,6 +301,7 @@ fun SettingsScreen(
             "text"     -> draft.textColor
             "date"     -> draft.dateTextColor
             "gradEnd"  -> if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L
+            "amPm"     -> if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor
             else       -> if (draft.bgColor2 != 0L) draft.bgColor2 else 0xFF808080L
         }
         val dialogTitle = when (target) {
@@ -308,6 +309,7 @@ fun SettingsScreen(
             "text"     -> "テキスト色"
             "date"     -> "日付・秒数テキスト色"
             "gradEnd"  -> "グラデーション終了色"
+            "amPm"     -> "AM/PMテキスト色"
             else       -> "背景色2"
         }
         ColorPickerDialog(
@@ -328,6 +330,7 @@ fun SettingsScreen(
                     "text"     -> draft.copy(textColor = color)
                     "date"     -> draft.copy(dateTextColor = color)
                     "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
+                    "amPm"     -> draft.copy(amPmColor = color)
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
@@ -856,6 +859,14 @@ fun SettingsScreen(
                                         valueRange    = 0.3f..0.8f,
                                         steps         = 4,
                                         modifier      = Modifier.fillMaxWidth()
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("AM/PMテキスト色", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                    ColorRow(
+                                        label   = if (draft.amPmColor != 0L) "カスタム" else "テキスト色と同じ",
+                                        sub     = if (draft.amPmColor != 0L) "" else "テキスト色に連動します",
+                                        color   = if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor,
+                                        onClick = { pickerTarget.value = "amPm" }
                                     )
                                 }
                             }
@@ -1720,7 +1731,7 @@ private fun WidgetPreview(draft: AppSettings) {
                     val fmt      = if (draft.showSeconds) "h:mm:ss" else "h:mm"
                     val timeOnly = java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time)
                     val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
-                    buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale)
+                    buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale, if (draft.amPmColor != 0L) draft.amPmColor.toInt() else draft.textColor.toInt())
                 }
                 val dateText = java.text.SimpleDateFormat("M/d (E)", java.util.Locale.getDefault()).format(now.time)
                 view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
