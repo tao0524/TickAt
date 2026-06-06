@@ -5474,7 +5474,6 @@ import kotlin.math.roundToInt
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
