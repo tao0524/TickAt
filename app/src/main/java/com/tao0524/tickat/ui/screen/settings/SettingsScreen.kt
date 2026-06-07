@@ -109,6 +109,7 @@ import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
+import androidx.compose.foundation.text.KeyboardActions
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -995,6 +996,64 @@ fun SettingsScreen(
                         checked  = draft.showSeconds,
                         onToggle = { draft = draft.copy(showSeconds = it) }
                     )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        val offsetLabel = when {
+                            draft.timeOffset > 0 -> "+${draft.timeOffset}ms"
+                            draft.timeOffset < 0 -> "${draft.timeOffset}ms"
+                            else                 -> "0ms（補正なし）"
+                        }
+                        var offsetInput by remember(draft.timeOffset) { mutableStateOf(draft.timeOffset.toString()) }
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            Text("時刻の微調整", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                            Text(offsetLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Slider(
+                            value         = draft.timeOffset.toFloat(),
+                            onValueChange = { draft = draft.copy(timeOffset = it.toInt()) },
+                            valueRange    = -2000f..2000f,
+                            steps         = 39,
+                            modifier      = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value         = offsetInput,
+                                onValueChange = { offsetInput = it },
+                                label           = { Text("ms", fontSize = 11.sp) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = {
+                                    val v = offsetInput.toIntOrNull()
+                                    if (v != null) draft = draft.copy(timeOffset = v.coerceIn(-2000, 2000))
+                                    else offsetInput = draft.timeOffset.toString()
+                                }),
+                                singleLine      = true,
+                                modifier        = Modifier.width(100.dp)
+                            )
+                        }
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "表示が世界時計より早い場合はマイナス方向に調整してください",
+                                fontSize = 10.sp,
+                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = { draft = draft.copy(timeOffset = 0) }) {
+                                Text("リセット", fontSize = 12.sp)
+                            }
+                        }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))

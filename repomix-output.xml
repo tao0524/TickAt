@@ -72,6 +72,7 @@ app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt
 app/src/main/java/com/tao0524/tickat/widget/CountdownAlarmReceiver.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt
+app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt
 app/src/main/res/drawable/ic_launcher_background.xml
 app/src/main/res/drawable/ic_launcher_foreground.xml
 app/src/main/res/drawable/widget_bg_pill.xml
@@ -81,22 +82,6 @@ app/src/main/res/drawable/widget_bg_square.xml
 app/src/main/res/drawable/widget_tickat.xml
 app/src/main/res/layout/tickat_widget_loading.xml
 app/src/main/res/layout/widget_tickat_base.xml
-app/src/main/res/layout/widget_tickat_bold_italic.xml
-app/src/main/res/layout/widget_tickat_bold.xml
-app/src/main/res/layout/widget_tickat_condensed_bold_italic.xml
-app/src/main/res/layout/widget_tickat_condensed_bold.xml
-app/src/main/res/layout/widget_tickat_condensed_italic.xml
-app/src/main/res/layout/widget_tickat_condensed.xml
-app/src/main/res/layout/widget_tickat_italic.xml
-app/src/main/res/layout/widget_tickat_mono_bold_italic.xml
-app/src/main/res/layout/widget_tickat_mono_bold.xml
-app/src/main/res/layout/widget_tickat_mono_italic.xml
-app/src/main/res/layout/widget_tickat_mono.xml
-app/src/main/res/layout/widget_tickat_serif_bold_italic.xml
-app/src/main/res/layout/widget_tickat_serif_bold.xml
-app/src/main/res/layout/widget_tickat_serif_italic.xml
-app/src/main/res/layout/widget_tickat_serif.xml
-app/src/main/res/layout/widget_tickat.xml
 app/src/main/res/mipmap-hdpi/ic_launcher_round.png
 app/src/main/res/mipmap-hdpi/ic_launcher.png
 app/src/main/res/mipmap-mdpi/ic_launcher_round.png
@@ -127,6 +112,300 @@ settings.gradle.kts
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt">
+package com.tao0524.tickat.widget
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.appwidget.AppWidgetManager
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Typeface
+import android.os.IBinder
+import android.util.TypedValue
+import androidx.core.app.NotificationCompat
+import com.tao0524.tickat.R
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.BackgroundType
+import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.GradientDirection
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_TIME_OFFSET
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
+import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
+import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
+import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_WEEKDAY_ORDER
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
+import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
+import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
+import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
+import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
+import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
+import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import com.tao0524.tickat.ui.screen.settings.WidgetSize
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+class WidgetUpdateService : Service() {
+
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var tickJob: Job? = null
+    private var settingsJob: Job? = null
+    private var isScreenOn = true
+
+    @Volatile private var cachedSettings: AppSettings = AppSettings()
+    @Volatile private var cachedTypeface: Typeface = Typeface.DEFAULT
+    @Volatile private var cachedClockPx: Float = 0f
+    @Volatile private var cachedDatePx: Float = 0f
+    @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
+    @Volatile private var isFullRedrawNeeded: Boolean = true
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    isScreenOn = true
+                    isFullRedrawNeeded = true
+                    startTicking()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    isScreenOn = false
+                    stopTicking()
+                }
+                Intent.ACTION_TIME_TICK -> {
+                    if (isScreenOn && (tickJob == null || tickJob?.isActive == false)) {
+                        startTicking()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        startForegroundWithNotification()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_TIME_TICK)
+        }
+        registerReceiver(screenReceiver, filter)
+        startSettingsObserver()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopTicking()
+        settingsJob?.cancel()
+        unregisterReceiver(screenReceiver)
+        serviceScope.cancel()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun startSettingsObserver() {
+        settingsJob = serviceScope.launch {
+            displaySettingsDataStore.data.collect { prefs ->
+                val newSettings = AppSettings(
+                    bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
+                    bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
+                    bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
+                    textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
+                    use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
+                    widgetSize           = prefs[KEY_WIDGET_SIZE]
+                        ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
+                        ?: WidgetSize.M,
+                    showTime             = prefs[KEY_SHOW_TIME]          ?: true,
+                    showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
+                    dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
+                    weekdayFormat        = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
+                    dateWeekdayOrder     = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
+                    fontWeight           = prefs[KEY_FONT_WEIGHT]
+                        ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                        ?: TextWeight.BOLD,
+                    cornerStyle          = prefs[KEY_CORNER_STYLE]
+                        ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
+                        ?: CornerStyle.PILL,
+                    dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                    notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                    notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                    bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                    gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                    bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
+                    compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
+                    bgType               = prefs[KEY_BG_TYPE]
+                        ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                        ?: BackgroundType.SOLID,
+                    gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
+                        ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                        ?: GradientDirection.DIAGONAL,
+                    clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
+                    fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
+                    gradientCenter       = prefs[KEY_GRADIENT_CENTER]
+                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                        ?: GradientCenter.CENTER,
+                    linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
+                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                        ?: GradientCenter.TOP_LEFT,
+                    isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
+                    fontFamily           = prefs[KEY_FONT_FAMILY]
+                        ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                        ?: WidgetFont.ROBOTO,
+                    showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                    amPmPosition         = prefs[KEY_AM_PM_POSITION]
+                        ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                        ?: AmPmPosition.AFTER,
+                    amPmLabel            = prefs[KEY_AM_PM_LABEL]
+                        ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                        ?: AmPmLabel.JAPANESE,
+                    amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                    bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                    bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
+                    amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
+                    timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0
+                )
+                val typefaceStyle = when {
+                    newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
+                    newSettings.fontWeight == TextWeight.BOLD                         -> Typeface.BOLD
+                    newSettings.isItalic                                              -> Typeface.ITALIC
+                    else                                                              -> Typeface.NORMAL
+                }
+                cachedTypeface = when (newSettings.fontFamily) {
+                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+                    WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+                    WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+                    else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+                }
+                val scaledDensity = resources.displayMetrics.scaledDensity
+                val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
+                val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
+                val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
+                val (clockSp, dateSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale)
+                val isFirstLoad = cachedClockPx == 0f
+                cachedClockPx = clockSp * scaledDensity
+                cachedDatePx  = dateSp  * scaledDensity
+                cachedBgBitmap = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
+                val prevShowSeconds = cachedSettings.showSeconds
+                cachedSettings = newSettings
+                isFullRedrawNeeded = true
+                if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
+                    startTicking()
+                }
+            }
+        }
+    }
+
+    private fun startTicking() {
+        tickJob?.cancel()
+        isFullRedrawNeeded = true
+        tickJob = serviceScope.launch {
+            val initialDelay = 1000L - (System.currentTimeMillis() % 1000L)
+            delay(initialDelay.coerceAtLeast(0L))
+            while (isActive) {
+                updateWidgets()
+                val nextDelay = 1000L - (System.currentTimeMillis() % 1000L)
+                delay(if (cachedSettings.showSeconds) nextDelay.coerceAtLeast(1L) else 60_000L)
+            }
+        }
+    }
+
+    private fun stopTicking() {
+        tickJob?.cancel()
+        tickJob = null
+    }
+
+    private fun updateWidgets() {
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(
+            ComponentName(this, TickAtWidgetReceiver::class.java)
+        )
+        if (ids.isEmpty()) {
+            stopSelf()
+            return
+        }
+        val settings = cachedSettings
+        for (id in ids) {
+            val opts = manager.getAppWidgetOptions(id)
+            val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
+            if (isFullRedrawNeeded) {
+                val views = TickAtWidget.buildViews(this, settings, h)
+                manager.updateAppWidget(id, views)
+            } else {
+                val views = buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
+                manager.updateAppWidget(id, views)
+            }
+        }
+        isFullRedrawNeeded = false
+    }
+
+    private fun startForegroundWithNotification() {
+        val channelId = "tickat_widget_update"
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(channelId) == null) {
+            val channel = NotificationChannel(
+                channelId,
+                "ウィジェット更新",
+                NotificationManager.IMPORTANCE_MIN
+            ).apply {
+                setShowBadge(false)
+                setSound(null, null)
+            }
+            manager.createNotificationChannel(channel)
+        }
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("TickAt")
+            .setContentText("ウィジェットを更新中")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setSilent(true)
+            .build()
+        startForeground(1001, notification)
+    }
+}
+</file>
 
 <file path=".gitignore">
 *.iml
@@ -277,6 +556,8 @@ class ExampleInstrumentedTest {
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:allowBackup="true"
@@ -313,6 +594,15 @@ class ExampleInstrumentedTest {
         <receiver
             android:name=".widget.CountdownAlarmReceiver"
             android:exported="false" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
 
     </application>
 
@@ -3192,790 +3482,6 @@ class CountdownAlarmReceiver : BroadcastReceiver() {
 </FrameLayout>
 </file>
 
-<file path="app/src/main/res/layout/widget_tickat_bold_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_condensed_bold_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="italic"
-            android:textColor="#FFE6E1E5" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textColor="#FFE6E1E5"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_condensed_bold.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="bold"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_condensed_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_condensed.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textStyle="normal"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="sans-serif-condensed"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_mono_bold_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="monospace"
-            android:textStyle="italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_mono_bold.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="monospace"
-            android:textStyle="bold"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_mono_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="monospace"
-            android:textStyle="italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_mono.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="monospace"
-            android:textStyle="normal"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="monospace"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_serif_bold_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="serif"
-            android:textStyle="bold|italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="serif"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_serif_bold.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="serif"
-            android:textStyle="bold"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="serif"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_serif_italic.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="serif"
-            android:textStyle="italic"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="serif"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_serif.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:fontFamily="serif"
-            android:textStyle="normal"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:fontFamily="serif"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
 <file path="app/src/main/res/values/colors.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -4566,112 +4072,6 @@ rootProject.name = "TickAt"
 include(":app")
 </file>
 
-<file path="app/src/main/res/layout/widget_tickat_bold.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="#FFE6E1E5" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:src="@drawable/widget_bg_pill"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <TextClock
-            android:id="@+id/widget_time"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="HH:mm"
-            android:format12Hour="h:mm a"
-            android:textSize="20sp"
-            android:textStyle="normal"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4" />
-
-        <TextClock
-            android:id="@+id/widget_date"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:format24Hour="M/d (E)"
-            android:format12Hour="M/d (E)"
-            android:textSize="11sp"
-            android:textColor="#FFE6E1E5"
-            android:shadowColor="#80000000"
-            android:shadowDx="0"
-            android:shadowDy="2"
-            android:shadowRadius="4"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/settings/SettingsViewModel.kt">
 package com.tao0524.tickat.ui.screen.settings
 
@@ -4729,6 +4129,7 @@ val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
 val KEY_BG_COLOR2_ALPHA        = intPreferencesKey("bg_color2_alpha")
 val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
 val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
+val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -4778,7 +4179,8 @@ data class AppSettings(
     val amPmScale:                Float              = 0.55f,
     val bgColor2Alpha:            Int                = 100,
     val bgGradientEndAlpha:       Int                = 100,
-    val amPmColor:                Long               = 0L
+    val amPmColor:                Long               = 0L,
+    val timeOffset:               Int                = 0
 )
 
 class SettingsViewModel(private val context: Context) : ViewModel() {
@@ -4840,7 +4242,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
                 bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
                 bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
-                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L
+                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L,
+                timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0
             )
         }
         .stateIn(
@@ -4887,8 +4290,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_BG_COLOR2_ALPHA]       = s.bgColor2Alpha
                 prefs[KEY_BG_GRADIENT_END_ALPHA] = s.bgGradientEndAlpha
                 prefs[KEY_AM_PM_COLOR]           = s.amPmColor
+                prefs[KEY_TIME_OFFSET]           = s.timeOffset
             }
-            TickAtWidgetReceiver.updateAll(context, s)
         }
     }
 
@@ -4939,9 +4342,6 @@ object TickAtWidget {
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
 
-        // 背景
-        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
-
         // Typeface
         val typefaceStyle = when {
             settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
@@ -4962,8 +4362,14 @@ object TickAtWidget {
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
 
+
+        // 背景
+        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
+
         // 時刻・日付文字列
-        val now        = Calendar.getInstance()
+        val now        = Calendar.getInstance().also {
+            it.add(Calendar.MILLISECOND, settings.timeOffset)
+        }
         val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
         val timeBitmap = if (settings.use24Hour) {
             val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
@@ -5116,6 +4522,50 @@ internal fun buildTimeWithAmPmBitmap(
     return bitmap
 }
 
+internal fun buildTimeOnlyViews(
+    context: Context,
+    settings: AppSettings,
+    typeface: Typeface,
+    clockPx: Float,
+    datePx: Float,
+    cachedBgBitmap: android.graphics.Bitmap? = null
+): RemoteViews {
+    val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+    val bgBitmap = cachedBgBitmap ?: buildBackgroundBitmap(context, settings)
+    views.setImageViewBitmap(R.id.widget_bg, bgBitmap)
+    val now = Calendar.getInstance().also {
+        it.add(Calendar.MILLISECOND, settings.timeOffset)
+    }
+    val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+    val timeBitmap = if (settings.use24Hour) {
+        val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+    } else {
+        val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+        val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+        val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+        buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
+    }
+    val datePart    = if (settings.dateFormat.isNotEmpty())    SimpleDateFormat(settings.dateFormat,    Locale.getDefault()).format(now.time) else ""
+    val weekdayPart = if (settings.weekdayFormat.isNotEmpty()) SimpleDateFormat(settings.weekdayFormat, Locale.getDefault()).format(now.time) else ""
+    val dateText = when {
+        weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
+            if (settings.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart" else "$weekdayPart, $datePart"
+        weekdayPart.isNotEmpty() -> weekdayPart
+        datePart.isNotEmpty()    -> datePart
+        else                     -> ""
+    }
+    val fallbackDate = if (dateText.isEmpty() && !settings.showTime) SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
+    val displayDate = dateText.ifEmpty { fallbackDate }
+    views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
+    if (displayDate.isNotEmpty()) {
+        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow))
+    }
+    views.setViewVisibility(R.id.widget_time_img, if (settings.showTime) View.VISIBLE else View.GONE)
+    views.setViewVisibility(R.id.widget_date_img, if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE)
+    return views
+}
+
 internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
     val w = 512
     val h = 200
@@ -5228,52 +4678,9 @@ package com.tao0524.tickat.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
-import com.tao0524.tickat.ui.screen.settings.GradientDirection
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
-import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
-import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
-import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
-import com.tao0524.tickat.ui.screen.settings.GradientCenter
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
-import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
-import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
-import com.tao0524.tickat.ui.screen.settings.AmPmPosition
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
-import com.tao0524.tickat.ui.screen.settings.AmPmLabel
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
-import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_WEEKDAY_ORDER
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
-import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
-import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
-import com.tao0524.tickat.ui.screen.settings.TextWeight
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
+import android.content.Intent
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -5287,87 +4694,30 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val prefs = context.displaySettingsDataStore.data.first()
-            val settings = AppSettings(
-                bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
-                bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
-                bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
-                textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
-                use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
-                widgetSize           = prefs[KEY_WIDGET_SIZE]
-                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                    ?: WidgetSize.M,
-                showTime             = prefs[KEY_SHOW_TIME]          ?: true,
-                showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
-                dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
-                weekdayFormat        = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
-                dateWeekdayOrder     = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
-                fontWeight           = prefs[KEY_FONT_WEIGHT]
-                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
-                    ?: TextWeight.BOLD,
-                cornerStyle          = prefs[KEY_CORNER_STYLE]
-                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                    ?: CornerStyle.PILL,
-                dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
-                notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
-                notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
-                bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
-                gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
-                bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
-                compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
-                bgType               = prefs[KEY_BG_TYPE]
-                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
-                    ?: BackgroundType.SOLID,
-                gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
-                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL,
-                clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
-                fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
-                gradientCenter       = prefs[KEY_GRADIENT_CENTER]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.CENTER,
-                linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT,
-                isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
-                fontFamily           = prefs[KEY_FONT_FAMILY]
-                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO,
-                showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
-                amPmPosition         = prefs[KEY_AM_PM_POSITION]
-                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
-                    ?: AmPmPosition.AFTER,
-                amPmLabel            = prefs[KEY_AM_PM_LABEL]
-                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
-                    ?: AmPmLabel.JAPANESE,
-                amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
-                bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
-                bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
-                amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L
-            )
-            for (id in appWidgetIds) {
-                val opts = appWidgetManager.getAppWidgetOptions(id)
-                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-                val views = TickAtWidget.buildViews(context, settings, h)
-                appWidgetManager.updateAppWidget(id, views)
-            }
-        }
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+    }
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        context.stopService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
     }
 
     companion object {
-        fun updateAll(context: Context, settings: AppSettings) {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(
-                android.content.ComponentName(context, TickAtWidgetReceiver::class.java)
+        fun updateAllWidgets(context: Context) {
+            context.startForegroundService(
+                Intent(context, WidgetUpdateService::class.java)
             )
-            if (ids.isEmpty()) return
-            for (id in ids) {
-                val opts = manager.getAppWidgetOptions(id)
-                val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-                val views = TickAtWidget.buildViews(context, settings, h)
-                manager.updateAppWidget(id, views)
-            }
         }
     }
 }
@@ -5485,6 +4835,7 @@ import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
+import androidx.compose.foundation.text.KeyboardActions
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -6371,6 +5722,64 @@ fun SettingsScreen(
                         checked  = draft.showSeconds,
                         onToggle = { draft = draft.copy(showSeconds = it) }
                     )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        val offsetLabel = when {
+                            draft.timeOffset > 0 -> "+${draft.timeOffset}ms"
+                            draft.timeOffset < 0 -> "${draft.timeOffset}ms"
+                            else                 -> "0ms（補正なし）"
+                        }
+                        var offsetInput by remember(draft.timeOffset) { mutableStateOf(draft.timeOffset.toString()) }
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            Text("時刻の微調整", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                            Text(offsetLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                        }
+                        Slider(
+                            value         = draft.timeOffset.toFloat(),
+                            onValueChange = { draft = draft.copy(timeOffset = it.toInt()) },
+                            valueRange    = -2000f..2000f,
+                            steps         = 39,
+                            modifier      = Modifier.fillMaxWidth()
+                        )
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value         = offsetInput,
+                                onValueChange = { offsetInput = it },
+                                label           = { Text("ms", fontSize = 11.sp) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                                keyboardActions = KeyboardActions(onDone = {
+                                    val v = offsetInput.toIntOrNull()
+                                    if (v != null) draft = draft.copy(timeOffset = v.coerceIn(-2000, 2000))
+                                    else offsetInput = draft.timeOffset.toString()
+                                }),
+                                singleLine      = true,
+                                modifier        = Modifier.width(100.dp)
+                            )
+                        }
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "表示が世界時計より早い場合はマイナス方向に調整してください",
+                                fontSize = 10.sp,
+                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(onClick = { draft = draft.copy(timeOffset = 0) }) {
+                                Text("リセット", fontSize = 12.sp)
+                            }
+                        }
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))

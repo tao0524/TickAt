@@ -40,9 +40,6 @@ object TickAtWidget {
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
 
-        // 背景
-        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
-
         // Typeface
         val typefaceStyle = when {
             settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
@@ -63,8 +60,14 @@ object TickAtWidget {
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
 
+
+        // 背景
+        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
+
         // 時刻・日付文字列
-        val now        = Calendar.getInstance()
+        val now        = Calendar.getInstance().also {
+            it.add(Calendar.MILLISECOND, settings.timeOffset)
+        }
         val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
         val timeBitmap = if (settings.use24Hour) {
             val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
@@ -215,6 +218,50 @@ internal fun buildTimeWithAmPmBitmap(
     }
 
     return bitmap
+}
+
+internal fun buildTimeOnlyViews(
+    context: Context,
+    settings: AppSettings,
+    typeface: Typeface,
+    clockPx: Float,
+    datePx: Float,
+    cachedBgBitmap: android.graphics.Bitmap? = null
+): RemoteViews {
+    val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+    val bgBitmap = cachedBgBitmap ?: buildBackgroundBitmap(context, settings)
+    views.setImageViewBitmap(R.id.widget_bg, bgBitmap)
+    val now = Calendar.getInstance().also {
+        it.add(Calendar.MILLISECOND, settings.timeOffset)
+    }
+    val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+    val timeBitmap = if (settings.use24Hour) {
+        val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+    } else {
+        val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+        val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+        val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+        buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
+    }
+    val datePart    = if (settings.dateFormat.isNotEmpty())    SimpleDateFormat(settings.dateFormat,    Locale.getDefault()).format(now.time) else ""
+    val weekdayPart = if (settings.weekdayFormat.isNotEmpty()) SimpleDateFormat(settings.weekdayFormat, Locale.getDefault()).format(now.time) else ""
+    val dateText = when {
+        weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
+            if (settings.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart" else "$weekdayPart, $datePart"
+        weekdayPart.isNotEmpty() -> weekdayPart
+        datePart.isNotEmpty()    -> datePart
+        else                     -> ""
+    }
+    val fallbackDate = if (dateText.isEmpty() && !settings.showTime) SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
+    val displayDate = dateText.ifEmpty { fallbackDate }
+    views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
+    if (displayDate.isNotEmpty()) {
+        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow))
+    }
+    views.setViewVisibility(R.id.widget_time_img, if (settings.showTime) View.VISIBLE else View.GONE)
+    views.setViewVisibility(R.id.widget_date_img, if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE)
+    return views
 }
 
 internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {

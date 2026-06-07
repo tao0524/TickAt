@@ -54,6 +54,7 @@ val KEY_AM_PM_SCALE            = floatPreferencesKey("am_pm_scale")
 val KEY_BG_COLOR2_ALPHA        = intPreferencesKey("bg_color2_alpha")
 val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
 val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
+val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -103,7 +104,8 @@ data class AppSettings(
     val amPmScale:                Float              = 0.55f,
     val bgColor2Alpha:            Int                = 100,
     val bgGradientEndAlpha:       Int                = 100,
-    val amPmColor:                Long               = 0L
+    val amPmColor:                Long               = 0L,
+    val timeOffset:               Int                = 0
 )
 
 class SettingsViewModel(private val context: Context) : ViewModel() {
@@ -165,7 +167,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
                 bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
                 bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
-                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L
+                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L,
+                timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0
             )
         }
         .stateIn(
@@ -212,8 +215,8 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_BG_COLOR2_ALPHA]       = s.bgColor2Alpha
                 prefs[KEY_BG_GRADIENT_END_ALPHA] = s.bgGradientEndAlpha
                 prefs[KEY_AM_PM_COLOR]           = s.amPmColor
+                prefs[KEY_TIME_OFFSET]           = s.timeOffset
             }
-            TickAtWidgetReceiver.updateAll(context, s)
         }
     }
 
