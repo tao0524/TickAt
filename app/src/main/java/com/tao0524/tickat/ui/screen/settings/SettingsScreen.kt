@@ -50,6 +50,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -998,10 +1001,11 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                        val offsetSec = draft.timeOffset / 1000f
                         val offsetLabel = when {
-                            draft.timeOffset > 0 -> "+${draft.timeOffset}ms"
-                            draft.timeOffset < 0 -> "${draft.timeOffset}ms"
-                            else                 -> "0ms（補正なし）"
+                            draft.timeOffset > 0 -> "+%.2f秒".format(offsetSec)
+                            draft.timeOffset < 0 -> "%.2f秒".format(offsetSec)
+                            else                 -> "0秒（補正なし）"
                         }
                         var offsetInput by remember(draft.timeOffset) { mutableStateOf(draft.timeOffset.toString()) }
                         Row(
@@ -1013,12 +1017,27 @@ fun SettingsScreen(
                             Text(offsetLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
                         }
                         Slider(
-                            value         = draft.timeOffset.toFloat(),
+                            value         = draft.timeOffset.toFloat().coerceIn(-1000f, 1000f),
                             onValueChange = { draft = draft.copy(timeOffset = it.toInt()) },
-                            valueRange    = -2000f..2000f,
-                            steps         = 39,
+                            valueRange    = -1000f..1000f,
+                            steps         = 19,
                             modifier      = Modifier.fillMaxWidth()
                         )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier              = Modifier.fillMaxWidth()
+                        ) {
+                            listOf(-10, -5, -1, 1, 5, 10).forEach { sec ->
+                                val label = if (sec > 0) "+${sec}s" else "${sec}s"
+                                OutlinedButton(
+                                    onClick  = { draft = draft.copy(timeOffset = draft.timeOffset + sec * 1000) },
+                                    modifier = Modifier.weight(1f),
+                                    contentPadding = PaddingValues(0.dp)
+                                ) {
+                                    Text(label, fontSize = 11.sp)
+                                }
+                            }
+                        }
                         Row(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1031,7 +1050,7 @@ fun SettingsScreen(
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                                 keyboardActions = KeyboardActions(onDone = {
                                     val v = offsetInput.toIntOrNull()
-                                    if (v != null) draft = draft.copy(timeOffset = v.coerceIn(-2000, 2000))
+                                    if (v != null) draft = draft.copy(timeOffset = v)
                                     else offsetInput = draft.timeOffset.toString()
                                 }),
                                 singleLine      = true,
@@ -1044,7 +1063,7 @@ fun SettingsScreen(
                             modifier              = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "表示が世界時計より早い場合はマイナス方向に調整してください",
+                                "表示が世界時計より早い場合はマイナス方向、遅い場合はプラス方向に調整してください",
                                 fontSize = 10.sp,
                                 color    = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
