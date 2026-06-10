@@ -13,6 +13,12 @@ import kotlinx.coroutines.launch
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.map
+
+private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
 
 class TaskListViewModel(
     private val repository: TaskRepository,
@@ -24,6 +30,27 @@ class TaskListViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList()
     )
+
+    val guideStep = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun advanceGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                val current = prefs[KEY_GUIDE_STEP] ?: 0
+                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
+            }
+        }
+    }
+
+    fun completeGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 4
+            }
+        }
+    }
 
     fun delete(task: Task) {
         viewModelScope.launch {
@@ -65,6 +92,9 @@ class TaskListViewModel(
             templates.forEach {
                 repository.save(it)
                 TaskAlertScheduler.schedule(context, it)
+            }
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 1
             }
         }
     }

@@ -77,6 +77,7 @@ fun TaskListScreen(
     onOpenSettings: () -> Unit
 ) {
     val tasks by viewModel.tasks.collectAsState()
+    val guideStep by viewModel.guideStep.collectAsState()
 
     Scaffold(
         topBar = {
@@ -137,6 +138,18 @@ fun TaskListScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                if (guideStep in 1..3) {
+                    item(key = "guide") {
+                        GuideCard(
+                            step = guideStep,
+                            onNext = {
+                                if (guideStep < 3) viewModel.advanceGuide()
+                                else viewModel.completeGuide()
+                            },
+                            onDismiss = { viewModel.completeGuide() }
+                        )
+                    }
+                }
                 items(tasks, key = { it.id }) { task ->
                     TaskItem(
                         task = task,
@@ -377,4 +390,91 @@ private fun RepeatType.label() = when (this) {
     RepeatType.WEEKDAY -> "平日"
     RepeatType.WEEKLY  -> "週1回"
     RepeatType.ONCE    -> "1回のみ"
+}
+
+@Composable
+private fun GuideCard(
+    step: Int,
+    onNext: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val (title, body) = when (step) {
+        1 -> "ウィジェットを配置しよう" to
+                "ホーム画面を長押し →「ウィジェット」→ TickAtを選んで配置してください"
+        2 -> "タップして確認しよう" to
+                "配置したウィジェットをタップすると、今の時間帯の情報が全画面で表示されます"
+        else -> "自分好みにカスタマイズ" to
+                "タスクをタップすると名前・時間帯・表示内容を自由に変更できます"
+    }
+    val accentColor = Color(0xFFBB86FC)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(3) { i ->
+                        Canvas(modifier = Modifier.size(6.dp)) {
+                            drawCircle(
+                                color = if (i < step) accentColor
+                                else accentColor.copy(alpha = 0.25f)
+                            )
+                        }
+                    }
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Text(
+                        text = "×",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 22.sp
+            )
+
+            Button(
+                onClick = onNext,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = accentColor,
+                    contentColor = Color.Black
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = if (step < 3) "次へ" else "完了",
+                    modifier = Modifier.padding(vertical = 2.dp),
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
 }
