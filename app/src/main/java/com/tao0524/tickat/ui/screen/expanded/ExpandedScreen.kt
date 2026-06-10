@@ -56,8 +56,11 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun ExpandedScreen(
     viewModel: ExpandedViewModel,
+    targetTaskId: String? = null,
     onDismiss: () -> Unit
 ) {
+    LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
+
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current

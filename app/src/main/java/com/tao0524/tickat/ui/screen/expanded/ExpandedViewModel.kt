@@ -22,22 +22,28 @@ data class ExpandedUiState(
 class ExpandedViewModel(private val repository: TaskRepository) : ViewModel() {
 
     private val _now = MutableStateFlow(LocalTime.now())
+    private val _targetTaskId = MutableStateFlow<String?>(null)
 
-    val uiState = repository.allTasks
-        .combine(_now) { tasks, now ->
-            val active   = tasks.filter { now >= it.startTime && now < it.endTime }
-            val upcoming = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
-            val current  = active.minByOrNull { it.startTime }
-                ?: upcoming
-                ?: tasks.minByOrNull { it.startTime }
-            val next = upcoming.takeIf { it != current }
-            ExpandedUiState(
-                currentTask = current,
-                nextTask = next,
-                now = now,
-                isLoading = false
-            )
-        }
+    fun setTargetTaskId(id: String?) {
+        _targetTaskId.value = id
+    }
+
+    val uiState = combine(repository.allTasks, _now, _targetTaskId) { tasks, now, targetId ->
+        val targetTask = targetId?.let { id -> tasks.find { it.id == id } }
+        val active   = tasks.filter { now >= it.startTime && now < it.endTime }
+        val upcoming = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
+        val current  = targetTask
+            ?: active.minByOrNull { it.startTime }
+            ?: upcoming
+            ?: tasks.minByOrNull { it.startTime }
+        val next = upcoming.takeIf { it != current }
+        ExpandedUiState(
+            currentTask = current,
+            nextTask = next,
+            now = now,
+            isLoading = false
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),

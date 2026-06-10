@@ -23,6 +23,7 @@ import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.navigation.AppNavigation
 import com.tao0524.tickat.ui.theme.TickAtTheme
+import com.tao0524.tickat.widget.TaskAlertScheduler
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -34,6 +35,7 @@ private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 class MainActivity : ComponentActivity() {
 
     private val _showExpanded      = MutableStateFlow(false)
+    private val _expandedTaskId    = MutableStateFlow<String?>(null)
     private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
 
     private val settingsViewModel: SettingsViewModel by lazy {
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
         if (intent?.getBooleanExtra("show_expanded", false) == true) {
             _showExpanded.value = true
+            _expandedTaskId.value = intent?.getStringExtra("expanded_task_id")
         }
 
         lifecycleScope.launch {
@@ -68,11 +71,18 @@ class MainActivity : ComponentActivity() {
         val db         = AppDatabase.getInstance(applicationContext)
         val repository = TaskRepository(db.taskDao())
 
+        // アプリ起動時に全タスクのアラームを再スケジュール
+        lifecycleScope.launch {
+            val tasks = repository.allTasks.first()
+            TaskAlertScheduler.scheduleAll(applicationContext, tasks)
+        }
+
         setContent {
             val settings by settingsViewModel.settings.collectAsState()
             TickAtTheme(settings = settings) {
                 val onboardingChecked by _onboardingChecked.collectAsState()
                 val showExpanded      by _showExpanded.collectAsState()
+                val expandedTaskId    by _expandedTaskId.collectAsState()
 
                 when (val complete = onboardingChecked) {
                     null -> Box(
@@ -89,7 +99,11 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         openExpandedOnStart = showExpanded,
-                        onExpandedConsumed  = { _showExpanded.value = false }
+                        expandedTaskId      = expandedTaskId,
+                        onExpandedConsumed  = {
+                            _showExpanded.value = false
+                            _expandedTaskId.value = null
+                        }
                     )
                 }
             }
@@ -101,6 +115,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         if (intent.getBooleanExtra("show_expanded", false)) {
             _showExpanded.value = true
+            _expandedTaskId.value = intent.getStringExtra("expanded_task_id")
         }
     }
 }

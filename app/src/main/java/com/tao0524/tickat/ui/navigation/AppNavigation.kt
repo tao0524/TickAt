@@ -7,7 +7,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
 import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
@@ -34,6 +36,7 @@ fun AppNavigation(
     startWithOnboarding: Boolean = false,
     onOnboardingComplete: () -> Unit = {},
     openExpandedOnStart: Boolean = false,
+    expandedTaskId: String? = null,
     onExpandedConsumed: () -> Unit = {},
     navController: NavHostController = rememberNavController()
 ) {
@@ -44,7 +47,12 @@ fun AppNavigation(
 
     LaunchedEffect(openExpandedOnStart) {
         if (openExpandedOnStart) {
-            navController.navigate(Screen.Expanded.route)
+            val route = if (expandedTaskId != null) {
+                "${Screen.Expanded.route}?taskId=$expandedTaskId"
+            } else {
+                Screen.Expanded.route
+            }
+            navController.navigate(route)
             onExpandedConsumed()
         }
     }
@@ -91,9 +99,14 @@ fun AppNavigation(
                 }
             )
         }
-        composable(Screen.Expanded.route) {
+        composable(
+            route = "${Screen.Expanded.route}?taskId={taskId}",
+            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
             ExpandedScreen(
                 viewModel = viewModel(factory = factory),
+                targetTaskId = taskId,
                 onDismiss = { navController.popBackStack() }
             )
         }

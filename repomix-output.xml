@@ -70,6 +70,8 @@ app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt
 app/src/main/java/com/tao0524/tickat/ui/theme/Type.kt
 app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt
 app/src/main/java/com/tao0524/tickat/widget/CountdownAlarmReceiver.kt
+app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt
+app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt
 app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt
@@ -112,6 +114,216 @@ settings.gradle.kts
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
+package com.tao0524.tickat.widget
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+object TaskAlertScheduler {
+
+    fun scheduleAll(context: Context, tasks: List<Task>) {
+        tasks.forEach { schedule(context, it) }
+    }
+
+    fun schedule(context: Context, task: Task) {
+        val now = LocalDateTime.now()
+        var nextStart = LocalDate.now().atTime(task.startTime)
+
+        if (nextStart.isAfter(now)) {
+            // 今日の開始時刻がまだ来ていない
+            when (task.repeat) {
+                RepeatType.WEEKDAY -> {
+                    val dow = nextStart.dayOfWeek.value
+                    if (dow > 5) {
+                        nextStart = nextStart.plusDays((8 - dow).toLong())
+                    }
+                }
+                else -> { /* 今日のまま */ }
+            }
+        } else {
+            // 今日の開始時刻は既に過ぎた → 次回を計算
+            when (task.repeat) {
+                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
+                RepeatType.WEEKDAY -> {
+                    nextStart = nextStart.plusDays(1)
+                    while (nextStart.dayOfWeek.value > 5) {
+                        nextStart = nextStart.plusDays(1)
+                    }
+                }
+                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
+                RepeatType.ONCE -> return // 1回限りで既に過ぎた
+            }
+        }
+
+        val triggerMillis = nextStart
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_feature", task.feature.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("start_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
+    }
+
+    fun cancel(context: Context, taskId: String) {
+        val intent = Intent(context, TaskStartAlertReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("start_${taskId}").hashCode(),
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        ) ?: return
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import com.tao0524.tickat.MainActivity
+import com.tao0524.tickat.R
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskFeature
+import java.time.LocalTime
+
+class TaskStartAlertReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val taskId   = intent.getStringExtra("task_id")   ?: return
+        val taskName = intent.getStringExtra("task_name")  ?: return
+        val feature  = intent.getStringExtra("task_feature") ?: ""
+        val start    = intent.getStringExtra("task_start") ?: ""
+        val end      = intent.getStringExtra("task_end")   ?: ""
+        val memo     = intent.getStringExtra("task_memo")  ?: ""
+        val repeat   = intent.getStringExtra("task_repeat") ?: ""
+
+        val featureLabel = when (feature) {
+            "CLOCK"      -> "時計"
+            "DATE"       -> "日付"
+            "COUNTDOWN"  -> "カウントダウン"
+            "NEXT_EVENT" -> "次の予定"
+            "MEMO"       -> "メモ"
+            else         -> ""
+        }
+
+        // 通知を表示
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                as NotificationManager
+        createChannelIfNeeded(manager)
+
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("show_expanded", true)
+            putExtra("expanded_task_id", taskId)
+        }
+        val pendingOpen = PendingIntent.getActivity(
+            context,
+            taskId.hashCode(),
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val contentText = "$start〜$end — $featureLabel"
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(taskName)
+            .setContentText(contentText)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingOpen)
+            .setAutoCancel(true)
+            .build()
+
+        manager.notify(("start_$taskId").hashCode(), notification)
+
+        // 繰り返しタスクは次回分を再スケジュール
+        if (repeat.isNotEmpty() && repeat != RepeatType.ONCE.name) {
+            try {
+                val task = Task(
+                    id        = taskId,
+                    name      = taskName,
+                    feature   = TaskFeature.valueOf(feature),
+                    startTime = LocalTime.parse(start),
+                    endTime   = LocalTime.parse(end),
+                    repeat    = RepeatType.valueOf(repeat),
+                    memoText  = memo
+                )
+                TaskAlertScheduler.schedule(context, task)
+            } catch (_: Exception) {
+                // パース失敗時は再スケジュールしない
+            }
+        }
+    }
+
+    companion object {
+        const val CHANNEL_ID = "tickat_task_start"
+
+        fun createChannelIfNeeded(manager: NotificationManager) {
+            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "タスク開始通知",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "タスクの開始時刻に通知します"
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+}
+</file>
 
 <file path=".gitignore">
 *.iml
@@ -431,6 +643,7 @@ import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.navigation.AppNavigation
 import com.tao0524.tickat.ui.theme.TickAtTheme
+import com.tao0524.tickat.widget.TaskAlertScheduler
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -442,6 +655,7 @@ private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 class MainActivity : ComponentActivity() {
 
     private val _showExpanded      = MutableStateFlow(false)
+    private val _expandedTaskId    = MutableStateFlow<String?>(null)
     private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
 
     private val settingsViewModel: SettingsViewModel by lazy {
@@ -466,6 +680,7 @@ class MainActivity : ComponentActivity() {
 
         if (intent?.getBooleanExtra("show_expanded", false) == true) {
             _showExpanded.value = true
+            _expandedTaskId.value = intent?.getStringExtra("expanded_task_id")
         }
 
         lifecycleScope.launch {
@@ -476,11 +691,18 @@ class MainActivity : ComponentActivity() {
         val db         = AppDatabase.getInstance(applicationContext)
         val repository = TaskRepository(db.taskDao())
 
+        // アプリ起動時に全タスクのアラームを再スケジュール
+        lifecycleScope.launch {
+            val tasks = repository.allTasks.first()
+            TaskAlertScheduler.scheduleAll(applicationContext, tasks)
+        }
+
         setContent {
             val settings by settingsViewModel.settings.collectAsState()
             TickAtTheme(settings = settings) {
                 val onboardingChecked by _onboardingChecked.collectAsState()
                 val showExpanded      by _showExpanded.collectAsState()
+                val expandedTaskId    by _expandedTaskId.collectAsState()
 
                 when (val complete = onboardingChecked) {
                     null -> Box(
@@ -497,7 +719,11 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         openExpandedOnStart = showExpanded,
-                        onExpandedConsumed  = { _showExpanded.value = false }
+                        expandedTaskId      = expandedTaskId,
+                        onExpandedConsumed  = {
+                            _showExpanded.value = false
+                            _expandedTaskId.value = null
+                        }
                     )
                 }
             }
@@ -509,6 +735,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         if (intent.getBooleanExtra("show_expanded", false)) {
             _showExpanded.value = true
+            _expandedTaskId.value = intent.getStringExtra("expanded_task_id")
         }
     }
 }
@@ -524,7 +751,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
 import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
@@ -551,6 +780,7 @@ fun AppNavigation(
     startWithOnboarding: Boolean = false,
     onOnboardingComplete: () -> Unit = {},
     openExpandedOnStart: Boolean = false,
+    expandedTaskId: String? = null,
     onExpandedConsumed: () -> Unit = {},
     navController: NavHostController = rememberNavController()
 ) {
@@ -561,7 +791,12 @@ fun AppNavigation(
 
     LaunchedEffect(openExpandedOnStart) {
         if (openExpandedOnStart) {
-            navController.navigate(Screen.Expanded.route)
+            val route = if (expandedTaskId != null) {
+                "${Screen.Expanded.route}?taskId=$expandedTaskId"
+            } else {
+                Screen.Expanded.route
+            }
+            navController.navigate(route)
             onExpandedConsumed()
         }
     }
@@ -608,9 +843,14 @@ fun AppNavigation(
                 }
             )
         }
-        composable(Screen.Expanded.route) {
+        composable(
+            route = "${Screen.Expanded.route}?taskId={taskId}",
+            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
             ExpandedScreen(
                 viewModel = viewModel(factory = factory),
+                targetTaskId = taskId,
                 onDismiss = { navController.popBackStack() }
             )
         }
@@ -686,8 +926,11 @@ import java.time.temporal.ChronoUnit
 @Composable
 fun ExpandedScreen(
     viewModel: ExpandedViewModel,
+    targetTaskId: String? = null,
     onDismiss: () -> Unit
 ) {
+    LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
+
     val uiState by viewModel.uiState.collectAsState()
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -996,22 +1239,28 @@ data class ExpandedUiState(
 class ExpandedViewModel(private val repository: TaskRepository) : ViewModel() {
 
     private val _now = MutableStateFlow(LocalTime.now())
+    private val _targetTaskId = MutableStateFlow<String?>(null)
 
-    val uiState = repository.allTasks
-        .combine(_now) { tasks, now ->
-            val active   = tasks.filter { now >= it.startTime && now < it.endTime }
-            val upcoming = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
-            val current  = active.minByOrNull { it.startTime }
-                ?: upcoming
-                ?: tasks.minByOrNull { it.startTime }
-            val next = upcoming.takeIf { it != current }
-            ExpandedUiState(
-                currentTask = current,
-                nextTask = next,
-                now = now,
-                isLoading = false
-            )
-        }
+    fun setTargetTaskId(id: String?) {
+        _targetTaskId.value = id
+    }
+
+    val uiState = combine(repository.allTasks, _now, _targetTaskId) { tasks, now, targetId ->
+        val targetTask = targetId?.let { id -> tasks.find { it.id == id } }
+        val active   = tasks.filter { now >= it.startTime && now < it.endTime }
+        val upcoming = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
+        val current  = targetTask
+            ?: active.minByOrNull { it.startTime }
+            ?: upcoming
+            ?: tasks.minByOrNull { it.startTime }
+        val next = upcoming.takeIf { it != current }
+        ExpandedUiState(
+            currentTask = current,
+            nextTask = next,
+            now = now,
+            isLoading = false
+        )
+    }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -2039,6 +2288,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
+import com.tao0524.tickat.widget.TaskAlertScheduler
 
 data class TaskEditState(
     val id: String? = null,
@@ -2103,6 +2353,16 @@ class TaskEditViewModel(
                     targetDateTime = s.targetDateTime
                 )
             )
+            val savedTask = Task(
+                id = taskId,
+                name = s.name,
+                feature = s.feature,
+                startTime = s.startTime,
+                endTime = s.endTime,
+                repeat = s.repeat,
+                memoText = s.memoText,
+                targetDateTime = s.targetDateTime
+            )
             if (s.feature == TaskFeature.COUNTDOWN && s.targetDateTime != null) {
                 CountdownAlarmReceiver.schedule(
                     context       = context,
@@ -2113,6 +2373,7 @@ class TaskEditViewModel(
             } else {
                 CountdownAlarmReceiver.cancel(context, taskId)
             }
+            TaskAlertScheduler.schedule(context, savedTask)
             onDone()
         }
     }
@@ -2147,7 +2408,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -2242,6 +2506,8 @@ fun TaskListScreen(
     ) { padding ->
         if (tasks.isEmpty()) {
             EmptyState(
+                onApplyTemplate = { viewModel.applyTemplate() },
+                onAddTask = onAddTask,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -2267,54 +2533,114 @@ fun TaskListScreen(
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    val iconColor = Color(0xFF49454F)
-    val handColor = Color(0xFF9E9E9E)
+private fun EmptyState(
+    onApplyTemplate: () -> Unit,
+    onAddTask: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val clockColor = Color(0xFFBB86FC)
+    val dateColor = Color(0xFF81D4FA)
+    val memoColor = Color(0xFFFFE082)
+    val emptyBarColor = MaterialTheme.colorScheme.surfaceVariant
 
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Canvas(modifier = Modifier.size(72.dp)) {
-            val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-            val padding = 4.dp.toPx()
-            drawCircle(
-                color = iconColor,
-                radius = size.minDimension / 2 - padding,
-                style = stroke
-            )
-            val cx = size.width / 2
-            val cy = size.height / 2
-            val r = size.minDimension / 2 - padding
-            drawLine(
-                color = handColor,
-                start = Offset(cx, cy),
-                end = Offset(cx, cy - r * 0.55f),
-                strokeWidth = 3.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = handColor,
-                start = Offset(cx, cy),
-                end = Offset(cx + r * 0.38f, cy + r * 0.22f),
-                strokeWidth = 3.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawCircle(color = handColor, radius = 3.dp.toPx(), center = Offset(cx, cy))
-        }
-        Spacer(Modifier.height(24.dp))
         Text(
-            text = "タスクがありません",
-            style = MaterialTheme.typography.bodyLarge,
+            text = "時間割を作りましょう",
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "＋ボタンから最初のタスクを追加しましょう",
+            text = "時間帯ごとにウィジェットの表示内容を切り替えられます",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.height(32.dp))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+        ) {
+            val barH = size.height
+            val hourW = size.width / 24f
+            val r = 6.dp.toPx()
+
+            drawRoundRect(
+                color = emptyBarColor,
+                size = Size(size.width, barH),
+                cornerRadius = CornerRadius(r)
+            )
+            drawRect(
+                color = clockColor,
+                topLeft = Offset(hourW * 7, 0f),
+                size = Size(hourW * 2, barH)
+            )
+            drawRect(
+                color = dateColor,
+                topLeft = Offset(hourW * 9, 0f),
+                size = Size(hourW * 9, barH)
+            )
+            drawRect(
+                color = memoColor,
+                topLeft = Offset(hourW * 18, 0f),
+                size = Size(hourW * 5, barH)
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            listOf(
+                "朝の時計" to clockColor,
+                "今日の日付" to dateColor,
+                "おつかれさま" to memoColor
+            ).forEach { (label, color) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(8.dp)) {
+                        drawCircle(color = color)
+                    }
+                    Text(
+                        text = label,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Button(
+            onClick = onApplyTemplate,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                "おすすめを使ってみる",
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onAddTask) {
+            Text(
+                "自分で作る",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -2444,11 +2770,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskFeature
+import com.tao0524.tickat.domain.model.RepeatType
+import java.time.LocalTime
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
+import com.tao0524.tickat.widget.TaskAlertScheduler
 
 class TaskListViewModel(
     private val repository: TaskRepository,
@@ -2464,7 +2794,44 @@ class TaskListViewModel(
     fun delete(task: Task) {
         viewModelScope.launch {
             CountdownAlarmReceiver.cancel(context, task.id)
+            TaskAlertScheduler.cancel(context, task.id)
             repository.delete(task)
+        }
+    }
+
+    fun applyTemplate() {
+        viewModelScope.launch {
+            val templates = listOf(
+                Task(
+                    name = "朝の時計",
+                    feature = TaskFeature.CLOCK,
+                    startTime = LocalTime.of(7, 0),
+                    endTime = LocalTime.of(9, 0),
+                    repeat = RepeatType.DAILY,
+                    sortOrder = 0
+                ),
+                Task(
+                    name = "今日の日付",
+                    feature = TaskFeature.DATE,
+                    startTime = LocalTime.of(9, 0),
+                    endTime = LocalTime.of(18, 0),
+                    repeat = RepeatType.DAILY,
+                    sortOrder = 1
+                ),
+                Task(
+                    name = "おつかれさま",
+                    feature = TaskFeature.MEMO,
+                    startTime = LocalTime.of(18, 0),
+                    endTime = LocalTime.of(23, 0),
+                    repeat = RepeatType.DAILY,
+                    memoText = "今日もおつかれさま",
+                    sortOrder = 2
+                )
+            )
+            templates.forEach {
+                repository.save(it)
+                TaskAlertScheduler.schedule(context, it)
+            }
         }
     }
 }
@@ -4058,6 +4425,10 @@ include(":app")
             android:name=".widget.CountdownAlarmReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
         <service
             android:name=".widget.WidgetUpdateService"
             android:exported="false"
@@ -4776,9 +5147,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold

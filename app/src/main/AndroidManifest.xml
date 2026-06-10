@@ -44,6 +44,10 @@
             android:name=".widget.CountdownAlarmReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
         <service
             android:name=".widget.WidgetUpdateService"
             android:exported="false"

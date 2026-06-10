@@ -14,6 +14,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
+import com.tao0524.tickat.widget.TaskAlertScheduler
 
 data class TaskEditState(
     val id: String? = null,
@@ -78,6 +79,16 @@ class TaskEditViewModel(
                     targetDateTime = s.targetDateTime
                 )
             )
+            val savedTask = Task(
+                id = taskId,
+                name = s.name,
+                feature = s.feature,
+                startTime = s.startTime,
+                endTime = s.endTime,
+                repeat = s.repeat,
+                memoText = s.memoText,
+                targetDateTime = s.targetDateTime
+            )
             if (s.feature == TaskFeature.COUNTDOWN && s.targetDateTime != null) {
                 CountdownAlarmReceiver.schedule(
                     context       = context,
@@ -88,6 +99,7 @@ class TaskEditViewModel(
             } else {
                 CountdownAlarmReceiver.cancel(context, taskId)
             }
+            TaskAlertScheduler.schedule(context, savedTask)
             onDone()
         }
     }

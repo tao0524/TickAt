@@ -25,7 +25,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -120,6 +123,8 @@ fun TaskListScreen(
     ) { padding ->
         if (tasks.isEmpty()) {
             EmptyState(
+                onApplyTemplate = { viewModel.applyTemplate() },
+                onAddTask = onAddTask,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
@@ -145,54 +150,114 @@ fun TaskListScreen(
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    val iconColor = Color(0xFF49454F)
-    val handColor = Color(0xFF9E9E9E)
+private fun EmptyState(
+    onApplyTemplate: () -> Unit,
+    onAddTask: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val clockColor = Color(0xFFBB86FC)
+    val dateColor = Color(0xFF81D4FA)
+    val memoColor = Color(0xFFFFE082)
+    val emptyBarColor = MaterialTheme.colorScheme.surfaceVariant
 
     Column(
-        modifier = modifier,
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Canvas(modifier = Modifier.size(72.dp)) {
-            val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-            val padding = 4.dp.toPx()
-            drawCircle(
-                color = iconColor,
-                radius = size.minDimension / 2 - padding,
-                style = stroke
-            )
-            val cx = size.width / 2
-            val cy = size.height / 2
-            val r = size.minDimension / 2 - padding
-            drawLine(
-                color = handColor,
-                start = Offset(cx, cy),
-                end = Offset(cx, cy - r * 0.55f),
-                strokeWidth = 3.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = handColor,
-                start = Offset(cx, cy),
-                end = Offset(cx + r * 0.38f, cy + r * 0.22f),
-                strokeWidth = 3.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawCircle(color = handColor, radius = 3.dp.toPx(), center = Offset(cx, cy))
-        }
-        Spacer(Modifier.height(24.dp))
         Text(
-            text = "タスクがありません",
-            style = MaterialTheme.typography.bodyLarge,
+            text = "時間割を作りましょう",
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "＋ボタンから最初のタスクを追加しましょう",
+            text = "時間帯ごとにウィジェットの表示内容を切り替えられます",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Spacer(Modifier.height(32.dp))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp)
+        ) {
+            val barH = size.height
+            val hourW = size.width / 24f
+            val r = 6.dp.toPx()
+
+            drawRoundRect(
+                color = emptyBarColor,
+                size = Size(size.width, barH),
+                cornerRadius = CornerRadius(r)
+            )
+            drawRect(
+                color = clockColor,
+                topLeft = Offset(hourW * 7, 0f),
+                size = Size(hourW * 2, barH)
+            )
+            drawRect(
+                color = dateColor,
+                topLeft = Offset(hourW * 9, 0f),
+                size = Size(hourW * 9, barH)
+            )
+            drawRect(
+                color = memoColor,
+                topLeft = Offset(hourW * 18, 0f),
+                size = Size(hourW * 5, barH)
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            listOf(
+                "朝の時計" to clockColor,
+                "今日の日付" to dateColor,
+                "おつかれさま" to memoColor
+            ).forEach { (label, color) ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Canvas(modifier = Modifier.size(8.dp)) {
+                        drawCircle(color = color)
+                    }
+                    Text(
+                        text = label,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Button(
+            onClick = onApplyTemplate,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                "おすすめを使ってみる",
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onAddTask) {
+            Text(
+                "自分で作る",
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
