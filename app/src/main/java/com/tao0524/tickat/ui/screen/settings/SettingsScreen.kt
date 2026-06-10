@@ -998,6 +998,13 @@ fun SettingsScreen(
                         onToggle = { draft = draft.copy(showSeconds = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "タスク名を表示",
+                        sub      = "ウィジェットに現在のタスク名を表示",
+                        checked  = draft.showTaskName,
+                        onToggle = { draft = draft.copy(showTaskName = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         val offsetSec = draft.timeOffset / 1000f
                         val offsetLabel = when {

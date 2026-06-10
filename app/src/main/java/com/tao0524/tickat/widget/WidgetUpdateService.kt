@@ -11,6 +11,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Typeface
 import android.os.IBinder
+import android.view.View
 import android.util.TypedValue
 import androidx.core.app.NotificationCompat
 import com.tao0524.tickat.R
@@ -23,6 +24,7 @@ import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.GradientDirection
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_TIME_OFFSET
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TASK_NAME
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
@@ -68,6 +70,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
 
 class WidgetUpdateService : Service() {
 
@@ -82,6 +87,11 @@ class WidgetUpdateService : Service() {
     @Volatile private var cachedDatePx: Float = 0f
     @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
     @Volatile private var isFullRedrawNeeded: Boolean = true
+    @Volatile private var cachedTasks: List<Task> = emptyList()
+
+    private val taskRepository by lazy {
+        TaskRepository(AppDatabase.getInstance(applicationContext).taskDao())
+    }
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -114,6 +124,7 @@ class WidgetUpdateService : Service() {
         }
         registerReceiver(screenReceiver, filter)
         startSettingsObserver()
+        startTaskObserver()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -189,7 +200,8 @@ class WidgetUpdateService : Service() {
                     bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
                     bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
                     amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
-                    timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0
+                    timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
+                    showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -218,6 +230,14 @@ class WidgetUpdateService : Service() {
                 if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
                     startTicking()
                 }
+            }
+        }
+    }
+
+    private fun startTaskObserver() {
+        serviceScope.launch {
+            taskRepository.allTasks.collect { tasks ->
+                cachedTasks = tasks
             }
         }
     }
@@ -251,16 +271,25 @@ class WidgetUpdateService : Service() {
             return
         }
         val settings = cachedSettings
+        val now = java.time.LocalTime.now()
+        val activeTask = cachedTasks.firstOrNull { now >= it.startTime && now < it.endTime }
+        val taskName = activeTask?.name ?: ""
         for (id in ids) {
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-            if (isFullRedrawNeeded) {
-                val views = TickAtWidget.buildViews(this, settings, h)
-                manager.updateAppWidget(id, views)
+            val views = if (isFullRedrawNeeded) {
+                TickAtWidget.buildViews(this, settings, h)
             } else {
-                val views = buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
-                manager.updateAppWidget(id, views)
+                buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
             }
+            if (taskName.isNotEmpty() && settings.showTaskName) {
+                views.setTextViewText(R.id.widget_task_name, taskName)
+                views.setTextColor(R.id.widget_task_name, settings.dateTextColor.toInt())
+                views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_task_name, View.GONE)
+            }
+            manager.updateAppWidget(id, views)
         }
         isFullRedrawNeeded = false
     }
