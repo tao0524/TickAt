@@ -14,11 +14,13 @@ import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.flow.map
 
 private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
+private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
 
 class TaskListViewModel(
     private val repository: TaskRepository,
@@ -48,6 +50,18 @@ class TaskListViewModel(
         viewModelScope.launch {
             context.displaySettingsDataStore.edit { prefs ->
                 prefs[KEY_GUIDE_STEP] = 4
+            }
+        }
+    }
+
+    val hintTaskListShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskList() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKLIST] = true
             }
         }
     }

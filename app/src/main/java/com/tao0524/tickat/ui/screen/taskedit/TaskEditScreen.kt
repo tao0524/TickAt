@@ -22,6 +22,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -245,6 +247,7 @@ fun TaskEditScreen(
 ) {
     LaunchedEffect(taskId) { taskId?.let { viewModel.load(it) } }
     val state by viewModel.state.collectAsState()
+    val hintShown by viewModel.hintTaskEditShown.collectAsState()
 
     val isSaveEnabled = state.name.isNotBlank() && state.endTime.isAfter(state.startTime)
 
@@ -304,6 +307,12 @@ fun TaskEditScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
+            if (!hintShown) {
+                FirstTimeHint(
+                    message = "表示機能でウィジェットに表示する内容を選べます",
+                    onDismiss = { viewModel.dismissHintTaskEdit() }
+                )
+            }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionHeader(text = "タスク名")
                 OutlinedTextField(
@@ -456,4 +465,43 @@ private fun RepeatType.label() = when (this) {
     RepeatType.WEEKDAY -> "平日"
     RepeatType.WEEKLY  -> "週1回"
     RepeatType.ONCE    -> "1回のみ"
+}
+
+@Composable
+private fun FirstTimeHint(
+    message: String,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "💡 $message",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Text(
+                    text = "OK",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
 }

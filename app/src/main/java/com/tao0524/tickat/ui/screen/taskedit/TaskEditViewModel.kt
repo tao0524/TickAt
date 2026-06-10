@@ -15,6 +15,12 @@ import java.time.LocalTime
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 data class TaskEditState(
     val id: String? = null,
@@ -27,6 +33,8 @@ data class TaskEditState(
     val targetDateTime: LocalDateTime? = null
 )
 
+private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
+
 class TaskEditViewModel(
     private val repository: TaskRepository,
     private val context: Context
@@ -34,6 +42,18 @@ class TaskEditViewModel(
 
     private val _state = MutableStateFlow(TaskEditState())
     val state = _state.asStateFlow()
+
+    val hintTaskEditShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKEDIT] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskEdit() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKEDIT] = true
+            }
+        }
+    }
 
     fun load(id: String) {
         viewModelScope.launch {

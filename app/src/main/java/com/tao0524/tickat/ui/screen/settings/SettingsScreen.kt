@@ -258,6 +258,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val saved   by viewModel.settings.collectAsState()
+    val hintShown by viewModel.hintSettingsShown.collectAsState()
     val context = LocalContext.current
     var draft   by remember(saved) { mutableStateOf(saved) }
 
@@ -415,6 +416,13 @@ fun SettingsScreen(
         ) {
             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
                 WidgetPreview(draft)
+            }
+            if (!hintShown) {
+                FirstTimeHint(
+                    message = "ウィジェットの色やフォントを変更できます",
+                    onDismiss = { viewModel.dismissHintSettings() },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
             }
             Column(
                 modifier = Modifier
@@ -2259,6 +2267,46 @@ private fun LinearStartPicker(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FirstTimeHint(
+    message: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "💡 $message",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Text(
+                    text = "OK",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

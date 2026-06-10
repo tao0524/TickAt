@@ -56,6 +56,7 @@ val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
 val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
+private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
@@ -179,6 +180,18 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
             started      = SharingStarted.WhileSubscribed(5_000),
             initialValue = AppSettings()
         )
+
+    val hintSettingsShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintSettings() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_SETTINGS] = true
+            }
+        }
+    }
 
     fun save(s: AppSettings) {
         viewModelScope.launch {
