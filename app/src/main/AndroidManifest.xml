@@ -48,6 +48,14 @@
             android:name=".widget.TaskStartAlertReceiver"
             android:exported="false" />
 
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
         <service
             android:name=".widget.WidgetUpdateService"
             android:exported="false"

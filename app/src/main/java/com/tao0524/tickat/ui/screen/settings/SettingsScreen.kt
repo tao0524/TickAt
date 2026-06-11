@@ -1149,6 +1149,37 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("シーン開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.alertMode == value,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(alertMode = value) }
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = when (draft.alertMode) {
+                                "FULLSCREEN"   -> "シーン開始時に全画面で表示します"
+                                "NOTIFICATION" -> "シーン開始時にバナー通知を表示します"
+                                else           -> "通知を表示しません"
+                            },
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                         Text("カウントダウン通知音", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
