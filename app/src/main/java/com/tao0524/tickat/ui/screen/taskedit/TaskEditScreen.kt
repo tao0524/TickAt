@@ -256,7 +256,7 @@ fun TaskEditScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (taskId == null) "タスクを追加" else "タスクを編集",
+                        text = if (taskId == null) "シーンを追加" else "シーンを編集",
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
@@ -314,7 +314,7 @@ fun TaskEditScreen(
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "タスク名")
+                SectionHeader(text = "シーン名")
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,

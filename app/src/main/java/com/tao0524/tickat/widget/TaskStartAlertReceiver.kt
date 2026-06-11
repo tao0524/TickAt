@@ -89,10 +89,10 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             if (manager.getNotificationChannel(CHANNEL_ID) != null) return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "タスク開始通知",
+                "シーン開始通知",
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "タスクの開始時刻に通知します"
+                description = "シーンの開始時刻に通知します"
                 enableVibration(true)
             }
             manager.createNotificationChannel(channel)

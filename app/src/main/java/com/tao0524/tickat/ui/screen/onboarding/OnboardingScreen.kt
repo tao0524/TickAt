@@ -54,7 +54,7 @@ private val pages = listOf(
     ),
     OnboardingPage(
         title    = "タップして、今を確認。",
-        subtitle = "ウィジェットをタップすると、現在のタスクに\n紐づいた情報がすぐに表示されます。"
+        subtitle = "ウィジェットをタップすると、現在のシーンに\n紐づいた情報がすぐに表示されます。"
     ),
     OnboardingPage(
         title    = "5つの表示モード。",

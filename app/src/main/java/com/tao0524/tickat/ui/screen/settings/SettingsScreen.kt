@@ -763,7 +763,7 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     ColorRow(
                         label   = "テキスト色",
-                        sub     = "時刻・タスク名・ラベル",
+                        sub     = "時刻・シーン名・ラベル",
                         color   = draft.textColor,
                         onClick = { pickerTarget.value = "text" }
                     )
@@ -1007,8 +1007,8 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
-                        label    = "タスク名を表示",
-                        sub      = "ウィジェットに現在のタスク名を表示",
+                        label    = "シーン名を表示",
+                        sub      = "ウィジェットに現在のシーン名を表示",
                         checked  = draft.showTaskName,
                         onToggle = { draft = draft.copy(showTaskName = it) }
                     )
