@@ -776,7 +776,88 @@ fun SettingsScreen(
                     )
                 }
 
-                SectionHeader("表示")
+                SectionHeader("フォント")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                WidgetFont.ROBOTO    to "Roboto\n標準",
+                                WidgetFont.SERIF     to "Serif\nセリフ",
+                                WidgetFont.CONDENSED to "Cond.\n細身",
+                                WidgetFont.MONO      to "Mono\n等幅"
+                            ).forEach { (font, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontFamily == font,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontFamily = font) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                TextWeight.REGULAR to "Regular\n標準",
+                                TextWeight.BOLD    to "Bold\n太め"
+                            ).forEach { (weight, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontWeight == weight,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontWeight = weight) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "斜体",
+                        sub      = "イタリック体で表示",
+                        checked  = draft.isItalic,
+                        onToggle = { draft = draft.copy(isItalic = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "テキストシャドウ",
+                        sub      = "文字に影をつける",
+                        checked  = draft.showTextShadow,
+                        onToggle = { draft = draft.copy(showTextShadow = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showFontSizeDialog = true }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text(
+                                text = "%.1f".format(draft.fontScale) + "×  " + when {
+                                    draft.clockDateBalance == 0 -> "均等"
+                                    draft.clockDateBalance < 0  -> "時刻寄り"
+                                    else                        -> "日付寄り"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
+                            )
+                        }
+                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                    }
+                }
+
+                SectionHeader("時刻")
                 Card(
                     shape    = RoundedCornerShape(14.dp),
                     colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -883,115 +964,6 @@ fun SettingsScreen(
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("ウィジェットサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            WidgetSize.entries.forEach { size ->
-                                SelectOption(
-                                    label      = "${size.name}\n${when(size){ WidgetSize.S->"小"; WidgetSize.M->"標準"; WidgetSize.L->"大" }}",
-                                    isSelected = draft.widgetSize == size,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(widgetSize = size) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                WidgetFont.ROBOTO    to "Roboto\n標準",
-                                WidgetFont.SERIF     to "Serif\nセリフ",
-                                WidgetFont.CONDENSED to "Cond.\n細身",
-                                WidgetFont.MONO      to "Mono\n等幅"
-                            ).forEach { (font, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontFamily == font,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontFamily = font) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                TextWeight.REGULAR to "Regular\n標準",
-                                TextWeight.BOLD    to "Bold\n太め"
-                            ).forEach { (weight, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontWeight == weight,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontWeight = weight) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "斜体",
-                        sub      = "イタリック体で表示",
-                        checked  = draft.isItalic,
-                        onToggle = { draft = draft.copy(isItalic = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "テキストシャドウ",
-                        sub      = "文字に影をつける",
-                        checked  = draft.showTextShadow,
-                        onToggle = { draft = draft.copy(showTextShadow = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showFontSizeDialog = true }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                            Text(
-                                text = "%.1f".format(draft.fontScale) + "×  " + when {
-                                    draft.clockDateBalance == 0 -> "均等"
-                                    draft.clockDateBalance < 0  -> "時刻寄り"
-                                    else                        -> "日付寄り"
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
-                            )
-                        }
-                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                CornerStyle.PILL    to "Pill\n全丸",
-                                CornerStyle.ROUNDED to "Rounded\n丸め",
-                                CornerStyle.SOFT    to "Soft\n角小",
-                                CornerStyle.SQUARE  to "Square\n四角"
-                            ).forEach { (style, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.cornerStyle == style,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(cornerStyle = style) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
                         label    = "時刻を表示",
                         sub      = "時刻の表示・非表示",
@@ -1004,13 +976,6 @@ fun SettingsScreen(
                         sub      = if (draft.showSeconds) "14:32:00" else "14:32",
                         checked  = draft.showSeconds,
                         onToggle = { draft = draft.copy(showSeconds = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "シーン名を表示",
-                        sub      = "ウィジェットに現在のシーン名を表示",
-                        checked  = draft.showTaskName,
-                        onToggle = { draft = draft.copy(showTaskName = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -1086,7 +1051,14 @@ fun SettingsScreen(
                             }
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                }
+
+                SectionHeader("日付")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1133,6 +1105,55 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+
+                SectionHeader("レイアウト")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("ウィジェットサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            WidgetSize.entries.forEach { size ->
+                                SelectOption(
+                                    label      = "${size.name}\n${when(size){ WidgetSize.S->"小"; WidgetSize.M->"標準"; WidgetSize.L->"大" }}",
+                                    isSelected = draft.widgetSize == size,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(widgetSize = size) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                CornerStyle.PILL    to "Pill\n全丸",
+                                CornerStyle.ROUNDED to "Rounded\n丸め",
+                                CornerStyle.SOFT    to "Soft\n角小",
+                                CornerStyle.SQUARE  to "Square\n四角"
+                            ).forEach { (style, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.cornerStyle == style,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(cornerStyle = style) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "シーン名を表示",
+                        sub      = "ウィジェットに現在のシーン名を表示",
+                        checked  = draft.showTaskName,
+                        onToggle = { draft = draft.copy(showTaskName = it) }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
                         label    = "コンパクトな背景",

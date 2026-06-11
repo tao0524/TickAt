@@ -289,40 +289,6 @@ private fun FullScreenAlertContent(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/widget/BootCompletedReceiver.kt">
-package com.tao0524.tickat.widget
-
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import com.tao0524.tickat.data.local.AppDatabase
-import com.tao0524.tickat.data.repository.TaskRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-
-class BootCompletedReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
-
-        val pendingResult = goAsync()
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val db = AppDatabase.getInstance(context)
-                val repository = TaskRepository(db.taskDao())
-                val tasks = repository.allTasks.first()
-                TaskAlertScheduler.scheduleAll(context, tasks)
-            } finally {
-                pendingResult.finish()
-            }
-        }
-    }
-}
-</file>
-
 <file path=".gitignore">
 *.iml
 .gradle
@@ -770,6 +736,40 @@ class ViewModelFactory(
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
             SettingsViewModel(context.applicationContext) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/BootCompletedReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class BootCompletedReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+
+        val pendingResult = goAsync()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val db = AppDatabase.getInstance(context)
+                val repository = TaskRepository(db.taskDao())
+                val tasks = repository.allTasks.first()
+                TaskAlertScheduler.scheduleAll(context, tasks)
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 }
 </file>
@@ -4544,88 +4544,6 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 }
 </file>
 
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.CountdownAlarmReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
 package com.tao0524.tickat.ui.screen.tasklist
 
@@ -4742,6 +4660,88 @@ class TaskListViewModel(
         }
     }
 }
+</file>
+
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.CountdownAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListScreen.kt">
@@ -6736,7 +6736,88 @@ fun SettingsScreen(
                     )
                 }
 
-                SectionHeader("表示")
+                SectionHeader("フォント")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                WidgetFont.ROBOTO    to "Roboto\n標準",
+                                WidgetFont.SERIF     to "Serif\nセリフ",
+                                WidgetFont.CONDENSED to "Cond.\n細身",
+                                WidgetFont.MONO      to "Mono\n等幅"
+                            ).forEach { (font, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontFamily == font,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontFamily = font) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                TextWeight.REGULAR to "Regular\n標準",
+                                TextWeight.BOLD    to "Bold\n太め"
+                            ).forEach { (weight, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.fontWeight == weight,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(fontWeight = weight) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "斜体",
+                        sub      = "イタリック体で表示",
+                        checked  = draft.isItalic,
+                        onToggle = { draft = draft.copy(isItalic = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "テキストシャドウ",
+                        sub      = "文字に影をつける",
+                        checked  = draft.showTextShadow,
+                        onToggle = { draft = draft.copy(showTextShadow = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showFontSizeDialog = true }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text(
+                                text = "%.1f".format(draft.fontScale) + "×  " + when {
+                                    draft.clockDateBalance == 0 -> "均等"
+                                    draft.clockDateBalance < 0  -> "時刻寄り"
+                                    else                        -> "日付寄り"
+                                },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
+                            )
+                        }
+                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                    }
+                }
+
+                SectionHeader("時刻")
                 Card(
                     shape    = RoundedCornerShape(14.dp),
                     colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -6843,115 +6924,6 @@ fun SettingsScreen(
                     }
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("ウィジェットサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            WidgetSize.entries.forEach { size ->
-                                SelectOption(
-                                    label      = "${size.name}\n${when(size){ WidgetSize.S->"小"; WidgetSize.M->"標準"; WidgetSize.L->"大" }}",
-                                    isSelected = draft.widgetSize == size,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(widgetSize = size) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                WidgetFont.ROBOTO    to "Roboto\n標準",
-                                WidgetFont.SERIF     to "Serif\nセリフ",
-                                WidgetFont.CONDENSED to "Cond.\n細身",
-                                WidgetFont.MONO      to "Mono\n等幅"
-                            ).forEach { (font, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontFamily == font,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontFamily = font) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                TextWeight.REGULAR to "Regular\n標準",
-                                TextWeight.BOLD    to "Bold\n太め"
-                            ).forEach { (weight, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontWeight == weight,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontWeight = weight) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "斜体",
-                        sub      = "イタリック体で表示",
-                        checked  = draft.isItalic,
-                        onToggle = { draft = draft.copy(isItalic = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "テキストシャドウ",
-                        sub      = "文字に影をつける",
-                        checked  = draft.showTextShadow,
-                        onToggle = { draft = draft.copy(showTextShadow = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showFontSizeDialog = true }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                            Text(
-                                text = "%.1f".format(draft.fontScale) + "×  " + when {
-                                    draft.clockDateBalance == 0 -> "均等"
-                                    draft.clockDateBalance < 0  -> "時刻寄り"
-                                    else                        -> "日付寄り"
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
-                            )
-                        }
-                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                CornerStyle.PILL    to "Pill\n全丸",
-                                CornerStyle.ROUNDED to "Rounded\n丸め",
-                                CornerStyle.SOFT    to "Soft\n角小",
-                                CornerStyle.SQUARE  to "Square\n四角"
-                            ).forEach { (style, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.cornerStyle == style,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(cornerStyle = style) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
                         label    = "時刻を表示",
                         sub      = "時刻の表示・非表示",
@@ -6964,13 +6936,6 @@ fun SettingsScreen(
                         sub      = if (draft.showSeconds) "14:32:00" else "14:32",
                         checked  = draft.showSeconds,
                         onToggle = { draft = draft.copy(showSeconds = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "シーン名を表示",
-                        sub      = "ウィジェットに現在のシーン名を表示",
-                        checked  = draft.showTaskName,
-                        onToggle = { draft = draft.copy(showTaskName = it) }
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -7046,7 +7011,14 @@ fun SettingsScreen(
                             }
                         }
                     }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                }
+
+                SectionHeader("日付")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                         Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -7093,6 +7065,55 @@ fun SettingsScreen(
                             }
                         }
                     }
+                }
+
+                SectionHeader("レイアウト")
+                Card(
+                    shape    = RoundedCornerShape(14.dp),
+                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("ウィジェットサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            WidgetSize.entries.forEach { size ->
+                                SelectOption(
+                                    label      = "${size.name}\n${when(size){ WidgetSize.S->"小"; WidgetSize.M->"標準"; WidgetSize.L->"大" }}",
+                                    isSelected = draft.widgetSize == size,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(widgetSize = size) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                        Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                CornerStyle.PILL    to "Pill\n全丸",
+                                CornerStyle.ROUNDED to "Rounded\n丸め",
+                                CornerStyle.SOFT    to "Soft\n角小",
+                                CornerStyle.SQUARE  to "Square\n四角"
+                            ).forEach { (style, label) ->
+                                SelectOption(
+                                    label      = label,
+                                    isSelected = draft.cornerStyle == style,
+                                    modifier   = Modifier.weight(1f),
+                                    onSelect   = { draft = draft.copy(cornerStyle = style) }
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
+                        label    = "シーン名を表示",
+                        sub      = "ウィジェットに現在のシーン名を表示",
+                        checked  = draft.showTaskName,
+                        onToggle = { draft = draft.copy(showTaskName = it) }
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
                         label    = "コンパクトな背景",
