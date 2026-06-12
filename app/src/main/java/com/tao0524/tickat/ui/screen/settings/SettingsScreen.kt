@@ -763,7 +763,7 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     ColorRow(
                         label   = "テキスト色",
-                        sub     = "時刻・シーン名・ラベル",
+                        sub     = "時刻・スケジュール名・ラベル",
                         color   = draft.textColor,
                         onClick = { pickerTarget.value = "text" }
                     )
@@ -1149,8 +1149,8 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
-                        label    = "シーン名を表示",
-                        sub      = "ウィジェットに現在のシーン名を表示",
+                        label    = "スケジュール名を表示",
+                        sub      = "ウィジェットに現在のスケジュール名を表示",
                         checked  = draft.showTaskName,
                         onToggle = { draft = draft.copy(showTaskName = it) }
                     )
@@ -1170,7 +1170,7 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("シーン開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                        Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
@@ -1185,8 +1185,8 @@ fun SettingsScreen(
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = when (draft.alertMode) {
-                                "FULLSCREEN"   -> "シーン開始時に全画面で表示します"
-                                "NOTIFICATION" -> "シーン開始時にバナー通知を表示します"
+                                "FULLSCREEN"   -> "開始時に全画面で表示します"
+                                "NOTIFICATION" -> "開始時にバナー通知を表示します"
                                 else           -> "通知を表示しません"
                             },
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

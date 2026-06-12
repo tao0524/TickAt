@@ -188,7 +188,7 @@ private fun EmptyTaskContent(now: LocalTime) {
             letterSpacing = (-2).sp
         )
         Spacer(Modifier.height(4.dp))
-        SupplementText(text = "シーンが設定されていません")
+        SupplementText(text = "スケジュールが設定されていません")
     }
 }
 

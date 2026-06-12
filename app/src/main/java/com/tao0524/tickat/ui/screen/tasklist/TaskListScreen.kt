@@ -118,7 +118,7 @@ fun TaskListScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = "シーンを追加")
+                Icon(Icons.Default.Add, contentDescription = "スケジュールを追加")
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -413,7 +413,7 @@ private fun GuideCard(
         2 -> "タップして確認しよう" to
                 "配置したウィジェットをタップすると、今の時間帯の情報が全画面で表示されます"
         else -> "自分好みにカスタマイズ" to
-                "シーンをタップすると名前・時間帯・表示内容を自由に変更できます"
+                "タップすると件名・時間帯・メモを変更できます"
     }
     val accentColor = Color(0xFFBB86FC)
 
