@@ -1156,6 +1156,13 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
+                        label    = "カウントダウンを表示",
+                        sub      = "空き時間に次のスケジュールまでの残り時間を表示",
+                        checked  = draft.showCountdown,
+                        onToggle = { draft = draft.copy(showCountdown = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
                         label    = "コンパクトな背景",
                         sub      = "ウィジェットの縦幅を詰める",
                         checked  = draft.compactBg,

@@ -73,6 +73,8 @@ import kotlinx.coroutines.launch
 import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 
 class WidgetUpdateService : Service() {
 
@@ -201,7 +203,8 @@ class WidgetUpdateService : Service() {
                     bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
                     amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
-                    showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true
+                    showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
+                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -272,8 +275,23 @@ class WidgetUpdateService : Service() {
         }
         val settings = cachedSettings
         val now = java.time.LocalTime.now()
-        val activeTask = cachedTasks.firstOrNull { now >= it.startTime && now < it.endTime }
-        val taskName = activeTask?.name ?: ""
+        val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
+        val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
+        val displayText: String = if (activeBlock != null && settings.showTaskName) {
+            val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
+            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
+        } else if (activeBlock == null && settings.showCountdown) {
+            val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
+            if (nextBlock != null) {
+                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
+                when {
+                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                    else          -> "${nextBlock.name}まで あと1分未満"
+                }
+            } else ""
+        } else ""
         for (id in ids) {
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
@@ -282,8 +300,8 @@ class WidgetUpdateService : Service() {
             } else {
                 buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
             }
-            if (taskName.isNotEmpty() && settings.showTaskName) {
-                views.setTextViewText(R.id.widget_task_name, taskName)
+            if (displayText.isNotEmpty()) {
+                views.setTextViewText(R.id.widget_task_name, displayText)
                 views.setTextColor(R.id.widget_task_name, settings.dateTextColor.toInt())
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {

@@ -56,6 +56,7 @@ val KEY_BG_GRADIENT_END_ALPHA  = intPreferencesKey("bg_gradient_end_alpha")
 val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
+val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
@@ -110,6 +111,7 @@ data class AppSettings(
     val amPmColor:                Long               = 0L,
     val timeOffset:               Int                = 0,
     val showTaskName:             Boolean            = true,
+    val showCountdown:            Boolean            = true,
     val alertMode:                String             = "NOTIFICATION"
 )
 
@@ -175,6 +177,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L,
                 timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
+                showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION"
             )
         }
@@ -236,6 +239,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_AM_PM_COLOR]           = s.amPmColor
                 prefs[KEY_TIME_OFFSET]           = s.timeOffset
                 prefs[KEY_SHOW_TASK_NAME]        = s.showTaskName
+                prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
                 prefs[KEY_ALERT_MODE]            = s.alertMode
             }
         }
