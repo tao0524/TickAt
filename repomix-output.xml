@@ -53,6 +53,7 @@ app/src/main/java/com/tao0524/tickat/data/repository/TaskRepository.kt
 app/src/main/java/com/tao0524/tickat/domain/model/RepeatType.kt
 app/src/main/java/com/tao0524/tickat/domain/model/Task.kt
 app/src/main/java/com/tao0524/tickat/domain/model/TaskFeature.kt
+app/src/main/java/com/tao0524/tickat/domain/model/TaskType.kt
 app/src/main/java/com/tao0524/tickat/FullScreenAlertActivity.kt
 app/src/main/java/com/tao0524/tickat/MainActivity.kt
 app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt
@@ -430,68 +431,6 @@ class ExampleInstrumentedTest {
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
-package com.tao0524.tickat.data.local
-
-import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import com.tao0524.tickat.domain.model.Task
-
-@Database(entities = [Task::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
-
-    companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
-
-        fun getInstance(context: Context): AppDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "tickat_db"
-                ).build().also { INSTANCE = it }
-            }
-    }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/data/local/Converters.kt">
-package com.tao0524.tickat.data.local
-
-import androidx.room.TypeConverter
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskFeature
-import java.time.LocalDateTime
-import java.time.LocalTime
-
-class Converters {
-    @TypeConverter fun fromLocalTime(value: String?): LocalTime? =
-        value?.let { LocalTime.parse(it) }
-    @TypeConverter fun toLocalTime(time: LocalTime?): String? =
-        time?.toString()
-
-    @TypeConverter fun fromLocalDateTime(value: String?): LocalDateTime? =
-        value?.let { LocalDateTime.parse(it) }
-    @TypeConverter fun toLocalDateTime(dt: LocalDateTime?): String? =
-        dt?.toString()
-
-    @TypeConverter fun fromFeature(value: String?): TaskFeature? =
-        value?.let { TaskFeature.valueOf(it) }
-    @TypeConverter fun toFeature(feature: TaskFeature?): String? =
-        feature?.name
-
-    @TypeConverter fun fromRepeat(value: String?): RepeatType? =
-        value?.let { RepeatType.valueOf(it) }
-    @TypeConverter fun toRepeat(repeat: RepeatType?): String? =
-        repeat?.name
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/data/local/TaskDao.kt">
 package com.tao0524.tickat.data.local
 
@@ -546,29 +485,6 @@ enum class RepeatType {
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
-package com.tao0524.tickat.domain.model
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import java.time.LocalTime
-import java.time.LocalDateTime
-import java.util.UUID
-
-@Entity(tableName = "tasks")
-data class Task(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val feature: TaskFeature,
-    val startTime: LocalTime,
-    val endTime: LocalTime,
-    val repeat: RepeatType,
-    val memoText: String = "",
-    val targetDateTime: LocalDateTime? = null,
-    val sortOrder: Int = 0
-)
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/domain/model/TaskFeature.kt">
 package com.tao0524.tickat.domain.model
 
@@ -578,6 +494,15 @@ enum class TaskFeature {
     COUNTDOWN,
     NEXT_EVENT,
     MEMO
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/domain/model/TaskType.kt">
+package com.tao0524.tickat.domain.model
+
+enum class TaskType {
+    REMINDER,
+    TIMEBLOCK
 }
 </file>
 
@@ -1929,6 +1854,106 @@ dependencyResolutionManagement {
 
 rootProject.name = "TickAt"
 include(":app")
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
+package com.tao0524.tickat.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.TypeConverters
+import com.tao0524.tickat.domain.model.Task
+
+@Database(entities = [Task::class], version = 2, exportSchema = false)
+@TypeConverters(Converters::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun taskDao(): TaskDao
+
+    companion object {
+        @Volatile private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'")
+            }
+        }
+
+        fun getInstance(context: Context): AppDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "tickat_db"
+                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+            }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/local/Converters.kt">
+package com.tao0524.tickat.data.local
+
+import androidx.room.TypeConverter
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.TaskFeature
+import java.time.LocalDateTime
+import java.time.LocalTime
+
+class Converters {
+    @TypeConverter fun fromLocalTime(value: String?): LocalTime? =
+        value?.let { LocalTime.parse(it) }
+    @TypeConverter fun toLocalTime(time: LocalTime?): String? =
+        time?.toString()
+
+    @TypeConverter fun fromLocalDateTime(value: String?): LocalDateTime? =
+        value?.let { LocalDateTime.parse(it) }
+    @TypeConverter fun toLocalDateTime(dt: LocalDateTime?): String? =
+        dt?.toString()
+
+    @TypeConverter fun fromFeature(value: String?): TaskFeature? =
+        value?.let { TaskFeature.valueOf(it) }
+    @TypeConverter fun toFeature(feature: TaskFeature?): String? =
+        feature?.name
+
+    @TypeConverter fun fromRepeat(value: String?): RepeatType? =
+        value?.let { RepeatType.valueOf(it) }
+    @TypeConverter fun toRepeat(repeat: RepeatType?): String? =
+        repeat?.name
+
+    @TypeConverter fun fromTaskType(value: String?): TaskType? =
+        value?.let { TaskType.valueOf(it) }
+    @TypeConverter fun toTaskType(taskType: TaskType?): String? =
+        taskType?.name
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
+package com.tao0524.tickat.domain.model
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.time.LocalTime
+import java.time.LocalDateTime
+import java.util.UUID
+
+@Entity(tableName = "tasks")
+data class Task(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val feature: TaskFeature,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+    val repeat: RepeatType,
+    val memoText: String = "",
+    val targetDateTime: LocalDateTime? = null,
+    val sortOrder: Int = 0,
+    val taskType: TaskType = TaskType.TIMEBLOCK
+)
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/MainActivity.kt">
@@ -3775,7 +3800,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -3786,8 +3810,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -3802,7 +3824,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -3819,18 +3840,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskFeature
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
+import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val AccentColor = Color(0xFFBB86FC)
 
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd  HH:mm")
 
 @Composable
 private fun SectionHeader(text: String) {
@@ -3926,81 +3942,6 @@ private fun TimePickerField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateTimePickerField(
-    label: String,
-    dateTime: LocalDateTime?,
-    onDateTimeSelected: (LocalDateTime) -> Unit
-) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        selectedDate = Instant.ofEpochMilli(millis)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        showDatePicker = false
-                        showTimePicker = true
-                    }
-                }) { Text("次へ") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("キャンセル") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        TimePickerDialog(
-            title = label,
-            initialTime = LocalTime.of(0, 0),
-            onConfirm = { time ->
-                selectedDate?.let { date ->
-                    onDateTimeSelected(LocalDateTime.of(date, time))
-                }
-                showTimePicker = false
-            },
-            onDismiss = { showTimePicker = false }
-        )
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .clickable { showDatePicker = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = dateTime?.format(dateTimeFormatter) ?: "タップして期日を設定",
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (dateTime != null)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun TaskEditScreen(
     taskId: String?,
     viewModel: TaskEditViewModel,
@@ -4010,14 +3951,15 @@ fun TaskEditScreen(
     val state by viewModel.state.collectAsState()
     val hintShown by viewModel.hintTaskEditShown.collectAsState()
 
-    val isSaveEnabled = state.name.isNotBlank() && state.endTime.isAfter(state.startTime)
+    val isSaveEnabled = state.name.isNotBlank() &&
+            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime))
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (taskId == null) "シーンを追加" else "シーンを編集",
+                        text = if (taskId == null) "スケジュールを追加" else "スケジュールを編集",
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
@@ -4070,12 +4012,53 @@ fun TaskEditScreen(
         ) {
             if (!hintShown) {
                 FirstTimeHint(
-                    message = "表示機能でウィジェットに表示する内容を選べます",
+                    message = "「リマインダー」は時刻に通知、「タイムブロック」はウィジェットにも表示されます",
                     onDismiss = { viewModel.dismissHintTaskEdit() }
                 )
             }
+
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "シーン名")
+                SectionHeader(text = "タイプ")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.taskType == TaskType.REMINDER,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.REMINDER) },
+                        label = { Text("リマインダー") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.REMINDER,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = state.taskType == TaskType.TIMEBLOCK,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.TIMEBLOCK) },
+                        label = { Text("タイムブロック") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.TIMEBLOCK,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "件名")
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
@@ -4096,67 +4079,30 @@ fun TaskEditScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "時間帯")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
-                    }
-                }
-                if (!state.endTime.isAfter(state.startTime)) {
-                    Text(
-                        text = "終了時刻は開始時刻より後に設定してください",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "表示機能")
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        listOf(TaskFeature.CLOCK, TaskFeature.DATE, TaskFeature.COUNTDOWN),
-                        listOf(TaskFeature.NEXT_EVENT, TaskFeature.MEMO)
-                    ).forEach { rowFeatures ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            rowFeatures.forEach { feature ->
-                                FilterChip(
-                                    selected = state.feature == feature,
-                                    onClick = { viewModel.onFeatureChange(feature) },
-                                    label = { Text(feature.label()) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = state.feature == feature,
-                                        borderColor = MaterialTheme.colorScheme.outline,
-                                        selectedBorderColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
+                SectionHeader(
+                    text = if (state.taskType == TaskType.REMINDER) "時刻" else "時間帯"
+                )
+                if (state.taskType == TaskType.REMINDER) {
+                    TimePickerField("時刻", state.startTime, viewModel::onStartTimeChange)
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
                         }
                     }
-                }
-            }
-
-            if (state.feature == TaskFeature.COUNTDOWN) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionHeader(text = "期日")
-                    DateTimePickerField(
-                        label = "期日",
-                        dateTime = state.targetDateTime,
-                        onDateTimeSelected = viewModel::onTargetDateTimeChange
-                    )
+                    if (!state.endTime.isAfter(state.startTime)) {
+                        Text(
+                            text = "終了時刻は開始時刻より後に設定してください",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -4185,40 +4131,30 @@ fun TaskEditScreen(
                 }
             }
 
-            if (state.feature == TaskFeature.MEMO) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionHeader(text = "一言メモ")
-                    OutlinedTextField(
-                        value = state.memoText,
-                        onValueChange = viewModel::onMemoChange,
-                        placeholder = { Text("表示したいメモを入力") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "一言メモ")
+                OutlinedTextField(
+                    value = state.memoText,
+                    onValueChange = viewModel::onMemoChange,
+                    placeholder = { Text("通知に表示するメモ（任意）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
-                }
+                )
             }
 
             Spacer(Modifier.height(8.dp))
         }
     }
-}
-
-private fun TaskFeature.label() = when (this) {
-    TaskFeature.CLOCK      -> "時計"
-    TaskFeature.DATE       -> "日付"
-    TaskFeature.COUNTDOWN  -> "カウントダウン"
-    TaskFeature.NEXT_EVENT -> "次の予定"
-    TaskFeature.MEMO       -> "メモ"
 }
 
 private fun RepeatType.label() = when (this) {
@@ -4283,6 +4219,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
+import com.tao0524.tickat.domain.model.TaskType
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
@@ -4301,7 +4238,8 @@ data class TaskEditState(
     val endTime: LocalTime = LocalTime.of(10, 0),
     val repeat: RepeatType = RepeatType.DAILY,
     val memoText: String = "",
-    val targetDateTime: LocalDateTime? = null
+    val targetDateTime: LocalDateTime? = null,
+    val taskType: TaskType = TaskType.TIMEBLOCK
 )
 
 private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
@@ -4338,7 +4276,8 @@ class TaskEditViewModel(
                         endTime = task.endTime,
                         repeat = task.repeat,
                         memoText = task.memoText,
-                        targetDateTime = task.targetDateTime
+                        targetDateTime = task.targetDateTime,
+                        taskType = task.taskType
                     )
                 }
             }
@@ -4352,6 +4291,7 @@ class TaskEditViewModel(
     fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
     fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
     fun onTargetDateTimeChange(v: LocalDateTime?) = _state.update { it.copy(targetDateTime = v) }
+    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
 
     fun save(onDone: () -> Unit) {
         val s = _state.value
@@ -4367,7 +4307,8 @@ class TaskEditViewModel(
                     endTime = s.endTime,
                     repeat = s.repeat,
                     memoText = s.memoText,
-                    targetDateTime = s.targetDateTime
+                    targetDateTime = s.targetDateTime,
+                    taskType = s.taskType
                 )
             )
             val savedTask = Task(
@@ -4378,7 +4319,8 @@ class TaskEditViewModel(
                 endTime = s.endTime,
                 repeat = s.repeat,
                 memoText = s.memoText,
-                targetDateTime = s.targetDateTime
+                targetDateTime = s.targetDateTime,
+                taskType = s.taskType
             )
             if (s.feature == TaskFeature.COUNTDOWN && s.targetDateTime != null) {
                 CountdownAlarmReceiver.schedule(
@@ -4553,6 +4495,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskFeature
 import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -4625,29 +4568,33 @@ class TaskListViewModel(
         viewModelScope.launch {
             val templates = listOf(
                 Task(
-                    name = "朝の時計",
+                    name = "朝のルーティン",
                     feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(7, 0),
                     endTime = LocalTime.of(9, 0),
                     repeat = RepeatType.DAILY,
-                    sortOrder = 0
+                    sortOrder = 0,
+                    taskType = TaskType.TIMEBLOCK
                 ),
                 Task(
-                    name = "今日の日付",
-                    feature = TaskFeature.DATE,
-                    startTime = LocalTime.of(9, 0),
-                    endTime = LocalTime.of(18, 0),
+                    name = "お昼のリマインダー",
+                    feature = TaskFeature.CLOCK,
+                    startTime = LocalTime.of(12, 0),
+                    endTime = LocalTime.of(12, 0),
                     repeat = RepeatType.DAILY,
-                    sortOrder = 1
+                    memoText = "お昼ごはん忘れずに",
+                    sortOrder = 1,
+                    taskType = TaskType.REMINDER
                 ),
                 Task(
                     name = "おつかれさま",
-                    feature = TaskFeature.MEMO,
+                    feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(18, 0),
                     endTime = LocalTime.of(23, 0),
                     repeat = RepeatType.DAILY,
                     memoText = "今日もおつかれさま",
-                    sortOrder = 2
+                    sortOrder = 2,
+                    taskType = TaskType.TIMEBLOCK
                 )
             )
             templates.forEach {

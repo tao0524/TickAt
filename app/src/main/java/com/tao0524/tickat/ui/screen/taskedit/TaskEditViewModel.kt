@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.LocalTime
+import com.tao0524.tickat.domain.model.TaskType
 import android.content.Context
 import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
@@ -30,7 +31,8 @@ data class TaskEditState(
     val endTime: LocalTime = LocalTime.of(10, 0),
     val repeat: RepeatType = RepeatType.DAILY,
     val memoText: String = "",
-    val targetDateTime: LocalDateTime? = null
+    val targetDateTime: LocalDateTime? = null,
+    val taskType: TaskType = TaskType.TIMEBLOCK
 )
 
 private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
@@ -67,7 +69,8 @@ class TaskEditViewModel(
                         endTime = task.endTime,
                         repeat = task.repeat,
                         memoText = task.memoText,
-                        targetDateTime = task.targetDateTime
+                        targetDateTime = task.targetDateTime,
+                        taskType = task.taskType
                     )
                 }
             }
@@ -81,6 +84,7 @@ class TaskEditViewModel(
     fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
     fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
     fun onTargetDateTimeChange(v: LocalDateTime?) = _state.update { it.copy(targetDateTime = v) }
+    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
 
     fun save(onDone: () -> Unit) {
         val s = _state.value
@@ -96,7 +100,8 @@ class TaskEditViewModel(
                     endTime = s.endTime,
                     repeat = s.repeat,
                     memoText = s.memoText,
-                    targetDateTime = s.targetDateTime
+                    targetDateTime = s.targetDateTime,
+                    taskType = s.taskType
                 )
             )
             val savedTask = Task(
@@ -107,7 +112,8 @@ class TaskEditViewModel(
                 endTime = s.endTime,
                 repeat = s.repeat,
                 memoText = s.memoText,
-                targetDateTime = s.targetDateTime
+                targetDateTime = s.targetDateTime,
+                taskType = s.taskType
             )
             if (s.feature == TaskFeature.COUNTDOWN && s.targetDateTime != null) {
                 CountdownAlarmReceiver.schedule(

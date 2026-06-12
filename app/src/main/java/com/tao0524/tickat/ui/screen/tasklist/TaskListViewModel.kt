@@ -6,6 +6,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskFeature
 import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -78,29 +79,33 @@ class TaskListViewModel(
         viewModelScope.launch {
             val templates = listOf(
                 Task(
-                    name = "朝の時計",
+                    name = "朝のルーティン",
                     feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(7, 0),
                     endTime = LocalTime.of(9, 0),
                     repeat = RepeatType.DAILY,
-                    sortOrder = 0
+                    sortOrder = 0,
+                    taskType = TaskType.TIMEBLOCK
                 ),
                 Task(
-                    name = "今日の日付",
-                    feature = TaskFeature.DATE,
-                    startTime = LocalTime.of(9, 0),
-                    endTime = LocalTime.of(18, 0),
+                    name = "お昼のリマインダー",
+                    feature = TaskFeature.CLOCK,
+                    startTime = LocalTime.of(12, 0),
+                    endTime = LocalTime.of(12, 0),
                     repeat = RepeatType.DAILY,
-                    sortOrder = 1
+                    memoText = "お昼ごはん忘れずに",
+                    sortOrder = 1,
+                    taskType = TaskType.REMINDER
                 ),
                 Task(
                     name = "おつかれさま",
-                    feature = TaskFeature.MEMO,
+                    feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(18, 0),
                     endTime = LocalTime.of(23, 0),
                     repeat = RepeatType.DAILY,
                     memoText = "今日もおつかれさま",
-                    sortOrder = 2
+                    sortOrder = 2,
+                    taskType = TaskType.TIMEBLOCK
                 )
             )
             templates.forEach {

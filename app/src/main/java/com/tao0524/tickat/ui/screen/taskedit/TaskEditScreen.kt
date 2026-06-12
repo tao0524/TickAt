@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -25,8 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -41,7 +38,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -58,18 +54,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskFeature
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
+import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val AccentColor = Color(0xFFBB86FC)
 
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd  HH:mm")
 
 @Composable
 private fun SectionHeader(text: String) {
@@ -165,81 +156,6 @@ private fun TimePickerField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DateTimePickerField(
-    label: String,
-    dateTime: LocalDateTime?,
-    onDateTimeSelected: (LocalDateTime) -> Unit
-) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState()
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { millis ->
-                        selectedDate = Instant.ofEpochMilli(millis)
-                            .atZone(ZoneId.systemDefault())
-                            .toLocalDate()
-                        showDatePicker = false
-                        showTimePicker = true
-                    }
-                }) { Text("次へ") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("キャンセル") }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
-    }
-
-    if (showTimePicker) {
-        TimePickerDialog(
-            title = label,
-            initialTime = LocalTime.of(0, 0),
-            onConfirm = { time ->
-                selectedDate?.let { date ->
-                    onDateTimeSelected(LocalDateTime.of(date, time))
-                }
-                showTimePicker = false
-            },
-            onDismiss = { showTimePicker = false }
-        )
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .clickable { showDatePicker = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = dateTime?.format(dateTimeFormatter) ?: "タップして期日を設定",
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (dateTime != null)
-                    MaterialTheme.colorScheme.onSurface
-                else
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun TaskEditScreen(
     taskId: String?,
     viewModel: TaskEditViewModel,
@@ -249,14 +165,15 @@ fun TaskEditScreen(
     val state by viewModel.state.collectAsState()
     val hintShown by viewModel.hintTaskEditShown.collectAsState()
 
-    val isSaveEnabled = state.name.isNotBlank() && state.endTime.isAfter(state.startTime)
+    val isSaveEnabled = state.name.isNotBlank() &&
+            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime))
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (taskId == null) "シーンを追加" else "シーンを編集",
+                        text = if (taskId == null) "スケジュールを追加" else "スケジュールを編集",
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 },
@@ -309,12 +226,53 @@ fun TaskEditScreen(
         ) {
             if (!hintShown) {
                 FirstTimeHint(
-                    message = "表示機能でウィジェットに表示する内容を選べます",
+                    message = "「リマインダー」は時刻に通知、「タイムブロック」はウィジェットにも表示されます",
                     onDismiss = { viewModel.dismissHintTaskEdit() }
                 )
             }
+
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "シーン名")
+                SectionHeader(text = "タイプ")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.taskType == TaskType.REMINDER,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.REMINDER) },
+                        label = { Text("リマインダー") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.REMINDER,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = state.taskType == TaskType.TIMEBLOCK,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.TIMEBLOCK) },
+                        label = { Text("タイムブロック") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.TIMEBLOCK,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "件名")
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = viewModel::onNameChange,
@@ -335,67 +293,30 @@ fun TaskEditScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "時間帯")
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
-                    }
-                }
-                if (!state.endTime.isAfter(state.startTime)) {
-                    Text(
-                        text = "終了時刻は開始時刻より後に設定してください",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "表示機能")
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(
-                        listOf(TaskFeature.CLOCK, TaskFeature.DATE, TaskFeature.COUNTDOWN),
-                        listOf(TaskFeature.NEXT_EVENT, TaskFeature.MEMO)
-                    ).forEach { rowFeatures ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            rowFeatures.forEach { feature ->
-                                FilterChip(
-                                    selected = state.feature == feature,
-                                    onClick = { viewModel.onFeatureChange(feature) },
-                                    label = { Text(feature.label()) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = state.feature == feature,
-                                        borderColor = MaterialTheme.colorScheme.outline,
-                                        selectedBorderColor = MaterialTheme.colorScheme.primary
-                                    )
-                                )
-                            }
+                SectionHeader(
+                    text = if (state.taskType == TaskType.REMINDER) "時刻" else "時間帯"
+                )
+                if (state.taskType == TaskType.REMINDER) {
+                    TimePickerField("時刻", state.startTime, viewModel::onStartTimeChange)
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
                         }
                     }
-                }
-            }
-
-            if (state.feature == TaskFeature.COUNTDOWN) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionHeader(text = "期日")
-                    DateTimePickerField(
-                        label = "期日",
-                        dateTime = state.targetDateTime,
-                        onDateTimeSelected = viewModel::onTargetDateTimeChange
-                    )
+                    if (!state.endTime.isAfter(state.startTime)) {
+                        Text(
+                            text = "終了時刻は開始時刻より後に設定してください",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -424,40 +345,30 @@ fun TaskEditScreen(
                 }
             }
 
-            if (state.feature == TaskFeature.MEMO) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SectionHeader(text = "一言メモ")
-                    OutlinedTextField(
-                        value = state.memoText,
-                        onValueChange = viewModel::onMemoChange,
-                        placeholder = { Text("表示したいメモを入力") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            cursorColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "一言メモ")
+                OutlinedTextField(
+                    value = state.memoText,
+                    onValueChange = viewModel::onMemoChange,
+                    placeholder = { Text("通知に表示するメモ（任意）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                     )
-                }
+                )
             }
 
             Spacer(Modifier.height(8.dp))
         }
     }
-}
-
-private fun TaskFeature.label() = when (this) {
-    TaskFeature.CLOCK      -> "時計"
-    TaskFeature.DATE       -> "日付"
-    TaskFeature.COUNTDOWN  -> "カウントダウン"
-    TaskFeature.NEXT_EVENT -> "次の予定"
-    TaskFeature.MEMO       -> "メモ"
 }
 
 private fun RepeatType.label() = when (this) {
