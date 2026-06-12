@@ -13,6 +13,7 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskFeature
+import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.flow.first
@@ -28,7 +29,9 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
         val start    = intent.getStringExtra("task_start") ?: ""
         val end      = intent.getStringExtra("task_end")   ?: ""
         val memo     = intent.getStringExtra("task_memo")  ?: ""
-        val repeat   = intent.getStringExtra("task_repeat") ?: ""
+        val repeat    = intent.getStringExtra("task_repeat") ?: ""
+        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
+        val alertType = intent.getStringExtra("alert_type") ?: "START"
 
         val featureLabel = when (feature) {
             "CLOCK"      -> "時計"
@@ -37,6 +40,34 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             "NEXT_EVENT" -> "次の予定"
             "MEMO"       -> "メモ"
             else         -> ""
+        }
+
+        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
+        if (alertType == "END") {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+            createChannelIfNeeded(manager)
+
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("show_expanded", true)
+                putExtra("expanded_task_id", taskId)
+            }
+            val pendingOpen = PendingIntent.getActivity(
+                context, taskId.hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("$taskName 終了")
+                .setContentText("$start〜$end")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingOpen)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(("end_$taskId").hashCode(), notification)
+            return
         }
 
         // DataStoreからアラートモードを読み込む
@@ -48,8 +79,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             }
         }
 
-        // 繰り返しシーンは次回分を再スケジュール（モードに関係なく常に実行）
-        rescheduleIfNeeded(context, taskId, taskName, feature, start, end, memo, repeat)
+        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
+        rescheduleIfNeeded(context, taskId, taskName, feature, start, end, memo, repeat, taskType)
 
         // OFFの場合は通知を出さない
         if (alertMode == "OFF") return
@@ -59,7 +90,11 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 as NotificationManager
         createChannelIfNeeded(manager)
 
-        val contentText = "$start〜$end — $featureLabel"
+        val contentText = when (taskType) {
+            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
+            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
+            else        -> "$start〜$end"
+        }
 
         // ExpandedScreen用PendingIntent（通知タップ時）
         val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -81,6 +116,11 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingOpen)
             .setAutoCancel(true)
+
+        // メモがある場合はBigTextStyleで展開表示
+        if (memo.isNotEmpty()) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+        }
 
         // フルスクリーンモードの場合、setFullScreenIntentを追加
         if (alertMode == "FULLSCREEN") {
@@ -106,7 +146,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
     private fun rescheduleIfNeeded(
         context: Context,
         taskId: String, taskName: String, feature: String,
-        start: String, end: String, memo: String, repeat: String
+        start: String, end: String, memo: String, repeat: String,
+        taskType: String
     ) {
         if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
         try {
@@ -117,7 +158,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 startTime = LocalTime.parse(start),
                 endTime   = LocalTime.parse(end),
                 repeat    = RepeatType.valueOf(repeat),
-                memoText  = memo
+                memoText  = memo,
+                taskType  = TaskType.valueOf(taskType)
             )
             TaskAlertScheduler.schedule(context, task)
         } catch (_: Exception) {

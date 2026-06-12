@@ -866,6 +866,7 @@ import android.content.Intent
 import android.os.Build
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -879,6 +880,16 @@ object TaskAlertScheduler {
     fun schedule(context: Context, task: Task) {
         val now = LocalDateTime.now()
         var nextStart = LocalDate.now().atTime(task.startTime)
+
+        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
+        var endScheduled = false
+        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            val todayEnd = LocalDate.now().atTime(task.endTime)
+            if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
+                scheduleEndAlarm(context, task, todayEnd)
+                endScheduled = true
+            }
+        }
 
         if (nextStart.isAfter(now)) {
             // 今日の開始時刻がまだ来ていない
@@ -919,6 +930,8 @@ object TaskAlertScheduler {
             putExtra("task_end", task.endTime.toString())
             putExtra("task_memo", task.memoText)
             putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "START")
         }
 
         val pendingIntent = PendingIntent.getBroadcast(
@@ -944,20 +957,84 @@ object TaskAlertScheduler {
                 AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
             )
         }
+
+        // TIMEBLOCK: 次回の終了アラームも登録（今日分を登録済みならスキップ）
+        if (!endScheduled && task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            scheduleEndAlarm(context, task, nextStart.toLocalDate().atTime(task.endTime))
+        }
+    }
+
+    private fun scheduleEndAlarm(context: Context, task: Task, endDateTime: LocalDateTime) {
+        val triggerMillis = endDateTime
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_feature", task.feature.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "END")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("end_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
     }
 
     fun cancel(context: Context, taskId: String) {
-        val intent = Intent(context, TaskStartAlertReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
+        // 開始アラームのキャンセル
+        val startIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val startPending = PendingIntent.getBroadcast(
             context,
             ("start_${taskId}").hashCode(),
-            intent,
+            startIntent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        ) ?: return
+        )
+        if (startPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(startPending)
+            startPending.cancel()
+        }
 
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.cancel(pendingIntent)
-        pendingIntent.cancel()
+        // 終了アラームのキャンセル
+        val endIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val endPending = PendingIntent.getBroadcast(
+            context,
+            ("end_${taskId}").hashCode(),
+            endIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (endPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(endPending)
+            endPending.cancel()
+        }
     }
 }
 </file>
@@ -3067,6 +3144,52 @@ private fun FeatureChip(label: String, color: Color) {
 }
 </file>
 
+<file path="app/src/main/res/layout/widget_tickat_base.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/widget_time_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <ImageView
+            android:id="@+id/widget_date_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_task_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:gravity="center"
+            android:paddingTop="2dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt">
 package com.tao0524.tickat.widget
 
@@ -3406,52 +3529,6 @@ class WidgetUpdateService : Service() {
         startForeground(1001, notification)
     }
 }
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_base.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <ImageView
-            android:id="@+id/widget_time_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <ImageView
-            android:id="@+id/widget_date_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/widget_task_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:gravity="center"
-            android:paddingTop="2dp"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
@@ -4373,6 +4450,7 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskFeature
+import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.flow.first
@@ -4388,7 +4466,9 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
         val start    = intent.getStringExtra("task_start") ?: ""
         val end      = intent.getStringExtra("task_end")   ?: ""
         val memo     = intent.getStringExtra("task_memo")  ?: ""
-        val repeat   = intent.getStringExtra("task_repeat") ?: ""
+        val repeat    = intent.getStringExtra("task_repeat") ?: ""
+        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
+        val alertType = intent.getStringExtra("alert_type") ?: "START"
 
         val featureLabel = when (feature) {
             "CLOCK"      -> "時計"
@@ -4397,6 +4477,34 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             "NEXT_EVENT" -> "次の予定"
             "MEMO"       -> "メモ"
             else         -> ""
+        }
+
+        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
+        if (alertType == "END") {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+                    as NotificationManager
+            createChannelIfNeeded(manager)
+
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("show_expanded", true)
+                putExtra("expanded_task_id", taskId)
+            }
+            val pendingOpen = PendingIntent.getActivity(
+                context, taskId.hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("$taskName 終了")
+                .setContentText("$start〜$end")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingOpen)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(("end_$taskId").hashCode(), notification)
+            return
         }
 
         // DataStoreからアラートモードを読み込む
@@ -4408,8 +4516,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             }
         }
 
-        // 繰り返しシーンは次回分を再スケジュール（モードに関係なく常に実行）
-        rescheduleIfNeeded(context, taskId, taskName, feature, start, end, memo, repeat)
+        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
+        rescheduleIfNeeded(context, taskId, taskName, feature, start, end, memo, repeat, taskType)
 
         // OFFの場合は通知を出さない
         if (alertMode == "OFF") return
@@ -4419,7 +4527,11 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 as NotificationManager
         createChannelIfNeeded(manager)
 
-        val contentText = "$start〜$end — $featureLabel"
+        val contentText = when (taskType) {
+            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
+            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
+            else        -> "$start〜$end"
+        }
 
         // ExpandedScreen用PendingIntent（通知タップ時）
         val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -4441,6 +4553,11 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingOpen)
             .setAutoCancel(true)
+
+        // メモがある場合はBigTextStyleで展開表示
+        if (memo.isNotEmpty()) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+        }
 
         // フルスクリーンモードの場合、setFullScreenIntentを追加
         if (alertMode == "FULLSCREEN") {
@@ -4466,7 +4583,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
     private fun rescheduleIfNeeded(
         context: Context,
         taskId: String, taskName: String, feature: String,
-        start: String, end: String, memo: String, repeat: String
+        start: String, end: String, memo: String, repeat: String,
+        taskType: String
     ) {
         if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
         try {
@@ -4477,7 +4595,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 startTime = LocalTime.parse(start),
                 endTime   = LocalTime.parse(end),
                 repeat    = RepeatType.valueOf(repeat),
-                memoText  = memo
+                memoText  = memo,
+                taskType  = TaskType.valueOf(taskType)
             )
             TaskAlertScheduler.schedule(context, task)
         } catch (_: Exception) {
