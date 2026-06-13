@@ -30,13 +30,11 @@
             android:layout_height="wrap_content"
             android:visibility="gone" />
 
-        <TextView
+        <ImageView
             android:id="@+id/widget_task_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:gravity="center"
-            android:paddingTop="2dp"
+            android:paddingTop="4dp"
             android:visibility="gone" />
 
     </LinearLayout>

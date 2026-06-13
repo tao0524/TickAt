@@ -87,6 +87,7 @@ class WidgetUpdateService : Service() {
     @Volatile private var cachedTypeface: Typeface = Typeface.DEFAULT
     @Volatile private var cachedClockPx: Float = 0f
     @Volatile private var cachedDatePx: Float = 0f
+    @Volatile private var cachedMessagePx: Float = 0f
     @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
     @Volatile private var isFullRedrawNeeded: Boolean = true
     @Volatile private var cachedTasks: List<Task> = emptyList()
@@ -222,10 +223,13 @@ class WidgetUpdateService : Service() {
                 val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
                 val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
                 val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
-                val (clockSp, dateSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale)
+                val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
+                val hasMessage = newSettings.showTaskName || newSettings.showCountdown
+                val (clockSp, dateSp, messageSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale, newSettings.showTime, hasDate, hasMessage)
                 val isFirstLoad = cachedClockPx == 0f
-                cachedClockPx = clockSp * scaledDensity
-                cachedDatePx  = dateSp  * scaledDensity
+                cachedClockPx   = clockSp * scaledDensity
+                cachedDatePx    = dateSp  * scaledDensity
+                cachedMessagePx = messageSp * scaledDensity
                 cachedBgBitmap = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
                 val prevShowSeconds = cachedSettings.showSeconds
                 cachedSettings = newSettings
@@ -301,8 +305,8 @@ class WidgetUpdateService : Service() {
                 buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
             }
             if (displayText.isNotEmpty()) {
-                views.setTextViewText(R.id.widget_task_name, displayText)
-                views.setTextColor(R.id.widget_task_name, settings.dateTextColor.toInt())
+                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.dateTextColor.toInt(), cachedTypeface, settings.showTextShadow)
+                views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {
                 views.setViewVisibility(R.id.widget_task_name, View.GONE)

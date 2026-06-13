@@ -131,11 +131,52 @@ object TickAtWidget {
     }
 }
 
-internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float = 1.0f): Pair<Int, Int> {
-    val t       = (balance + 10f) / 20f
-    val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
-    val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
-    return clockSp to dateSp
+internal fun calcFontSizes(
+    widgetHeightDp: Int,
+    balance: Int,
+    fontScale: Float = 1.0f,
+    showClock: Boolean = true,
+    showDate: Boolean = true,
+    showMessage: Boolean = false
+): Triple<Int, Int, Int> {
+    val t = (balance + 10f) / 20f
+    val h = widgetHeightDp.toFloat()
+    val s = fontScale
+    val visibleCount = listOf(showClock, showDate, showMessage).count { it }
+    if (visibleCount == 0) return Triple(10, 8, 8)
+
+    val (cRaw, dRaw, mRaw) = when {
+        showClock && showDate && showMessage -> Triple(
+            h * (0.55f - t * 0.20f) * s,
+            h * (0.14f + t * 0.18f) * s,
+            h * 0.16f * s
+        )
+        showClock && showDate -> Triple(
+            h * (0.80f - t * 0.40f) * s,
+            h * (0.12f + t * 0.38f) * s,
+            0f
+        )
+        showClock && showMessage -> Triple(
+            h * (0.60f - t * 0.20f) * s,
+            0f,
+            h * (0.20f + t * 0.18f) * s
+        )
+        showDate && showMessage -> Triple(
+            0f,
+            h * (0.40f - t * 0.15f) * s,
+            h * (0.25f + t * 0.15f) * s
+        )
+        showClock   -> Triple(h * 0.70f * s, 0f, 0f)
+        showDate    -> Triple(0f, h * 0.55f * s, 0f)
+        showMessage -> Triple(0f, 0f, h * 0.50f * s)
+        else -> Triple(0f, 0f, 0f)
+    }
+
+    return Triple(
+        cRaw.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
+        dRaw.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
+        mRaw.roundToInt().coerceIn(if (showMessage) 8 else 0, 36)
+    )
 }
 
 internal fun buildTextBitmap(
