@@ -1163,6 +1163,13 @@ fun SettingsScreen(
                     )
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
+                        label    = "チェックボックスを表示",
+                        sub      = "スケジュール一覧にチェックボックスを表示します",
+                        checked  = draft.showCheckboxes,
+                        onToggle = { draft = draft.copy(showCheckboxes = it) }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    SwitchRow(
                         label    = "コンパクトな背景",
                         sub      = "ウィジェットの縦幅を詰める",
                         checked  = draft.compactBg,

@@ -21,7 +21,7 @@ class ViewModelFactory(
         modelClass.isAssignableFrom(TaskEditViewModel::class.java) ->
             TaskEditViewModel(repository, context) as T
         modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
-            ExpandedViewModel(repository) as T
+            ExpandedViewModel(repository, context) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
             SettingsViewModel(context.applicationContext) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")

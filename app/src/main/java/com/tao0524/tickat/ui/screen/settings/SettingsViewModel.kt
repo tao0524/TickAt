@@ -57,6 +57,7 @@ val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
+val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
@@ -112,6 +113,7 @@ data class AppSettings(
     val timeOffset:               Int                = 0,
     val showTaskName:             Boolean            = true,
     val showCountdown:            Boolean            = true,
+    val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION"
 )
 
@@ -178,6 +180,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION"
             )
         }
@@ -240,6 +243,7 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_TIME_OFFSET]           = s.timeOffset
                 prefs[KEY_SHOW_TASK_NAME]        = s.showTaskName
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
+                prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
             }
         }
