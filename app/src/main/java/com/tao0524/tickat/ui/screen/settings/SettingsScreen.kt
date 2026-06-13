@@ -111,6 +111,7 @@ import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 import androidx.compose.foundation.text.KeyboardActions
+import com.tao0524.tickat.ui.component.FirstTimeHint
 
 // ────────────────────────────────────────────────────────────────────────────
 // 定数
@@ -2333,46 +2334,6 @@ private fun LinearStartPicker(
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FirstTimeHint(
-    message: String,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "💡 $message",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text(
-                    text = "OK",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
             }
         }
     }

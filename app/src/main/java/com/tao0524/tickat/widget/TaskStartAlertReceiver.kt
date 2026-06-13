@@ -115,8 +115,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
         if (alertMode == "FULLSCREEN") {
             val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("scene_name", taskName)
-                putExtra("feature_label", featureLabel)
+                putExtra("task_name", taskName)
+                putExtra("task_type_label", featureLabel)
                 putExtra("time_range", "$start〜$end")
             }
             val fullScreenPending = PendingIntent.getActivity(

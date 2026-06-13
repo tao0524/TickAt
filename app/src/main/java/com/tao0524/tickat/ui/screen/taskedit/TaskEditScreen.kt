@@ -57,6 +57,7 @@ import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import com.tao0524.tickat.ui.component.FirstTimeHint
 
 private val AccentColor = Color(0xFFBB86FC)
 
@@ -376,43 +377,4 @@ private fun RepeatType.label() = when (this) {
     RepeatType.WEEKDAY -> "平日"
     RepeatType.WEEKLY  -> "週1回"
     RepeatType.ONCE    -> "1回のみ"
-}
-
-@Composable
-private fun FirstTimeHint(
-    message: String,
-    onDismiss: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "💡 $message",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text(
-                    text = "OK",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
 }
