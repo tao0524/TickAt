@@ -50,16 +50,16 @@ private data class OnboardingPage(val title: String, val subtitle: String)
 
 private val pages = listOf(
     OnboardingPage(
-        title    = "ホーム画面に、時刻だけ。",
-        subtitle = "TickAtはホーム画面を静かに保ちます。\n表示するのは今の時刻だけ。"
+        title    = "ホーム画面には、時刻だけ",
+        subtitle = "TickAtはホーム画面を静かに保ちます。\n時を刻みながら、あなたへメッセージを渡す機会を待っています。"
     ),
     OnboardingPage(
-        title    = "タップして、今日をチェック。",
+        title    = "タップして、次のスケジュールをチェック",
         subtitle = "ウィジェットをタップすると、今日のスケジュール一覧と\n進み具合がすぐにわかります。"
     ),
     OnboardingPage(
-        title    = "2つのタイプで、毎日をナビ。",
-        subtitle = "ウィジェットに表示される「タイムブロック」と、\n時間にお知らせする「リマインダー」。"
+        title    = "2つの表示方法で、毎日をナビ",
+        subtitle = "時間帯を表示する「タイムブロック」と、\n時刻にお知らせする「リマインダー」。\nシーンに合わせて使い分けられます。"
     )
 )
 

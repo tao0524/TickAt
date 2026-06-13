@@ -1718,114 +1718,6 @@ rootProject.name = "TickAt"
 include(":app")
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
-package com.tao0524.tickat.data.local
-
-import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-import androidx.room.TypeConverters
-import com.tao0524.tickat.domain.model.Task
-
-@Database(entities = [Task::class], version = 3, exportSchema = false)
-@TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
-
-    companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
-
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE tasks ADD COLUMN taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'")
-            }
-        }
-
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
-                    CREATE TABLE tasks_new (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        startTime TEXT NOT NULL,
-                        endTime TEXT NOT NULL,
-                        repeat TEXT NOT NULL,
-                        memoText TEXT NOT NULL DEFAULT '',
-                        sortOrder INTEGER NOT NULL DEFAULT 0,
-                        taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'
-                    )
-                """.trimIndent())
-                db.execSQL("""
-                    INSERT INTO tasks_new (id, name, startTime, endTime, repeat, memoText, sortOrder, taskType)
-                    SELECT id, name, startTime, endTime, repeat, memoText, sortOrder, taskType FROM tasks
-                """.trimIndent())
-                db.execSQL("DROP TABLE tasks")
-                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
-            }
-        }
-
-        fun getInstance(context: Context): AppDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "tickat_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
-            }
-    }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/data/local/Converters.kt">
-package com.tao0524.tickat.data.local
-
-import androidx.room.TypeConverter
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalTime
-
-class Converters {
-    @TypeConverter fun fromLocalTime(value: String?): LocalTime? =
-        value?.let { LocalTime.parse(it) }
-    @TypeConverter fun toLocalTime(time: LocalTime?): String? =
-        time?.toString()
-
-    @TypeConverter fun fromRepeat(value: String?): RepeatType? =
-        value?.let { RepeatType.valueOf(it) }
-    @TypeConverter fun toRepeat(repeat: RepeatType?): String? =
-        repeat?.name
-
-    @TypeConverter fun fromTaskType(value: String?): TaskType? =
-        value?.let { TaskType.valueOf(it) }
-    @TypeConverter fun toTaskType(taskType: TaskType?): String? =
-        taskType?.name
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
-package com.tao0524.tickat.domain.model
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import java.time.LocalTime
-import java.util.UUID
-
-@Entity(tableName = "tasks")
-data class Task(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val startTime: LocalTime,
-    val endTime: LocalTime,
-    val repeat: RepeatType,
-    val memoText: String = "",
-    val sortOrder: Int = 0,
-    val taskType: TaskType = TaskType.TIMEBLOCK
-)
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/MainActivity.kt">
 package com.tao0524.tickat
 
@@ -2108,187 +2000,6 @@ class ViewModelFactory(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
-package com.tao0524.tickat.widget
-
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-
-object TaskAlertScheduler {
-
-    fun scheduleAll(context: Context, tasks: List<Task>) {
-        tasks.forEach { schedule(context, it) }
-    }
-
-    fun schedule(context: Context, task: Task) {
-        val now = LocalDateTime.now()
-        var nextStart = LocalDate.now().atTime(task.startTime)
-
-        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
-        var endScheduled = false
-        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
-            val todayEnd = LocalDate.now().atTime(task.endTime)
-            if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
-                scheduleEndAlarm(context, task, todayEnd)
-                endScheduled = true
-            }
-        }
-
-        if (nextStart.isAfter(now)) {
-            // 今日の開始時刻がまだ来ていない
-            when (task.repeat) {
-                RepeatType.WEEKDAY -> {
-                    val dow = nextStart.dayOfWeek.value
-                    if (dow > 5) {
-                        nextStart = nextStart.plusDays((8 - dow).toLong())
-                    }
-                }
-                else -> { /* 今日のまま */ }
-            }
-        } else {
-            // 今日の開始時刻は既に過ぎた → 次回を計算
-            when (task.repeat) {
-                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
-                RepeatType.WEEKDAY -> {
-                    nextStart = nextStart.plusDays(1)
-                    while (nextStart.dayOfWeek.value > 5) {
-                        nextStart = nextStart.plusDays(1)
-                    }
-                }
-                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
-                RepeatType.ONCE -> return // 1回限りで既に過ぎた
-            }
-        }
-
-        val triggerMillis = nextStart
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-
-        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
-            putExtra("task_id", task.id)
-            putExtra("task_name", task.name)
-            putExtra("task_start", task.startTime.toString())
-            putExtra("task_end", task.endTime.toString())
-            putExtra("task_memo", task.memoText)
-            putExtra("task_repeat", task.repeat.name)
-            putExtra("task_type", task.taskType.name)
-            putExtra("alert_type", "START")
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ("start_${task.id}").hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-            )
-        }
-
-        // TIMEBLOCK: 次回の終了アラームも登録（今日分を登録済みならスキップ）
-        if (!endScheduled && task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
-            scheduleEndAlarm(context, task, nextStart.toLocalDate().atTime(task.endTime))
-        }
-    }
-
-    private fun scheduleEndAlarm(context: Context, task: Task, endDateTime: LocalDateTime) {
-        val triggerMillis = endDateTime
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-
-        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
-            putExtra("task_id", task.id)
-            putExtra("task_name", task.name)
-            putExtra("task_start", task.startTime.toString())
-            putExtra("task_end", task.endTime.toString())
-            putExtra("task_memo", task.memoText)
-            putExtra("task_repeat", task.repeat.name)
-            putExtra("task_type", task.taskType.name)
-            putExtra("alert_type", "END")
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ("end_${task.id}").hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-            )
-        }
-    }
-
-    fun cancel(context: Context, taskId: String) {
-        // 開始アラームのキャンセル
-        val startIntent = Intent(context, TaskStartAlertReceiver::class.java)
-        val startPending = PendingIntent.getBroadcast(
-            context,
-            ("start_${taskId}").hashCode(),
-            startIntent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        if (startPending != null) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(startPending)
-            startPending.cancel()
-        }
-
-        // 終了アラームのキャンセル
-        val endIntent = Intent(context, TaskStartAlertReceiver::class.java)
-        val endPending = PendingIntent.getBroadcast(
-            context,
-            ("end_${taskId}").hashCode(),
-            endIntent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        if (endPending != null) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(endPending)
-            endPending.cancel()
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/res/layout/widget_tickat_base.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -2333,6 +2044,114 @@ object TaskAlertScheduler {
 
     </LinearLayout>
 </FrameLayout>
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
+package com.tao0524.tickat.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.TypeConverters
+import com.tao0524.tickat.domain.model.Task
+
+@Database(entities = [Task::class], version = 3, exportSchema = false)
+@TypeConverters(Converters::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun taskDao(): TaskDao
+
+    companion object {
+        @Volatile private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE tasks_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        startTime TEXT NOT NULL,
+                        endTime TEXT NOT NULL,
+                        repeat TEXT NOT NULL,
+                        memoText TEXT NOT NULL DEFAULT '',
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO tasks_new (id, name, startTime, endTime, repeat, memoText, sortOrder, taskType)
+                    SELECT id, name, startTime, endTime, repeat, memoText, sortOrder, taskType FROM tasks
+                """.trimIndent())
+                db.execSQL("DROP TABLE tasks")
+                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
+            }
+        }
+
+        fun getInstance(context: Context): AppDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "tickat_db"
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+            }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/local/Converters.kt">
+package com.tao0524.tickat.data.local
+
+import androidx.room.TypeConverter
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalTime
+
+class Converters {
+    @TypeConverter fun fromLocalTime(value: String?): LocalTime? =
+        value?.let { LocalTime.parse(it) }
+    @TypeConverter fun toLocalTime(time: LocalTime?): String? =
+        time?.toString()
+
+    @TypeConverter fun fromRepeat(value: String?): RepeatType? =
+        value?.let { RepeatType.valueOf(it) }
+    @TypeConverter fun toRepeat(repeat: RepeatType?): String? =
+        repeat?.name
+
+    @TypeConverter fun fromTaskType(value: String?): TaskType? =
+        value?.let { TaskType.valueOf(it) }
+    @TypeConverter fun toTaskType(taskType: TaskType?): String? =
+        taskType?.name
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
+package com.tao0524.tickat.domain.model
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.time.LocalTime
+import java.util.UUID
+
+@Entity(tableName = "tasks")
+data class Task(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+    val repeat: RepeatType,
+    val memoText: String = "",
+    val sortOrder: Int = 0,
+    val taskType: TaskType = TaskType.TIMEBLOCK
+)
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedViewModel.kt">
@@ -2528,9 +2347,8 @@ private val faqItems = listOf(
 →「ウィジェット」をタップする
 →「TickAt」を選んで配置する
 
-HyperOS（Xiaomi）の場合は
-「Android ウィジェット」の中に
-TickAt があります。
+一部の機種では「Android ウィジェット」の
+中に表示される場合があります。
         """.trimIndent()
     ),
     HelpItem(
@@ -2550,7 +2368,7 @@ TickAt があります。
 → バッテリー（またはバッテリー詳細）
 →「制限なし」に変更してください。
 
-HyperOS の場合は「省エネ」ではなく「制限なし」を選択してください。
+機種によって表示名が異なる場合があります。「制限なし」に相当する設定を選んでください。
         """.trimIndent()
     ),
     HelpItem(
@@ -2902,16 +2720,16 @@ private data class OnboardingPage(val title: String, val subtitle: String)
 
 private val pages = listOf(
     OnboardingPage(
-        title    = "ホーム画面に、時刻だけ。",
-        subtitle = "TickAtはホーム画面を静かに保ちます。\n表示するのは今の時刻だけ。"
+        title    = "ホーム画面には、時刻だけ",
+        subtitle = "TickAtはホーム画面を静かに保ちます。\n時を刻みながら、あなたへメッセージを渡す機会を待っています。"
     ),
     OnboardingPage(
-        title    = "タップして、今日をチェック。",
+        title    = "タップして、次のスケジュールをチェック",
         subtitle = "ウィジェットをタップすると、今日のスケジュール一覧と\n進み具合がすぐにわかります。"
     ),
     OnboardingPage(
-        title    = "2つのタイプで、毎日をナビ。",
-        subtitle = "ウィジェットに表示される「タイムブロック」と、\n時間にお知らせする「リマインダー」。"
+        title    = "2つの表示方法で、毎日をナビ",
+        subtitle = "時間帯を表示する「タイムブロック」と、\n時刻にお知らせする「リマインダー」。\nシーンに合わせて使い分けられます。"
     )
 )
 
@@ -3144,6 +2962,187 @@ private fun FeatureChip(label: String, color: Color) {
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
+package com.tao0524.tickat.widget
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+object TaskAlertScheduler {
+
+    fun scheduleAll(context: Context, tasks: List<Task>) {
+        tasks.forEach { schedule(context, it) }
+    }
+
+    fun schedule(context: Context, task: Task) {
+        val now = LocalDateTime.now()
+        var nextStart = LocalDate.now().atTime(task.startTime)
+
+        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
+        var endScheduled = false
+        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            val todayEnd = LocalDate.now().atTime(task.endTime)
+            if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
+                scheduleEndAlarm(context, task, todayEnd)
+                endScheduled = true
+            }
+        }
+
+        if (nextStart.isAfter(now)) {
+            // 今日の開始時刻がまだ来ていない
+            when (task.repeat) {
+                RepeatType.WEEKDAY -> {
+                    val dow = nextStart.dayOfWeek.value
+                    if (dow > 5) {
+                        nextStart = nextStart.plusDays((8 - dow).toLong())
+                    }
+                }
+                else -> { /* 今日のまま */ }
+            }
+        } else {
+            // 今日の開始時刻は既に過ぎた → 次回を計算
+            when (task.repeat) {
+                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
+                RepeatType.WEEKDAY -> {
+                    nextStart = nextStart.plusDays(1)
+                    while (nextStart.dayOfWeek.value > 5) {
+                        nextStart = nextStart.plusDays(1)
+                    }
+                }
+                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
+                RepeatType.ONCE -> return // 1回限りで既に過ぎた
+            }
+        }
+
+        val triggerMillis = nextStart
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "START")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("start_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
+
+        // TIMEBLOCK: 次回の終了アラームも登録（今日分を登録済みならスキップ）
+        if (!endScheduled && task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            scheduleEndAlarm(context, task, nextStart.toLocalDate().atTime(task.endTime))
+        }
+    }
+
+    private fun scheduleEndAlarm(context: Context, task: Task, endDateTime: LocalDateTime) {
+        val triggerMillis = endDateTime
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "END")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("end_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
+    }
+
+    fun cancel(context: Context, taskId: String) {
+        // 開始アラームのキャンセル
+        val startIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val startPending = PendingIntent.getBroadcast(
+            context,
+            ("start_${taskId}").hashCode(),
+            startIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (startPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(startPending)
+            startPending.cancel()
+        }
+
+        // 終了アラームのキャンセル
+        val endIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val endPending = PendingIntent.getBroadcast(
+            context,
+            ("end_${taskId}").hashCode(),
+            endIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (endPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(endPending)
+            endPending.cancel()
         }
     }
 }
@@ -3911,186 +3910,6 @@ private fun FirstTimeHint(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditViewModel.kt">
-package com.tao0524.tickat.ui.screen.taskedit
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import java.time.LocalTime
-import com.tao0524.tickat.domain.model.TaskType
-import android.content.Context
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-
-data class TaskEditState(
-    val id: String? = null,
-    val name: String = "",
-    val startTime: LocalTime = LocalTime.of(9, 0),
-    val endTime: LocalTime = LocalTime.of(10, 0),
-    val repeat: RepeatType = RepeatType.DAILY,
-    val memoText: String = "",
-    val taskType: TaskType = TaskType.TIMEBLOCK
-)
-
-private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
-
-class TaskEditViewModel(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(TaskEditState())
-    val state = _state.asStateFlow()
-
-    val hintTaskEditShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_TASKEDIT] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    fun dismissHintTaskEdit() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_HINT_TASKEDIT] = true
-            }
-        }
-    }
-
-    fun load(id: String) {
-        viewModelScope.launch {
-            repository.getById(id)?.let { task ->
-                _state.update {
-                    TaskEditState(
-                        id = task.id,
-                        name = task.name,
-                        startTime = task.startTime,
-                        endTime = task.endTime,
-                        repeat = task.repeat,
-                        memoText = task.memoText,
-                        taskType = task.taskType
-                    )
-                }
-            }
-        }
-    }
-
-    fun onNameChange(v: String)                   = _state.update { it.copy(name = v) }
-    fun onStartTimeChange(v: LocalTime)           = _state.update { it.copy(startTime = v) }
-    fun onEndTimeChange(v: LocalTime)             = _state.update { it.copy(endTime = v) }
-    fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
-    fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
-    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
-
-    fun save(onDone: () -> Unit) {
-        val s = _state.value
-        if (s.name.isBlank()) return
-        viewModelScope.launch {
-            val taskId = s.id ?: java.util.UUID.randomUUID().toString()
-            val savedTask = Task(
-                id = taskId,
-                name = s.name,
-                startTime = s.startTime,
-                endTime = s.endTime,
-                repeat = s.repeat,
-                memoText = s.memoText,
-                taskType = s.taskType
-            )
-            repository.save(savedTask)
-            TaskAlertScheduler.schedule(context, savedTask)
-            onDone()
-        }
-    }
-}
-</file>
-
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
 package com.tao0524.tickat.ui.screen.expanded
 
@@ -4278,6 +4097,186 @@ private fun ScheduleCard(
         }
     }
 }
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditViewModel.kt">
+package com.tao0524.tickat.ui.screen.taskedit
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalTime
+import com.tao0524.tickat.domain.model.TaskType
+import android.content.Context
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+data class TaskEditState(
+    val id: String? = null,
+    val name: String = "",
+    val startTime: LocalTime = LocalTime.of(9, 0),
+    val endTime: LocalTime = LocalTime.of(10, 0),
+    val repeat: RepeatType = RepeatType.DAILY,
+    val memoText: String = "",
+    val taskType: TaskType = TaskType.TIMEBLOCK
+)
+
+private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
+
+class TaskEditViewModel(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(TaskEditState())
+    val state = _state.asStateFlow()
+
+    val hintTaskEditShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKEDIT] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskEdit() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKEDIT] = true
+            }
+        }
+    }
+
+    fun load(id: String) {
+        viewModelScope.launch {
+            repository.getById(id)?.let { task ->
+                _state.update {
+                    TaskEditState(
+                        id = task.id,
+                        name = task.name,
+                        startTime = task.startTime,
+                        endTime = task.endTime,
+                        repeat = task.repeat,
+                        memoText = task.memoText,
+                        taskType = task.taskType
+                    )
+                }
+            }
+        }
+    }
+
+    fun onNameChange(v: String)                   = _state.update { it.copy(name = v) }
+    fun onStartTimeChange(v: LocalTime)           = _state.update { it.copy(startTime = v) }
+    fun onEndTimeChange(v: LocalTime)             = _state.update { it.copy(endTime = v) }
+    fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
+    fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
+    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
+
+    fun save(onDone: () -> Unit) {
+        val s = _state.value
+        if (s.name.isBlank()) return
+        viewModelScope.launch {
+            val taskId = s.id ?: java.util.UUID.randomUUID().toString()
+            val savedTask = Task(
+                id = taskId,
+                name = s.name,
+                startTime = s.startTime,
+                endTime = s.endTime,
+                repeat = s.repeat,
+                memoText = s.memoText,
+                taskType = s.taskType
+            )
+            repository.save(savedTask)
+            TaskAlertScheduler.schedule(context, savedTask)
+            onDone()
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">

@@ -93,9 +93,8 @@ private val faqItems = listOf(
 →「ウィジェット」をタップする
 →「TickAt」を選んで配置する
 
-HyperOS（Xiaomi）の場合は
-「Android ウィジェット」の中に
-TickAt があります。
+一部の機種では「Android ウィジェット」の
+中に表示される場合があります。
         """.trimIndent()
     ),
     HelpItem(
@@ -115,7 +114,7 @@ TickAt があります。
 → バッテリー（またはバッテリー詳細）
 →「制限なし」に変更してください。
 
-HyperOS の場合は「省エネ」ではなく「制限なし」を選択してください。
+機種によって表示名が異なる場合があります。「制限なし」に相当する設定を選んでください。
         """.trimIndent()
     ),
     HelpItem(
