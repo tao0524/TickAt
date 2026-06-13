@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,7 +45,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -54,52 +53,33 @@ private val IllustSurface     = Color(0xFF2B2930)
 private val IllustPrimaryText = Color(0xFFFFFFFF)
 private val IllustSecondText  = Color(0xFF9E9E9E)
 
-// 各モードのテーマカラー（OnboardingScreen Page3と統一）
-private val ClockColor     = Color(0xFFBB86FC)
-private val DateColor      = Color(0xFF81D4FA)
-private val CountdownColor = Color(0xFFEF9A9A)
-private val NextEventColor = Color(0xFFA5D6A7)
-private val MemoColor      = Color(0xFFFFE082)
+private val Feature1Color = Color(0xFFBB86FC)
+private val Feature2Color = Color(0xFF81D4FA)
+private val Feature3Color = Color(0xFFA5D6A7)
 
 // ─── データ定義 ───
 
-private data class ModeInfo(
-    val name: String,
+private data class FeatureInfo(
+    val title: String,
     val color: Color,
-    val scene: String,
     val description: String
 )
 
-private val modes = listOf(
-    ModeInfo(
-        name = "時計",
-        color = ClockColor,
-        scene = "仕事中・勉強中に",
-        description = "現在時刻と終了時刻を大きく表示。今の時間帯があとどれくらいか一目でわかります。"
+private val features = listOf(
+    FeatureInfo(
+        title = "スマートな時計表示",
+        color = Feature1Color,
+        description = "今のスケジュールと、次の予定までのカウントダウンをホーム画面に表示します。"
     ),
-    ModeInfo(
-        name = "日付",
-        color = DateColor,
-        scene = "朝の確認に",
-        description = "今日の日付・曜日と、今年の残り日数を表示します。"
+    FeatureInfo(
+        title = "タイミングを逃さない通知",
+        color = Feature2Color,
+        description = "スケジュールの開始と終了の時間に、メモと一緒に通知でお知らせします。"
     ),
-    ModeInfo(
-        name = "カウントダウン",
-        color = CountdownColor,
-        scene = "試験・イベント前に",
-        description = "指定した期日までの残り日数・時間・分をリアルタイムで表示します。"
-    ),
-    ModeInfo(
-        name = "次の予定",
-        color = NextEventColor,
-        scene = "移動前・休憩中に",
-        description = "次のシーンの開始時刻と「あと○分」を表示。切り替えのタイミングを逃しません。"
-    ),
-    ModeInfo(
-        name = "メモ",
-        color = MemoColor,
-        scene = "リマインダーに",
-        description = "自由に入力した一言メモを全画面で大きく表示します。"
+    FeatureInfo(
+        title = "1日の流れをチェック",
+        color = Feature3Color,
+        description = "タップすると、今日のスケジュール一覧と進み具合をチェックボックスで確認できます。"
     )
 )
 
@@ -119,15 +99,11 @@ TickAt があります。
         """.trimIndent()
     ),
     HelpItem(
-        title = "シーンとは",
+        title = "タイムブロックとリマインダーの違い",
         body  = """
-シーンとは「この時間帯にこの情報を表示する」という設定です。
+「タイムブロック」は開始〜終了時間があり、ウィジェットに時間帯が表示されます。
 
-・開始〜終了時刻でウィジェットに表示される時間帯を設定します
-・表示機能で何を見せるかを選びます
-・繰り返しで毎日・平日・週1回・1回のみを選べます
-
-現在時刻に該当するシーンが自動で選ばれて表示されます。
+「リマインダー」は指定時刻に通知のみを行います。
         """.trimIndent()
     ),
     HelpItem(
@@ -143,14 +119,11 @@ HyperOS の場合は「省エネ」ではなく「制限なし」を選択して
         """.trimIndent()
     ),
     HelpItem(
-        title = "シーンが表示されない",
+        title = "スケジュールが表示されない",
         body  = """
-以下をご確認ください。
+スケジュールが登録されているかご確認ください。
 
-・シーンの時間帯が現在時刻と一致しているか
-・シーンが1件も登録されていないか
-
-シーン未設定・時間外の場合は「今は自由な時間」と表示されます。＋ボタンからシーンを追加してください。
+ウィジェットには現在進行中の「タイムブロック」か、次の予定へのカウントダウンが表示されます。
         """.trimIndent()
     )
 )
@@ -196,25 +169,25 @@ fun HelpScreen(onBack: () -> Unit) {
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // ── セクション1：TickAtでできること ──
+            // ── セクション1：TickAtの3つの機能 ──
             Text(
-                text = "5つの表示モード",
+                text = "TickAtの3つの機能",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "時間帯ごとに必要な情報を、ウィジェットに表示できます。",
+                text = "毎日のスケジュールを、3つの機能でサポートします。",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
             )
             Spacer(Modifier.height(16.dp))
 
-            modes.forEachIndexed { index, mode ->
-                ModeCard(mode = mode)
-                if (index < modes.size - 1) {
+            features.forEachIndexed { index, feature ->
+                FeatureCard(feature = feature, index = index)
+                if (index < features.size - 1) {
                     Spacer(Modifier.height(12.dp))
                 }
             }
@@ -244,10 +217,10 @@ fun HelpScreen(onBack: () -> Unit) {
     }
 }
 
-// ─── モードカード ───
+// ─── 機能カード ───
 
 @Composable
-private fun ModeCard(mode: ModeInfo) {
+private fun FeatureCard(feature: FeatureInfo, index: Int) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -265,41 +238,28 @@ private fun ModeCard(mode: ModeInfo) {
                     .background(IllustSurface),
                 contentAlignment = Alignment.Center
             ) {
-                when (mode.name) {
-                    "時計"         -> ClockIllustration()
-                    "日付"         -> DateIllustration()
-                    "カウントダウン" -> CountdownIllustration()
-                    "次の予定"     -> NextEventIllustration()
-                    "メモ"         -> MemoIllustration()
+                when (index) {
+                    0 -> WidgetIllustration()
+                    1 -> NotificationIllustration()
+                    2 -> ChecklistIllustration()
                 }
             }
 
             Spacer(Modifier.height(12.dp))
 
-            // モード名 + シーン
+            // タイトル
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Canvas(modifier = Modifier.size(8.dp)) {
-                    drawCircle(color = mode.color)
+                    drawCircle(color = feature.color)
                 }
                 Text(
-                    text = mode.name,
+                    text = feature.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "—",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 13.sp
-                )
-                Text(
-                    text = mode.scene,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = mode.color,
-                    fontWeight = FontWeight.Medium
                 )
             }
 
@@ -307,7 +267,7 @@ private fun ModeCard(mode: ModeInfo) {
 
             // 説明
             Text(
-                text = mode.description,
+                text = feature.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 22.sp
@@ -316,13 +276,13 @@ private fun ModeCard(mode: ModeInfo) {
     }
 }
 
-// ─── 各モードのミニイラスト ───
+// ─── 各機能のミニイラスト ───
 
 @Composable
-private fun ClockIllustration() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+private fun WidgetIllustration() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
             text = "14:32",
@@ -330,97 +290,75 @@ private fun ClockIllustration() {
             fontSize = 28.sp,
             fontWeight = FontWeight.Light
         )
-        Text(
-            text = "終了  15:00",
-            color = IllustSecondText.copy(alpha = 0.6f),
-            fontSize = 11.sp
-        )
-    }
-}
-
-@Composable
-private fun DateIllustration() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = "6月11日（水）",
-            color = IllustPrimaryText,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Light
-        )
-        Text(
-            text = "今年の残り  203日",
-            color = IllustSecondText.copy(alpha = 0.6f),
-            fontSize = 11.sp
-        )
-    }
-}
-
-@Composable
-private fun CountdownIllustration() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = "あと 12日 3:42",
-            color = IllustPrimaryText,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Light
-        )
-        Text(
-            text = "夏休みまで",
-            color = IllustSecondText.copy(alpha = 0.6f),
-            fontSize = 11.sp
-        )
-    }
-}
-
-@Composable
-private fun NextEventIllustration() {
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "15:00〜",
-                color = IllustPrimaryText,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Light
-            )
-            Text(
-                text = "ミーティング",
-                color = IllustSecondText.copy(alpha = 0.6f),
-                fontSize = 11.sp
-            )
-        }
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = NextEventColor.copy(alpha = 0.15f)
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
+                text = "ミーティングまで",
+                color = IllustSecondText,
+                fontSize = 11.sp
+            )
+            Text(
                 text = "あと 28分",
-                color = NextEventColor,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                color = IllustPrimaryText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
 @Composable
-private fun MemoIllustration() {
-    Text(
-        text = "牛乳を買う",
-        color = IllustPrimaryText,
-        fontSize = 26.sp,
-        fontWeight = FontWeight.Light,
-        textAlign = TextAlign.Center
-    )
+private fun NotificationIllustration() {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF3A383F),
+        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth(0.8f)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "朝のルーティン 終了", color = IllustPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(text = "9:00", color = IllustSecondText, fontSize = 11.sp)
+            }
+            Text(
+                text = "7:00〜9:00",
+                color = IllustSecondText,
+                fontSize = 12.sp
+            )
+            Text(
+                text = "💬 ストレッチと朝食",
+                color = IllustSecondText,
+                fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChecklistIllustration() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.size(16.dp).background(Feature3Color, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                Text("✓", color = IllustSurface, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+            Text("朝のルーティン", color = IllustSecondText, fontSize = 13.sp)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.size(16.dp).border(1.5.dp, IllustSecondText, RoundedCornerShape(4.dp)))
+            Text("ミーティング", color = IllustPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
+    }
 }
 
 // ─── FAQアコーディオン ───

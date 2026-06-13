@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,12 +54,12 @@ private val pages = listOf(
         subtitle = "TickAtはホーム画面を静かに保ちます。\n表示するのは今の時刻だけ。"
     ),
     OnboardingPage(
-        title    = "タップして、今を確認。",
-        subtitle = "ウィジェットをタップすると、現在のシーンに\n紐づいた情報がすぐに表示されます。"
+        title    = "タップして、今日をチェック。",
+        subtitle = "ウィジェットをタップすると、今日のスケジュール一覧と\n進み具合がすぐにわかります。"
     ),
     OnboardingPage(
-        title    = "5つの表示モード。",
-        subtitle = "時計・日付・カウントダウン・次の予定・メモ。\nその時間に必要な情報を選べます。"
+        title    = "2つのタイプで、毎日をナビ。",
+        subtitle = "ウィジェットに表示される「タイムブロック」と、\n時間にお知らせする「リマインダー」。"
     )
 )
 
@@ -237,26 +238,24 @@ private fun Page2Illustration() {
         Text("↓", color = IllustAccent, fontSize = 20.sp, fontWeight = FontWeight.Light)
 
         Surface(
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             color = IllustSurface
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("朝のルーティン", color = IllustSecondText, fontSize = 11.sp)
-                Text(
-                    text = "14:32",
-                    color = IllustPrimaryText,
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Light
-                )
-                Text(
-                    text = "終了  15:00",
-                    color = IllustSecondText.copy(alpha = 0.55f),
-                    fontSize = 11.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.size(14.dp).background(Color(0xFFBB86FC), RoundedCornerShape(3.dp)), contentAlignment = Alignment.Center) {
+                        Text("✓", color = IllustSurface, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text("朝のルーティン", color = IllustSecondText, fontSize = 12.sp)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(modifier = Modifier.size(14.dp).border(1.5.dp, IllustSecondText, RoundedCornerShape(3.dp)))
+                    Text("ミーティング", color = IllustPrimaryText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
             }
         }
     }
@@ -264,28 +263,12 @@ private fun Page2Illustration() {
 
 @Composable
 private fun Page3Illustration() {
-    val features = listOf(
-        Pair("時計",         Color(0xFFBB86FC)),
-        Pair("日付",         Color(0xFF81D4FA)),
-        Pair("カウントダウン", Color(0xFFEF9A9A)),
-        Pair("次の予定",     Color(0xFFA5D6A7)),
-        Pair("メモ",         Color(0xFFFFE082))
-    )
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            features.take(3).forEach { (label, color) ->
-                FeatureChip(label = label, color = color)
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            features.drop(3).forEach { (label, color) ->
-                FeatureChip(label = label, color = color)
-            }
-        }
+        FeatureChip(label = "タイムブロック", color = Color(0xFFBB86FC))
+        FeatureChip(label = "リマインダー", color = Color(0xFF81D4FA))
     }
 }
 
@@ -296,17 +279,17 @@ private fun FeatureChip(label: String, color: Color) {
         color = IllustSurface
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Canvas(modifier = Modifier.size(7.dp)) {
+            Canvas(modifier = Modifier.size(8.dp)) {
                 drawCircle(color = color)
             }
             Text(
                 text = label,
                 color = IllustPrimaryText,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
         }
