@@ -12,7 +12,6 @@ import com.tao0524.tickat.MainActivity
 import com.tao0524.tickat.R
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskFeature
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
@@ -23,29 +22,20 @@ import java.time.LocalTime
 class TaskStartAlertReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        val taskId   = intent.getStringExtra("task_id")   ?: return
-        val taskName = intent.getStringExtra("task_name")  ?: return
-        val feature  = intent.getStringExtra("task_feature") ?: ""
-        val start    = intent.getStringExtra("task_start") ?: ""
-        val end      = intent.getStringExtra("task_end")   ?: ""
-        val memo     = intent.getStringExtra("task_memo")  ?: ""
+        val taskId    = intent.getStringExtra("task_id")    ?: return
+        val taskName  = intent.getStringExtra("task_name")  ?: return
+        val start     = intent.getStringExtra("task_start") ?: ""
+        val end       = intent.getStringExtra("task_end")   ?: ""
+        val memo      = intent.getStringExtra("task_memo")  ?: ""
         val repeat    = intent.getStringExtra("task_repeat") ?: ""
         val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
         val alertType = intent.getStringExtra("alert_type") ?: "START"
 
-        val featureLabel = when (feature) {
-            "CLOCK"      -> "時計"
-            "DATE"       -> "日付"
-            "COUNTDOWN"  -> "カウントダウン"
-            "NEXT_EVENT" -> "次の予定"
-            "MEMO"       -> "メモ"
-            else         -> ""
-        }
+        val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
 
         // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
         if (alertType == "END") {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
-                    as NotificationManager
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             createChannelIfNeeded(manager)
 
             val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -80,14 +70,13 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
         }
 
         // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
-        rescheduleIfNeeded(context, taskId, taskName, feature, start, end, memo, repeat, taskType)
+        rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
 
         // OFFの場合は通知を出さない
         if (alertMode == "OFF") return
 
         // 通知を表示
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
-                as NotificationManager
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createChannelIfNeeded(manager)
 
         val contentText = when (taskType) {
@@ -145,7 +134,7 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
     private fun rescheduleIfNeeded(
         context: Context,
-        taskId: String, taskName: String, feature: String,
+        taskId: String, taskName: String,
         start: String, end: String, memo: String, repeat: String,
         taskType: String
     ) {
@@ -154,7 +143,6 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             val task = Task(
                 id        = taskId,
                 name      = taskName,
-                feature   = TaskFeature.valueOf(feature),
                 startTime = LocalTime.parse(start),
                 endTime   = LocalTime.parse(end),
                 repeat    = RepeatType.valueOf(repeat),

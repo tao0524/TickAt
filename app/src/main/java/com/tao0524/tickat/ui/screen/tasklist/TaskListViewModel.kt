@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskFeature
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
@@ -12,7 +11,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import android.content.Context
-import com.tao0524.tickat.widget.CountdownAlarmReceiver
 import com.tao0524.tickat.widget.TaskAlertScheduler
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -69,7 +67,6 @@ class TaskListViewModel(
 
     fun delete(task: Task) {
         viewModelScope.launch {
-            CountdownAlarmReceiver.cancel(context, task.id)
             TaskAlertScheduler.cancel(context, task.id)
             repository.delete(task)
         }
@@ -80,7 +77,6 @@ class TaskListViewModel(
             val templates = listOf(
                 Task(
                     name = "朝のルーティン",
-                    feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(7, 0),
                     endTime = LocalTime.of(9, 0),
                     repeat = RepeatType.DAILY,
@@ -89,7 +85,6 @@ class TaskListViewModel(
                 ),
                 Task(
                     name = "お昼のリマインダー",
-                    feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(12, 0),
                     endTime = LocalTime.of(12, 0),
                     repeat = RepeatType.DAILY,
@@ -99,7 +94,6 @@ class TaskListViewModel(
                 ),
                 Task(
                     name = "おつかれさま",
-                    feature = TaskFeature.CLOCK,
                     startTime = LocalTime.of(18, 0),
                     endTime = LocalTime.of(23, 0),
                     repeat = RepeatType.DAILY,
@@ -118,4 +112,3 @@ class TaskListViewModel(
         }
     }
 }
-

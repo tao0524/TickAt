@@ -57,14 +57,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskFeature
+import com.tao0524.tickat.domain.model.TaskType
 
-private fun TaskFeature.accentColor() = when (this) {
-    TaskFeature.CLOCK      -> Color(0xFFBB86FC)
-    TaskFeature.DATE       -> Color(0xFF81D4FA)
-    TaskFeature.COUNTDOWN  -> Color(0xFFEF9A9A)
-    TaskFeature.NEXT_EVENT -> Color(0xFFA5D6A7)
-    TaskFeature.MEMO       -> Color(0xFFFFE082)
+private fun TaskType.accentColor() = when (this) {
+    TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
+    TaskType.REMINDER  -> Color(0xFFFFE082)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -291,7 +288,7 @@ private fun TaskItem(
     onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val accentColor = task.feature.accentColor()
+    val accentColor = task.taskType.accentColor()
 
     Box {
         Card(
@@ -343,7 +340,7 @@ private fun TaskItem(
                             fontWeight = FontWeight.Light,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        TaskBadge(text = task.feature.label())
+                        TaskBadge(text = task.taskType.label())
                         TaskBadge(text = task.repeat.label())
                     }
                 }
@@ -386,12 +383,9 @@ private fun TaskBadge(text: String) {
     }
 }
 
-private fun TaskFeature.label() = when (this) {
-    TaskFeature.CLOCK      -> "時計"
-    TaskFeature.DATE       -> "日付"
-    TaskFeature.COUNTDOWN  -> "カウントダウン"
-    TaskFeature.NEXT_EVENT -> "次の予定"
-    TaskFeature.MEMO       -> "メモ"
+private fun TaskType.label() = when (this) {
+    TaskType.TIMEBLOCK -> "タイムブロック"
+    TaskType.REMINDER  -> "リマインダー"
 }
 
 private fun RepeatType.label() = when (this) {

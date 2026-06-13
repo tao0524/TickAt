@@ -66,7 +66,6 @@ object TaskAlertScheduler {
         val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
             putExtra("task_id", task.id)
             putExtra("task_name", task.name)
-            putExtra("task_feature", task.feature.name)
             putExtra("task_start", task.startTime.toString())
             putExtra("task_end", task.endTime.toString())
             putExtra("task_memo", task.memoText)
@@ -114,7 +113,6 @@ object TaskAlertScheduler {
         val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
             putExtra("task_id", task.id)
             putExtra("task_name", task.name)
-            putExtra("task_feature", task.feature.name)
             putExtra("task_start", task.startTime.toString())
             putExtra("task_end", task.endTime.toString())
             putExtra("task_memo", task.memoText)

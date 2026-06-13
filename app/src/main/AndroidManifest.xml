@@ -42,10 +42,6 @@
         </receiver>
 
         <receiver
-            android:name=".widget.CountdownAlarmReceiver"
-            android:exported="false" />
-
-        <receiver
             android:name=".widget.TaskStartAlertReceiver"
             android:exported="false" />
 
