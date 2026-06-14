@@ -35,6 +35,7 @@ import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
@@ -55,11 +56,12 @@ object TickAtWidget {
         }
 
         // フォントサイズ（px変換）
-        val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
+        val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
+        val hasMessage = settings.showTaskName || settings.showCountdown
+        val (clockSp, dateSp, _) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale, settings.showTime, hasDate, hasMessage)
         val scaledDensity = context.resources.displayMetrics.scaledDensity
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
-
 
         // 背景
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
@@ -110,7 +112,7 @@ object TickAtWidget {
             R.id.widget_time_img,
             if (settings.showTime) View.VISIBLE else View.GONE
         )
-        // 日付の表示/非表示（showTime=OFF のときは強制表示）
+        // 日付の表示/非表示
         views.setViewVisibility(
             R.id.widget_date_img,
             if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE
@@ -147,9 +149,9 @@ internal fun calcFontSizes(
 
     val (cRaw, dRaw, mRaw) = when {
         showClock && showDate && showMessage -> Triple(
-            h * (0.55f - t * 0.20f) * s,
-            h * (0.14f + t * 0.18f) * s,
-            h * 0.16f * s
+            h * (0.42f - t * 0.14f) * s,
+            h * (0.14f + t * 0.12f) * s,
+            h * 0.15f * s
         )
         showClock && showDate -> Triple(
             h * (0.80f - t * 0.40f) * s,
@@ -194,12 +196,12 @@ internal fun buildTextBitmap(
     }
     val textWidth = paint.measureText(text)
     val fm        = paint.fontMetrics
-    val pad       = 8f
-    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val padX      = 8f
+    val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (fm.descent - fm.ascent).toInt().coerceAtLeast(1)
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
-    canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    canvas.drawText(text, padX, -fm.ascent, paint)
     return bitmap
 }
 
@@ -214,7 +216,7 @@ internal fun buildTimeWithAmPmBitmap(
     amPmScale:   Float = 0.55f,
     amPmColor:   Int = 0
 ): Bitmap {
-    val pad         = 8f
+    val padX        = 8f
     val amPmPx      = clockPx * amPmScale
     val gap         = 6f
     val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
@@ -237,24 +239,24 @@ internal fun buildTimeWithAmPmBitmap(
     val timeFm = timePaint.fontMetrics
     val amPmFm = amPmPaint.fontMetrics
 
-    val bitmapW = (timeW + amPmW + gap + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (timeFm.descent - timeFm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH = (timeFm.descent - timeFm.ascent).toInt().coerceAtLeast(1)
 
     val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val timeBaseline = -timeFm.ascent + pad
+    val timeBaseline = -timeFm.ascent
     val amPmH        = -amPmFm.ascent + amPmFm.descent
     val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
 
     when (amPmPosition) {
         AmPmPosition.AFTER  -> {
-            canvas.drawText(timeText, pad, timeBaseline, timePaint)
-            canvas.drawText(amPmText, pad + timeW + gap, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, padX, timeBaseline, timePaint)
+            canvas.drawText(amPmText, padX + timeW + gap, amPmBaseline, amPmPaint)
         }
         AmPmPosition.BEFORE -> {
-            canvas.drawText(amPmText, pad, amPmBaseline, amPmPaint)
-            canvas.drawText(timeText, pad + amPmW + gap, timeBaseline, timePaint)
+            canvas.drawText(amPmText, padX, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, padX + amPmW + gap, timeBaseline, timePaint)
         }
     }
 

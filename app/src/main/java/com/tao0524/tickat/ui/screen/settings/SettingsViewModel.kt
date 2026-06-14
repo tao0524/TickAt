@@ -24,7 +24,6 @@ val KEY_BG_ALPHA             = intPreferencesKey("bg_alpha")
 val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
 val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
 val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
-val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
 val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
 val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
 val KEY_DATE_FORMAT          = stringPreferencesKey("date_format")
@@ -61,7 +60,6 @@ val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
-enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
@@ -80,7 +78,6 @@ data class AppSettings(
     val bgGradientEnd:       Long        = 0L,
     val textColor:           Long        = 0xFFE6E1E5L,
     val use24Hour:           Boolean     = true,
-    val widgetSize:          WidgetSize  = WidgetSize.M,
     val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
     val dateFormat:          String      = "",
@@ -127,9 +124,6 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
                 textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
                 use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
-                widgetSize   = prefs[KEY_WIDGET_SIZE]
-                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                    ?: WidgetSize.M,
                 showTime     = prefs[KEY_SHOW_TIME]    ?: true,
                 showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
                 dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
@@ -210,7 +204,6 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd
                 prefs[KEY_TEXT_COLOR]         = s.textColor
                 prefs[KEY_USE_24_HOUR]        = s.use24Hour
-                prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
                 prefs[KEY_SHOW_TIME]          = s.showTime
                 prefs[KEY_SHOW_SECONDS]       = s.showSeconds
                 prefs[KEY_DATE_FORMAT]        = s.dateFormat

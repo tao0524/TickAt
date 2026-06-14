@@ -2296,7 +2296,7 @@ object TaskAlertScheduler {
         android:layout_gravity="center"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="8dp">
+        android:padding="2dp">
 
         <ImageView
             android:id="@+id/widget_time_img"
@@ -2307,13 +2307,14 @@ object TaskAlertScheduler {
             android:id="@+id/widget_date_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:visibility="gone" />
 
         <ImageView
             android:id="@+id/widget_task_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:paddingTop="4dp"
+            android:layout_marginTop="2dp"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -3097,10 +3098,8 @@ import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
 import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
 import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -3192,9 +3191,6 @@ class WidgetUpdateService : Service() {
                     bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
                     textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
                     use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
-                    widgetSize           = prefs[KEY_WIDGET_SIZE]
-                        ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                        ?: WidgetSize.M,
                     showTime             = prefs[KEY_SHOW_TIME]          ?: true,
                     showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
                     dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
@@ -5002,6 +4998,7 @@ import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+
 object TickAtWidget {
 
     fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
@@ -5022,11 +5019,12 @@ object TickAtWidget {
         }
 
         // フォントサイズ（px変換）
-        val (clockSp, dateSp) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale)
+        val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
+        val hasMessage = settings.showTaskName || settings.showCountdown
+        val (clockSp, dateSp, _) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale, settings.showTime, hasDate, hasMessage)
         val scaledDensity = context.resources.displayMetrics.scaledDensity
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
-
 
         // 背景
         views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
@@ -5077,7 +5075,7 @@ object TickAtWidget {
             R.id.widget_time_img,
             if (settings.showTime) View.VISIBLE else View.GONE
         )
-        // 日付の表示/非表示（showTime=OFF のときは強制表示）
+        // 日付の表示/非表示
         views.setViewVisibility(
             R.id.widget_date_img,
             if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE
@@ -5114,9 +5112,9 @@ internal fun calcFontSizes(
 
     val (cRaw, dRaw, mRaw) = when {
         showClock && showDate && showMessage -> Triple(
-            h * (0.55f - t * 0.20f) * s,
-            h * (0.14f + t * 0.18f) * s,
-            h * 0.16f * s
+            h * (0.42f - t * 0.14f) * s,
+            h * (0.14f + t * 0.12f) * s,
+            h * 0.15f * s
         )
         showClock && showDate -> Triple(
             h * (0.80f - t * 0.40f) * s,
@@ -5161,12 +5159,12 @@ internal fun buildTextBitmap(
     }
     val textWidth = paint.measureText(text)
     val fm        = paint.fontMetrics
-    val pad       = 8f
-    val bitmapW   = (textWidth + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (fm.descent - fm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val padX      = 8f
+    val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (fm.descent - fm.ascent).toInt().coerceAtLeast(1)
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
-    canvas.drawText(text, pad, -fm.ascent + pad, paint)
+    canvas.drawText(text, padX, -fm.ascent, paint)
     return bitmap
 }
 
@@ -5181,7 +5179,7 @@ internal fun buildTimeWithAmPmBitmap(
     amPmScale:   Float = 0.55f,
     amPmColor:   Int = 0
 ): Bitmap {
-    val pad         = 8f
+    val padX        = 8f
     val amPmPx      = clockPx * amPmScale
     val gap         = 6f
     val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
@@ -5204,24 +5202,24 @@ internal fun buildTimeWithAmPmBitmap(
     val timeFm = timePaint.fontMetrics
     val amPmFm = amPmPaint.fontMetrics
 
-    val bitmapW = (timeW + amPmW + gap + pad * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (timeFm.descent - timeFm.ascent + pad * 2).toInt().coerceAtLeast(1)
+    val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH = (timeFm.descent - timeFm.ascent).toInt().coerceAtLeast(1)
 
     val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val timeBaseline = -timeFm.ascent + pad
+    val timeBaseline = -timeFm.ascent
     val amPmH        = -amPmFm.ascent + amPmFm.descent
     val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
 
     when (amPmPosition) {
         AmPmPosition.AFTER  -> {
-            canvas.drawText(timeText, pad, timeBaseline, timePaint)
-            canvas.drawText(amPmText, pad + timeW + gap, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, padX, timeBaseline, timePaint)
+            canvas.drawText(amPmText, padX + timeW + gap, amPmBaseline, amPmPaint)
         }
         AmPmPosition.BEFORE -> {
-            canvas.drawText(amPmText, pad, amPmBaseline, amPmPaint)
-            canvas.drawText(timeText, pad + amPmW + gap, timeBaseline, timePaint)
+            canvas.drawText(amPmText, padX, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, padX + amPmW + gap, timeBaseline, timePaint)
         }
     }
 
@@ -5406,7 +5404,6 @@ val KEY_BG_ALPHA             = intPreferencesKey("bg_alpha")
 val KEY_BG_GRADIENT_END      = longPreferencesKey("bg_gradient_end")
 val KEY_TEXT_COLOR           = longPreferencesKey("text_color")
 val KEY_USE_24_HOUR          = booleanPreferencesKey("use_24_hour")
-val KEY_WIDGET_SIZE          = stringPreferencesKey("widget_size")
 val KEY_SHOW_TIME            = booleanPreferencesKey("show_time")
 val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
 val KEY_DATE_FORMAT          = stringPreferencesKey("date_format")
@@ -5443,7 +5440,6 @@ val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
-enum class WidgetSize { S, M, L }
 enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
 enum class GradientDirection { HORIZONTAL, DIAGONAL, VERTICAL, RADIAL }
@@ -5462,7 +5458,6 @@ data class AppSettings(
     val bgGradientEnd:       Long        = 0L,
     val textColor:           Long        = 0xFFE6E1E5L,
     val use24Hour:           Boolean     = true,
-    val widgetSize:          WidgetSize  = WidgetSize.M,
     val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
     val dateFormat:          String      = "",
@@ -5509,9 +5504,6 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
                 textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
                 use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
-                widgetSize   = prefs[KEY_WIDGET_SIZE]
-                    ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                    ?: WidgetSize.M,
                 showTime     = prefs[KEY_SHOW_TIME]    ?: true,
                 showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
                 dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
@@ -5592,7 +5584,6 @@ class SettingsViewModel(private val context: Context) : ViewModel() {
                 prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd
                 prefs[KEY_TEXT_COLOR]         = s.textColor
                 prefs[KEY_USE_24_HOUR]        = s.use24Hour
-                prefs[KEY_WIDGET_SIZE]        = s.widgetSize.name
                 prefs[KEY_SHOW_TIME]          = s.showTime
                 prefs[KEY_SHOW_SECONDS]       = s.showSeconds
                 prefs[KEY_DATE_FORMAT]        = s.dateFormat
@@ -5704,14 +5695,12 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -5734,13 +5723,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import kotlin.math.roundToInt
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.sqrt
 import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.draw.scale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.tao0524.tickat.R
@@ -5750,11 +5736,7 @@ import com.tao0524.tickat.widget.buildTextBitmap
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 import androidx.compose.foundation.text.KeyboardActions
 import com.tao0524.tickat.ui.component.FirstTimeHint
-
-// ────────────────────────────────────────────────────────────────────────────
-// 定数
-// ────────────────────────────────────────────────────────────────────────────
-
+import androidx.compose.ui.Alignment
 
 private data class ThemePreset(
     val name: String,
@@ -5763,7 +5745,6 @@ private data class ThemePreset(
     val textColor: Long,
     val gradientDirection: GradientDirection? = null
 )
-
 
 private val darkThemes = listOf(
     ThemePreset("モノクローム", 0xFF1A1A1AL, 0L, 0xFFFFFFFFL),
@@ -5785,46 +5766,16 @@ private val gradientThemes = listOf(
     ThemePreset("円系", 0xFFAD1457L, 0xFFFF6F00L, 0xFFFFFFFFL, GradientDirection.RADIAL),
 )
 
-// MCW準拠・統一20色プリセット（bg / text / accent 共用）
 private val colorPresets = listOf(
-    0xFF000000L, // 黒
-    0xFFE53935L, // 赤
-    0xFFD81B60L, // ディープローズ
-    0xFFEC407AL, // ピンク
-    0xFF8E24AAL, // パープル
-    0xFF5E35B1L, // ディープパープル
-    0xFF3949ABL, // インディゴ
-    0xFF1E88E5L, // ブルー
-    0xFF039BE5L, // ライトブルー
-    0xFF00ACC1L, // シアン
-    0xFF00897BL, // ティール
-    0xFF43A047L, // グリーン
-    0xFF7CB342L, // ライトグリーン
-    0xFFC0CA33L, // ライム
-    0xFFFDD835L, // イエロー
-    0xFFFFB300L, // アンバー
-    0xFFFB8C00L, // オレンジ
-    0xFF6D4C41L, // ブラウン
-    0xFF546E7AL, // ブルーグレー
-    0xFFFFFFFFL  // 白
+    0xFF000000L, 0xFFE53935L, 0xFFD81B60L, 0xFFEC407AL, 0xFF8E24AAL,
+    0xFF5E35B1L, 0xFF3949ABL, 0xFF1E88E5L, 0xFF039BE5L, 0xFF00ACC1L,
+    0xFF00897BL, 0xFF43A047L, 0xFF7CB342L, 0xFFC0CA33L, 0xFFFDD835L,
+    0xFFFFB300L, 0xFFFB8C00L, 0xFF6D4C41L, 0xFF546E7AL, 0xFFFFFFFFL
 )
 
-// 色相バー（縦グラデーション用・0°〜360°）
 private val hueBarColors = listOf(
-    Color(0xFFFF0000L),
-    Color(0xFFFFFF00L),
-    Color(0xFF00FF00L),
-    Color(0xFF00FFFFL),
-    Color(0xFF0000FFL),
-    Color(0xFFFF00FFL),
-    Color(0xFFFF0000L)
-)
-
-private fun blendToWhite(base: Color, ratio: Float): Color = Color(
-    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
-    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
-    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
-    alpha = 1f
+    Color(0xFFFF0000L), Color(0xFFFFFF00L), Color(0xFF00FF00L),
+    Color(0xFF00FFFFL), Color(0xFF0000FFL), Color(0xFFFF00FFL), Color(0xFFFF0000L)
 )
 
 private fun generateTintShadeColors(baseColor: Long): List<Long> {
@@ -5846,10 +5797,6 @@ private fun generateTintShadeColors(baseColor: Long): List<Long> {
         lerp(base, black, 0.92f).toArgb().toLong() and 0xFFFFFFFFL
     )
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// DrawScope ヘルパー
-// ────────────────────────────────────────────────────────────────────────────
 
 private fun contentColorFor(bgColor: Long): Color {
     val r = ((bgColor shr 16) and 0xFF) / 255f
@@ -5885,10 +5832,6 @@ private fun DrawScope.drawCheckerboard(cellSizeDp: Float = 6f) {
         }
     }
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// SettingsScreen
-// ────────────────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -6460,7 +6403,7 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     SwitchRow(
-                        label    = "斜体",
+                        label    = "斜體",
                         sub      = "イタリック体で表示",
                         checked  = draft.isItalic,
                         onToggle = { draft = draft.copy(isItalic = it) }
@@ -6753,21 +6696,6 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("ウィジェットサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            WidgetSize.entries.forEach { size ->
-                                SelectOption(
-                                    label      = "${size.name}\n${when(size){ WidgetSize.S->"小"; WidgetSize.M->"標準"; WidgetSize.L->"大" }}",
-                                    isSelected = draft.widgetSize == size,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(widgetSize = size) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                         Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
@@ -6908,10 +6836,6 @@ fun SettingsScreen(
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// ColorPickerDialog（Stage 1：プリセット / Stage 2：HSVカスタム）
-// ────────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun ColorPickerDialog(
     title: String,
@@ -6922,17 +6846,14 @@ private fun ColorPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (color: Long, alpha: Int) -> Unit
 ) {
-    // ── 共有状態 ─────────────────────────────────────────────────────────────
     var selectedColor by remember { mutableStateOf(initialColor) }
     var selectedAlpha by remember { mutableStateOf(initialAlpha) }
     var stage         by remember { mutableStateOf(1) }
 
-    // Stage 1 HEX（selectedColor 変化でリセット）
     var hexInput1 by remember(selectedColor) {
         mutableStateOf(String.format("%06X", selectedColor and 0xFFFFFFL))
     }
 
-    // ── Stage 2 HSV状態 ──────────────────────────────────────────────────────
     val initHsv = remember {
         FloatArray(3).also {
             android.graphics.Color.colorToHSV((initialColor and 0xFFFFFFFFL).toInt(), it)
@@ -6942,13 +6863,11 @@ private fun ColorPickerDialog(
     var sat by remember { mutableStateOf(initHsv[1]) }
     var bri by remember { mutableStateOf(initHsv[2]) }
 
-    // HSV → Long色値
     val stage2Color = remember(hue, sat, bri) {
         val argb = android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, bri))
         argb.toLong() and 0xFFFFFFFFL
     }
 
-    // Stage 2 HEX（ARGBまたはRGB、stage2Color/selectedAlpha変化でリセット）
     var hexInput2 by remember(stage2Color, selectedAlpha) {
         val str = if (showAlpha) {
             val a = (selectedAlpha * 255 / 100).coerceIn(0, 255)
@@ -6959,21 +6878,17 @@ private fun ColorPickerDialog(
         mutableStateOf(str)
     }
 
-    // SVキャンバス背景用の純色相色
     val hueColor = remember(hue) {
         val argb = android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))
         Color(argb.toLong() and 0xFFFFFFFFL)
     }
 
-    // キャンバスサイズ追跡
     var svCanvasSize  by remember { mutableStateOf(Size.Zero) }
     var hueBarSize    by remember { mutableStateOf(Size.Zero) }
     var alphaBarSize  by remember { mutableStateOf(Size.Zero) }
 
-    // Stage 1 グリッド dots の表示alpha
     val displayAlpha = if (showAlpha) selectedAlpha / 100f else 1f
 
-    // プレビューバー用
     val afterColor = if (stage == 1) selectedColor else stage2Color
     val afterAlpha = if (showAlpha) selectedAlpha else 100
     val beforeAlpha = if (showAlpha) initialAlpha else 100
@@ -6986,9 +6901,6 @@ private fun ColorPickerDialog(
             modifier       = Modifier.fillMaxWidth()
         ) {
             if (stage == 1) {
-                // ══════════════════════════════════════════════════════════
-                // Stage 1：プリセット選択
-                // ══════════════════════════════════════════════════════════
                 Column(
                     modifier = Modifier
                         .padding(20.dp)
@@ -6997,11 +6909,9 @@ private fun ColorPickerDialog(
                     Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(14.dp))
 
-                    // 変更前 → 変更後 プレビュー
                     ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
                     Spacer(Modifier.height(16.dp))
 
-                    // ── カラーグリッド（4列 × 5行）───────────────────────
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         presets.chunked(4).forEach { rowColors ->
                             Row(
@@ -7042,7 +6952,6 @@ private fun ColorPickerDialog(
                         }
                     }
 
-                    // ── 色調バリエーション行（tint/shade 10色・selectedColor 変化で自動更新）
                     val tintShadeColors = remember(selectedColor) {
                         generateTintShadeColors(selectedColor)
                     }
@@ -7074,7 +6983,6 @@ private fun ColorPickerDialog(
 
                     Spacer(Modifier.height(14.dp))
 
-                    // HEX入力（RGB 6桁）
                     HexInputRow(
                         previewColor = selectedColor,
                         previewAlpha = displayAlpha,
@@ -7090,7 +6998,6 @@ private fun ColorPickerDialog(
                         }
                     )
 
-                    // 不透明度スライダー（背景色のみ）
                     if (showAlpha) {
                         Spacer(Modifier.height(12.dp))
                         AlphaSliderRow(alpha = selectedAlpha, onChange = { selectedAlpha = it })
@@ -7098,7 +7005,6 @@ private fun ColorPickerDialog(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // 3ボタン行：カスタム / キャンセル / 選択
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -7107,9 +7013,7 @@ private fun ColorPickerDialog(
                         TextButton(
                             onClick = {
                                 val hsv = FloatArray(3)
-                                android.graphics.Color.colorToHSV(
-                                    (selectedColor and 0xFFFFFFFFL).toInt(), hsv
-                                )
+                                android.graphics.Color.colorToHSV((selectedColor and 0xFFFFFFFFL).toInt(), hsv)
                                 hue = hsv[0]; sat = hsv[1]; bri = hsv[2]
                                 stage = 2
                             }
@@ -7124,27 +7028,19 @@ private fun ColorPickerDialog(
                         }
                     }
                 }
-
             } else {
-                // ══════════════════════════════════════════════════════════
-                // Stage 2：HSVカスタムピッカー
-                // ══════════════════════════════════════════════════════════
                 Column(modifier = Modifier.padding(20.dp)) {
-
                     Text("カスタム", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(14.dp))
 
-                    // 変更前 → 変更後 プレビュー
                     ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
                     Spacer(Modifier.height(14.dp))
 
-                    // ── SV キャンバス + 縦 色相バー ──────────────────────
                     val canvasHeight = 200.dp
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // 2D SV キャンバス
                         Canvas(
                             modifier = Modifier
                                 .weight(1f)
@@ -7167,28 +7063,14 @@ private fun ColorPickerDialog(
                                 }
                         ) {
                             svCanvasSize = size
-                            // 彩度グラデーション（白 → 純色相）
                             drawRect(brush = Brush.horizontalGradient(listOf(Color.White, hueColor)))
-                            // 明度グラデーション（透明 → 黒）
                             drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
-                            // 選択インジケーター（リング）
                             val cx = sat * size.width
                             val cy = (1f - bri) * size.height
-                            drawCircle(
-                                color  = Color.Black,
-                                radius = 11.dp.toPx(),
-                                center = Offset(cx, cy),
-                                style  = Stroke(width = 1.dp.toPx())
-                            )
-                            drawCircle(
-                                color  = Color.White,
-                                radius = 10.dp.toPx(),
-                                center = Offset(cx, cy),
-                                style  = Stroke(width = 2.dp.toPx())
-                            )
+                            drawCircle(color = Color.Black, radius = 11.dp.toPx(), center = Offset(cx, cy), style = Stroke(width = 1.dp.toPx()))
+                            drawCircle(color = Color.White, radius = 10.dp.toPx(), center = Offset(cx, cy), style = Stroke(width = 2.dp.toPx()))
                         }
 
-                        // 縦 色相バー
                         Canvas(
                             modifier = Modifier
                                 .width(28.dp)
@@ -7209,26 +7091,13 @@ private fun ColorPickerDialog(
                                 }
                         ) {
                             hueBarSize = size
-                            // 虹グラデーション（縦）
                             drawRect(brush = Brush.verticalGradient(colors = hueBarColors))
-                            // 選択インジケーター（横線）
                             val iy = (hue / 360f * size.height).coerceIn(0f, size.height - 1f)
-                            drawLine(
-                                color       = Color.White,
-                                start       = Offset(0f, iy),
-                                end         = Offset(size.width, iy),
-                                strokeWidth = 3.dp.toPx()
-                            )
-                            drawLine(
-                                color       = Color(0x88000000),
-                                start       = Offset(0f, iy),
-                                end         = Offset(size.width, iy),
-                                strokeWidth = 1.dp.toPx()
-                            )
+                            drawLine(color = Color.White, start = Offset(0f, iy), end = Offset(size.width, iy), strokeWidth = 3.dp.toPx())
+                            drawLine(color = Color(0x88000000), start = Offset(0f, iy), end = Offset(size.width, iy), strokeWidth = 1.dp.toPx())
                         }
                     }
 
-                    // ── アルファバー（背景色のみ）────────────────────────
                     if (showAlpha) {
                         Spacer(Modifier.height(10.dp))
                         Canvas(
@@ -7240,47 +7109,27 @@ private fun ColorPickerDialog(
                                     detectDragGestures(
                                         onDragStart = { offset ->
                                             if (alphaBarSize.width > 0f) {
-                                                selectedAlpha = ((1f - offset.x / alphaBarSize.width) * 100)
-                                                    .roundToInt().coerceIn(0, 100)
+                                                selectedAlpha = ((1f - offset.x / alphaBarSize.width) * 100).roundToInt().coerceIn(0, 100)
                                             }
                                         }
                                     ) { change, _ ->
                                         if (alphaBarSize.width > 0f) {
-                                            selectedAlpha = ((1f - change.position.x / alphaBarSize.width) * 100)
-                                                .roundToInt().coerceIn(0, 100)
+                                            selectedAlpha = ((1f - change.position.x / alphaBarSize.width) * 100).roundToInt().coerceIn(0, 100)
                                         }
                                     }
                                 }
                         ) {
                             alphaBarSize = size
-                            // チェッカーボード背景
                             drawCheckerboard()
-                            // 現在色（不透明）→ 透明 グラデーション（左=不透明・右=透明）
-                            drawRect(
-                                brush = Brush.horizontalGradient(
-                                    listOf(Color(stage2Color).copy(alpha = 1f), Color.Transparent)
-                                )
-                            )
-                            // 選択インジケーター（縦線）
+                            drawRect(brush = Brush.horizontalGradient(listOf(Color(stage2Color).copy(alpha = 1f), Color.Transparent)))
                             val ix = (1f - selectedAlpha / 100f) * size.width
-                            drawLine(
-                                color       = Color.White,
-                                start       = Offset(ix, 0f),
-                                end         = Offset(ix, size.height),
-                                strokeWidth = 3.dp.toPx()
-                            )
-                            drawLine(
-                                color       = Color(0x88000000),
-                                start       = Offset(ix, 0f),
-                                end         = Offset(ix, size.height),
-                                strokeWidth = 1.dp.toPx()
-                            )
+                            drawLine(color = Color.White, start = Offset(ix, 0f), end = Offset(ix, size.height), strokeWidth = 3.dp.toPx())
+                            drawLine(color = Color(0x88000000), start = Offset(ix, 0f), end = Offset(ix, size.height), strokeWidth = 1.dp.toPx())
                         }
                     }
 
                     Spacer(Modifier.height(14.dp))
 
-                    // HEX入力（showAlpha=true → 8桁ARGB / false → 6桁RGB）
                     HexInputRow(
                         previewColor = stage2Color,
                         previewAlpha = selectedAlpha / 100f,
@@ -7300,9 +7149,7 @@ private fun ColorPickerDialog(
                                     }
                                     val newColor = 0xFF000000L or rgbStr.toLong(16)
                                     val hsv = FloatArray(3)
-                                    android.graphics.Color.colorToHSV(
-                                        (newColor and 0xFFFFFFFFL).toInt(), hsv
-                                    )
+                                    android.graphics.Color.colorToHSV((newColor and 0xFFFFFFFFL).toInt(), hsv)
                                     hue = hsv[0]; sat = hsv[1]; bri = hsv[2]
                                 }
                             }
@@ -7311,7 +7158,6 @@ private fun ColorPickerDialog(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // 3ボタン行：プリセット / キャンセル / 選択
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -7338,11 +7184,6 @@ private fun ColorPickerDialog(
     }
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// ダイアログ共通サブコンポーザブル
-// ────────────────────────────────────────────────────────────────────────────
-
-/** □ → □ 形式プレビューバー（チェッカーボード + alpha対応） */
 @Composable
 private fun ColorPreviewBar(
     initialColor: Long,
@@ -7389,12 +7230,7 @@ private fun ColorPreviewBar(
                         .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text       = "?",
-                        color      = MaterialTheme.colorScheme.onSurface,
-                        fontSize   = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = "?", color = MaterialTheme.colorScheme.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -7403,7 +7239,6 @@ private fun ColorPreviewBar(
     }
 }
 
-/** HEX入力行（previewAlpha対応） */
 @Composable
 private fun HexInputRow(
     previewColor: Long,
@@ -7427,12 +7262,7 @@ private fun HexInputRow(
                 drawCircle(color = Color(previewColor).copy(alpha = previewAlpha))
             }
         }
-        Text(
-            "#",
-            color      = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize   = 16.sp,
-            fontFamily = FontFamily.Monospace
-        )
+        Text("#", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
         OutlinedTextField(
             value         = hexInput,
             onValueChange = onHexChange,
@@ -7453,7 +7283,6 @@ private fun HexInputRow(
     }
 }
 
-/** 不透明度スライダー行 */
 @Composable
 private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
     var localValue by remember(alpha) { mutableFloatStateOf(alpha / 100f) }
@@ -7471,19 +7300,9 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
             },
             modifier      = Modifier.weight(1f)
         )
-        Text(
-            "${(localValue * 100).roundToInt()}%",
-            color     = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize  = 12.sp,
-            textAlign = TextAlign.End,
-            modifier  = Modifier.width(36.dp)
-        )
+        Text("${(localValue * 100).roundToInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.End, modifier = Modifier.width(36.dp))
     }
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// 画面共通サブコンポーザブル
-// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun WidgetPreview(draft: AppSettings) {
@@ -7505,114 +7324,124 @@ private fun WidgetPreview(draft: AppSettings) {
     val hasDate = draft.dateFormat.isNotEmpty() || draft.weekdayFormat.isNotEmpty() || !draft.showTime
     val hasMessage = draft.showTaskName || draft.showCountdown
 
-    val refWidth = 400f
-    val refHeight = 250f
-
-    val previewHeightDp = when (draft.widgetSize) {
-        WidgetSize.S -> 120f
-        WidgetSize.M -> 180f
-        WidgetSize.L -> 250f
+    val (actualW, actualH) = remember {
+        val manager = android.appwidget.AppWidgetManager.getInstance(context)
+        val ids = manager.getAppWidgetIds(android.content.ComponentName(context, com.tao0524.tickat.widget.TickAtWidgetReceiver::class.java))
+        if (ids.isNotEmpty()) {
+            val opts = manager.getAppWidgetOptions(ids[0])
+            val w = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 300).toFloat()
+            val h = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 150).toFloat()
+            w to h
+        } else {
+            300f to 150f
+        }
     }
 
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
-    val scaleX = screenWidthDp * 0.85f / refWidth
-    val scaleY = previewHeightDp / refHeight
-    val scale = minOf(scaleX, scaleY)
+    val maxPreviewWidth = screenWidthDp * 0.90f
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height((refHeight * scale).dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFC0C0C0)),
-        contentAlignment = Alignment.Center
-    ) {
-        AndroidView(
-            factory = { ctx ->
-                LayoutInflater.from(ctx).inflate(R.layout.widget_tickat_base, null, false).also { view ->
-                    view.layoutParams = android.view.ViewGroup.LayoutParams(
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                        android.view.ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                }
-            },
-            update = { view ->
-                val (clockSp, dateSp, messageSp) = calcFontSizes(refHeight.toInt(), draft.clockDateBalance, draft.fontScale, draft.showTime, hasDate, hasMessage)
-                val scaledDensity = view.context.resources.displayMetrics.scaledDensity
-                val clockPx = clockSp * scaledDensity
-                val datePx  = dateSp  * scaledDensity
-                val messagePx = messageSp * scaledDensity
-                val typefaceStyle = when {
-                    draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
-                    draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
-                    draft.isItalic                                        -> android.graphics.Typeface.ITALIC
-                    else                                                  -> android.graphics.Typeface.NORMAL
-                }
-                val typeface = when (draft.fontFamily) {
-                    WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
-                    WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
-                    WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
-                    else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
-                }
-                val now      = java.util.Calendar.getInstance()
-                val timeLocale = if (draft.amPmLabel == AmPmLabel.ENGLISH) java.util.Locale.ENGLISH else java.util.Locale.JAPANESE
-                val timeBitmap = if (draft.use24Hour) {
-                    val fmt = if (draft.showSeconds) "HH:mm:ss" else "HH:mm"
-                    buildTextBitmap(java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time), clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow)
-                } else {
-                    val fmt      = if (draft.showSeconds) "h:mm:ss" else "h:mm"
-                    val timeOnly = java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time)
-                    val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
-                    buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale, if (draft.amPmColor != 0L) draft.amPmColor.toInt() else draft.textColor.toInt())
-                }
-                val datePart    = if (draft.dateFormat.isNotEmpty())
-                    java.text.SimpleDateFormat(draft.dateFormat, java.util.Locale.getDefault()).format(now.time)
-                else ""
-                val weekdayPart = if (draft.weekdayFormat.isNotEmpty())
-                    java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(now.time)
-                else ""
-                val dateText = when {
-                    weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
-                        if (draft.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
-                        else "$weekdayPart, $datePart"
-                    weekdayPart.isNotEmpty() -> weekdayPart
-                    datePart.isNotEmpty()    -> datePart
-                    else                     -> ""
-                }
-                val fallbackDate = if (dateText.isEmpty() && !draft.showTime)
-                    java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault()).format(now.time) else ""
-                val displayDate = dateText.ifEmpty { fallbackDate }
-                view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
-                    setImageBitmap(timeBitmap)
-                    visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
-                }
-                view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
-                    if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
-                    visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-                }
-                val messageText = when {
-                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                    draft.showCountdown -> "次のタスクまで あと30分"
-                    else -> ""
-                }
-                view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
-                    if (messageText.isNotEmpty()) {
-                        setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
-                        visibility = android.view.View.VISIBLE
-                    } else {
-                        visibility = android.view.View.GONE
-                    }
-                }
-                bgBitmap?.let {
-                    view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
-                }
-                view.requestLayout()
-            },
+    // 実機の縦横比を完全に維持したまま、画面幅の90%まで拡大するスケールを算出
+    val previewScale = maxPreviewWidth / actualW
+    val previewWidthDp = maxPreviewWidth
+    val previewHeightDp = actualH * previewScale
+
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Box(
             modifier = Modifier
-                .width(refWidth.dp)
-                .height(refHeight.dp)
-                .scale(scale)
-        )
+                .width(previewWidthDp.dp)
+                .height(previewHeightDp.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            AndroidView(
+                factory = { ctx ->
+                    LayoutInflater.from(ctx).inflate(R.layout.widget_tickat_base, null, false).also { view ->
+                        // 拡大された親Box一杯にXMLレイアウトを広げる
+                        view.layoutParams = android.view.ViewGroup.LayoutParams(
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                update = { view ->
+                    // フォント計算用のベース高度は、実機そのままの生の actualH を引き渡してクランプタイミングを同期
+                    val (clockSp, dateSp, messageSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale, draft.showTime, hasDate, hasMessage)
+                    val scaledDensity = view.context.resources.displayMetrics.scaledDensity
+
+                    // プレビューが拡大された倍率（previewScale）を各文字のピクセル値にも正確に乗算し、グラフィックとはみ出しを完全同期
+                    val clockPx   = clockSp   * previewScale * scaledDensity
+                    val datePx    = dateSp    * previewScale * scaledDensity
+                    val messagePx = messageSp * previewScale * scaledDensity
+
+                    val typefaceStyle = when {
+                        draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
+                        draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
+                        draft.isItalic                                        -> android.graphics.Typeface.ITALIC
+                        else                                                  -> android.graphics.Typeface.NORMAL
+                    }
+                    val typeface = when (draft.fontFamily) {
+                        WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
+                        WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
+                        WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
+                        else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
+                    }
+                    val now      = java.util.Calendar.getInstance()
+                    val timeLocale = if (draft.amPmLabel == AmPmLabel.ENGLISH) java.util.Locale.ENGLISH else java.util.Locale.JAPANESE
+                    val timeBitmap = if (draft.use24Hour) {
+                        val fmt = if (draft.showSeconds) "HH:mm:ss" else "HH:mm"
+                        buildTextBitmap(java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time), clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow)
+                    } else {
+                        val fmt      = if (draft.showSeconds) "h:mm:ss" else "h:mm"
+                        val timeOnly = java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time)
+                        val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
+                        buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale, if (draft.amPmColor != 0L) draft.amPmColor.toInt() else draft.textColor.toInt())
+                    }
+                    val datePart = if (draft.dateFormat.isNotEmpty())
+                        java.text.SimpleDateFormat(draft.dateFormat, java.util.Locale.getDefault()).format(now.time)
+                    else ""
+                    val weekdayPart = if (draft.weekdayFormat.isNotEmpty())
+                        java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(now.time)
+                    else ""
+                    val dateText = when {
+                        weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
+                            if (draft.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
+                            else "$weekdayPart, $datePart"
+                        weekdayPart.isNotEmpty() -> weekdayPart
+                        datePart.isNotEmpty()    -> datePart
+                        else                     -> ""
+                    }
+                    val fallbackDate = if (dateText.isEmpty() && !draft.showTime)
+                        java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault()).format(now.time) else ""
+                    val displayDate = dateText.ifEmpty { fallbackDate }
+                    view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
+                        setImageBitmap(timeBitmap)
+                        visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
+                    }
+                    view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
+                        if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                        visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+                    }
+                    val messageText = when {
+                        draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                        draft.showCountdown -> "次のタスクまで あと30分"
+                        else -> ""
+                    }
+                    view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
+                        if (messageText.isNotEmpty()) {
+                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                            visibility = android.view.View.VISIBLE
+                        } else {
+                            visibility = android.view.View.GONE
+                        }
+                    }
+                    bgBitmap?.let {
+                        view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
+                    }
+                    view.requestLayout()
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
     }
 }
 
@@ -7636,12 +7465,7 @@ private fun FontSizePickerDialog(
                 modifier            = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    "フォントサイズ",
-                    fontSize   = 17.sp,
-                    fontWeight = FontWeight.Medium,
-                    color      = MaterialTheme.colorScheme.onSurface
-                )
+                Text("フォントサイズ", fontSize = 17.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(16.dp))
                 WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, dateFormat = "M月d日"))
                 Spacer(Modifier.height(16.dp))
@@ -7698,21 +7522,11 @@ private fun ThemeCard(
     val isGradient = theme.bgGradientEnd != 0L
     val brush = if (isGradient) {
         when (theme.gradientDirection) {
-            GradientDirection.HORIZONTAL -> Brush.horizontalGradient(
-                colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd))
-            )
-            GradientDirection.VERTICAL -> Brush.verticalGradient(
-                colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd))
-            )
-            GradientDirection.DIAGONAL -> Brush.linearGradient(
-                colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd))
-            )
-            GradientDirection.RADIAL -> Brush.radialGradient(
-                colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd))
-            )
-            null -> Brush.linearGradient(
-                colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd))
-            )
+            GradientDirection.HORIZONTAL -> Brush.horizontalGradient(colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd)))
+            GradientDirection.VERTICAL -> Brush.verticalGradient(colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd)))
+            GradientDirection.DIAGONAL -> Brush.linearGradient(colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd)))
+            GradientDirection.RADIAL -> Brush.radialGradient(colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd)))
+            null -> Brush.linearGradient(colors = listOf(Color(theme.bgColor), Color(theme.bgGradientEnd)))
         }
     } else null
 
@@ -7752,12 +7566,7 @@ private fun ThemeCard(
                     letterSpacing = (-0.5).sp
                 )
             }
-            Text(
-                text = theme.name,
-                color = Color(theme.textColor).copy(alpha = 0.55f),
-                fontSize = 10.sp,
-                letterSpacing = 0.5.sp
-            )
+            Text(text = theme.name, color = Color(theme.textColor).copy(alpha = 0.55f), fontSize = 10.sp, letterSpacing = 0.5.sp)
         }
         if (isSelected) {
             Box(
@@ -7794,13 +7603,7 @@ private fun ColorRow(
             Text(sub,   color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .background(Color(color))
-                    .border(1.dp, Color(0xFF49454F), CircleShape)
-            )
+            Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Color(color)).border(1.dp, Color(0xFF49454F), CircleShape))
             Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
         }
     }
@@ -7856,19 +7659,9 @@ private fun SelectOption(
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text       = label,
-            color      = if (isSelected) MaterialTheme.colorScheme.onSurface else Color(0xFF9E9E9E),
-            fontSize   = 12.sp,
-            textAlign  = TextAlign.Center,
-            lineHeight = 18.sp
-        )
+        Text(text = label, color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color(0xFF9E9E9E), fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 18.sp)
     }
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// LinearStartPicker
-// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun LinearStartPicker(
@@ -7918,24 +7711,14 @@ private fun LinearStartPicker(
             }
             val use3  = gradientColorCount == 3 && bgColor2 != 0L
             val brush = if (use3) {
-                Brush.linearGradient(
-                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
-                    start  = Offset(sx, sy),
-                    end    = Offset(ex, ey)
-                )
+                Brush.linearGradient(colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)), start = Offset(sx, sy), end = Offset(ex, ey))
             } else {
-                Brush.linearGradient(
-                    colors = listOf(Color(bgColor), Color(endColor)),
-                    start  = Offset(sx, sy),
-                    end    = Offset(ex, ey)
-                )
+                Brush.linearGradient(colors = listOf(Color(bgColor), Color(endColor)), start = Offset(sx, sy), end = Offset(ex, ey))
             }
             drawRect(brush = brush)
         }
         Column(
-            modifier            = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier            = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             positions.chunked(3).forEach { row ->
@@ -7966,19 +7749,11 @@ private fun LinearStartPicker(
                                     },
                                     shape = CircleShape
                                 )
-                                .then(
-                                    if (!isDisabled) Modifier.clickable { onSelect(pos) }
-                                    else Modifier
-                                ),
+                                .then(if (!isDisabled) Modifier.clickable { onSelect(pos) } else Modifier),
                             contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
-                                Text(
-                                    "✓",
-                                    color      = Color.White,
-                                    fontSize   = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -7987,10 +7762,6 @@ private fun LinearStartPicker(
         }
     }
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// RadialCenterPicker
-// ────────────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun RadialCenterPicker(
@@ -8032,24 +7803,14 @@ private fun RadialCenterPicker(
             val radius = sqrt(dx * dx + dy * dy)
             val use3   = gradientColorCount == 3 && bgColor2 != 0L
             val brush  = if (use3) {
-                Brush.radialGradient(
-                    colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)),
-                    center = Offset(rcx, rcy),
-                    radius = radius
-                )
+                Brush.radialGradient(colors = listOf(Color(bgColor), Color(bgColor2), Color(endColor)), center = Offset(rcx, rcy), radius = radius)
             } else {
-                Brush.radialGradient(
-                    colors = listOf(Color(bgColor), Color(endColor)),
-                    center = Offset(rcx, rcy),
-                    radius = radius
-                )
+                Brush.radialGradient(colors = listOf(Color(bgColor), Color(endColor)), center = Offset(rcx, rcy), radius = radius)
             }
             drawRect(brush = brush)
         }
         Column(
-            modifier            = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier            = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             positions.chunked(3).forEach { row ->
@@ -8063,26 +7824,13 @@ private fun RadialCenterPicker(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(
-                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                    else Color.White.copy(alpha = 0.55f)
-                                )
-                                .border(
-                                    width = 1.5.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else Color.White.copy(alpha = 0.85f),
-                                    shape = CircleShape
-                                )
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.55f))
+                                .border(width = 1.5.dp, color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.85f), shape = CircleShape)
                                 .clickable { onSelect(pos) },
                             contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
-                                Text(
-                                    "✓",
-                                    color      = Color.White,
-                                    fontSize   = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

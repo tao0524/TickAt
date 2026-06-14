@@ -58,10 +58,8 @@ import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
 import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
 import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -153,9 +151,6 @@ class WidgetUpdateService : Service() {
                     bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
                     textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
                     use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
-                    widgetSize           = prefs[KEY_WIDGET_SIZE]
-                        ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                        ?: WidgetSize.M,
                     showTime             = prefs[KEY_SHOW_TIME]          ?: true,
                     showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
                     dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
