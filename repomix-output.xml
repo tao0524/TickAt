@@ -1858,38 +1858,6 @@ fun AppNavigation(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt">
-package com.tao0524.tickat.ui
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.screen.expanded.ExpandedViewModel
-import com.tao0524.tickat.ui.screen.taskedit.TaskEditViewModel
-import com.tao0524.tickat.ui.screen.tasklist.TaskListViewModel
-
-import android.content.Context
-import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-
-class ViewModelFactory(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
-        modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
-            TaskListViewModel(repository, context) as T
-        modelClass.isAssignableFrom(TaskEditViewModel::class.java) ->
-            TaskEditViewModel(repository, context) as T
-        modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
-            ExpandedViewModel(repository, context) as T
-        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(context.applicationContext, repository) as T
-        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
 package com.tao0524.tickat.data.local
 
@@ -2091,6 +2059,38 @@ class ExpandedViewModel(
                 }
             }
         }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt">
+package com.tao0524.tickat.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.screen.expanded.ExpandedViewModel
+import com.tao0524.tickat.ui.screen.taskedit.TaskEditViewModel
+import com.tao0524.tickat.ui.screen.tasklist.TaskListViewModel
+
+import android.content.Context
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+
+class ViewModelFactory(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
+            TaskListViewModel(repository, context) as T
+        modelClass.isAssignableFrom(TaskEditViewModel::class.java) ->
+            TaskEditViewModel(repository, context) as T
+        modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
+            ExpandedViewModel(repository, context) as T
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(context.applicationContext, repository) as T
+        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }
 </file>
@@ -3787,6 +3787,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
+import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 
 class WidgetUpdateService : Service() {
 
@@ -3914,7 +3915,8 @@ class WidgetUpdateService : Service() {
                     amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
                     showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
-                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true
+                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -4014,7 +4016,7 @@ class WidgetUpdateService : Service() {
                 buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
             }
             if (displayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.dateTextColor.toInt(), cachedTypeface, settings.showTextShadow)
+                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.messageTextColor.toInt(), cachedTypeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {
@@ -5441,6 +5443,7 @@ val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
+val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
@@ -5494,7 +5497,8 @@ data class AppSettings(
     val showTaskName:             Boolean            = true,
     val showCountdown:            Boolean            = true,
     val showCheckboxes:           Boolean            = true,
-    val alertMode:                String             = "NOTIFICATION"
+    val alertMode:                String             = "NOTIFICATION",
+    val messageTextColor:         Long               = 0x99E6E1E5L
 )
 
 class SettingsViewModel(
@@ -5569,7 +5573,8 @@ class SettingsViewModel(
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
-                alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION"
+                alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
+                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
             )
         }
         .stateIn(
@@ -5632,6 +5637,7 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
+                prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
             }
         }
     }
@@ -5901,6 +5907,7 @@ fun SettingsScreen(
             "bg"       -> draft.bgColor
             "text"     -> draft.textColor
             "date"     -> draft.dateTextColor
+            "message"  -> draft.messageTextColor
             "gradEnd"  -> if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L
             "amPm"     -> if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor
             else       -> if (draft.bgColor2 != 0L) draft.bgColor2 else 0xFF808080L
@@ -5909,6 +5916,7 @@ fun SettingsScreen(
             "bg"       -> "背景色"
             "text"     -> "テキスト色"
             "date"     -> "日付・秒数テキスト色"
+            "message"  -> "メッセージテキスト色"
             "gradEnd"  -> "グラデーション終了色"
             "amPm"     -> "AM/PMテキスト色"
             else       -> "背景色2"
@@ -5930,6 +5938,7 @@ fun SettingsScreen(
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
                     "text"     -> draft.copy(textColor = color)
                     "date"     -> draft.copy(dateTextColor = color)
+                    "message"  -> draft.copy(messageTextColor = color)
                     "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
                     "amPm"     -> draft.copy(amPmColor = color)
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
@@ -6373,6 +6382,13 @@ fun SettingsScreen(
                         sub     = "日付・秒数の表示色",
                         color   = draft.dateTextColor,
                         onClick = { pickerTarget.value = "date" }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ColorRow(
+                        label   = "メッセージテキスト色",
+                        sub     = "シーン名・カウントダウンの表示色",
+                        color   = draft.messageTextColor,
+                        onClick = { pickerTarget.value = "message" }
                     )
                 }
 
@@ -7467,7 +7483,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList()) {
                     }
                     view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
                         if (messageText.isNotEmpty()) {
-                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow))
                             visibility = android.view.View.VISIBLE
                         } else {
                             visibility = android.view.View.GONE

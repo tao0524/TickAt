@@ -258,6 +258,7 @@ fun SettingsScreen(
             "bg"       -> draft.bgColor
             "text"     -> draft.textColor
             "date"     -> draft.dateTextColor
+            "message"  -> draft.messageTextColor
             "gradEnd"  -> if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L
             "amPm"     -> if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor
             else       -> if (draft.bgColor2 != 0L) draft.bgColor2 else 0xFF808080L
@@ -266,6 +267,7 @@ fun SettingsScreen(
             "bg"       -> "背景色"
             "text"     -> "テキスト色"
             "date"     -> "日付・秒数テキスト色"
+            "message"  -> "メッセージテキスト色"
             "gradEnd"  -> "グラデーション終了色"
             "amPm"     -> "AM/PMテキスト色"
             else       -> "背景色2"
@@ -287,6 +289,7 @@ fun SettingsScreen(
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
                     "text"     -> draft.copy(textColor = color)
                     "date"     -> draft.copy(dateTextColor = color)
+                    "message"  -> draft.copy(messageTextColor = color)
                     "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
                     "amPm"     -> draft.copy(amPmColor = color)
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
@@ -730,6 +733,13 @@ fun SettingsScreen(
                         sub     = "日付・秒数の表示色",
                         color   = draft.dateTextColor,
                         onClick = { pickerTarget.value = "date" }
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    ColorRow(
+                        label   = "メッセージテキスト色",
+                        sub     = "シーン名・カウントダウンの表示色",
+                        color   = draft.messageTextColor,
+                        onClick = { pickerTarget.value = "message" }
                     )
                 }
 
@@ -1824,7 +1834,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList()) {
                     }
                     view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
                         if (messageText.isNotEmpty()) {
-                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow))
                             visibility = android.view.View.VISIBLE
                         } else {
                             visibility = android.view.View.GONE

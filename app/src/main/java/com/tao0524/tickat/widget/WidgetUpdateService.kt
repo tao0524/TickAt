@@ -73,6 +73,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
+import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 
 class WidgetUpdateService : Service() {
 
@@ -200,7 +201,8 @@ class WidgetUpdateService : Service() {
                     amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
                     showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
-                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true
+                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -300,7 +302,7 @@ class WidgetUpdateService : Service() {
                 buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
             }
             if (displayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.dateTextColor.toInt(), cachedTypeface, settings.showTextShadow)
+                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.messageTextColor.toInt(), cachedTypeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {

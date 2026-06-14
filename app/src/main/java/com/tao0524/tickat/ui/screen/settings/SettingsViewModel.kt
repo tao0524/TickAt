@@ -61,6 +61,7 @@ val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
+val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
@@ -114,7 +115,8 @@ data class AppSettings(
     val showTaskName:             Boolean            = true,
     val showCountdown:            Boolean            = true,
     val showCheckboxes:           Boolean            = true,
-    val alertMode:                String             = "NOTIFICATION"
+    val alertMode:                String             = "NOTIFICATION",
+    val messageTextColor:         Long               = 0x99E6E1E5L
 )
 
 class SettingsViewModel(
@@ -189,7 +191,8 @@ class SettingsViewModel(
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
-                alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION"
+                alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
+                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
             )
         }
         .stateIn(
@@ -252,6 +255,7 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
+                prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
             }
         }
     }
