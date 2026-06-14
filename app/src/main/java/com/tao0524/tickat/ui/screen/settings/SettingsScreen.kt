@@ -1864,31 +1864,27 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val (actualW, actualH) = remember {
-        val manager = android.appwidget.AppWidgetManager.getInstance(context)
-        val ids = manager.getAppWidgetIds(
-            android.content.ComponentName(
-                context,
-                com.tao0524.tickat.widget.TickAtWidgetReceiver::class.java
-            )
-        )
-        if (ids.isNotEmpty()) {
-            val opts = manager.getAppWidgetOptions(ids[0])
-            val w = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).toFloat()
-            val h = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44).toFloat()
-            w to h
-        } else {
-            110f to 44f
-        }
+    val hasDate = draft.dateFormat.isNotEmpty() || draft.weekdayFormat.isNotEmpty() || !draft.showTime
+    val hasMessage = draft.showTaskName || draft.showCountdown
+
+    val refWidth = 400f
+    val refHeight = 250f
+
+    val previewHeightDp = when (draft.widgetSize) {
+        WidgetSize.S -> 120f
+        WidgetSize.M -> 180f
+        WidgetSize.L -> 250f
     }
 
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
-    val scale = minOf(screenWidthDp * 0.90f / actualW, 110f / actualH)
+    val scaleX = screenWidthDp * 0.85f / refWidth
+    val scaleY = previewHeightDp / refHeight
+    val scale = minOf(scaleX, scaleY)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height((refHeight * scale).dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFFC0C0C0)),
         contentAlignment = Alignment.Center
@@ -1903,10 +1899,11 @@ private fun WidgetPreview(draft: AppSettings) {
                 }
             },
             update = { view ->
-                val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
+                val (clockSp, dateSp, messageSp) = calcFontSizes(refHeight.toInt(), draft.clockDateBalance, draft.fontScale, draft.showTime, hasDate, hasMessage)
                 val scaledDensity = view.context.resources.displayMetrics.scaledDensity
                 val clockPx = clockSp * scaledDensity
                 val datePx  = dateSp  * scaledDensity
+                val messagePx = messageSp * scaledDensity
                 val typefaceStyle = when {
                     draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
                     draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
@@ -1955,13 +1952,27 @@ private fun WidgetPreview(draft: AppSettings) {
                     if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
                     visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 }
+                val messageText = when {
+                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                    draft.showCountdown -> "次のタスクまで あと30分"
+                    else -> ""
+                }
+                view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
+                    if (messageText.isNotEmpty()) {
+                        setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                        visibility = android.view.View.VISIBLE
+                    } else {
+                        visibility = android.view.View.GONE
+                    }
+                }
                 bgBitmap?.let {
                     view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
                 }
+                view.requestLayout()
             },
             modifier = Modifier
-                .width(actualW.dp)
-                .height(actualH.dp)
+                .width(refWidth.dp)
+                .height(refHeight.dp)
                 .scale(scale)
         )
     }

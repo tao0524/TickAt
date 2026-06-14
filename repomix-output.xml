@@ -289,66 +289,6 @@ private fun FullScreenAlertContent(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/component/FirstTimeHint.kt">
-package com.tao0524.tickat.ui.component
-
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-
-@Composable
-fun FirstTimeHint(
-    message: String,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "💡 $message",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Text(
-                    text = "OK",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-    }
-}
-</file>
-
 <file path=".gitignore">
 *.iml
 .gradle
@@ -550,6 +490,66 @@ package com.tao0524.tickat.domain.model
 enum class TaskType {
     REMINDER,
     TIMEBLOCK
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/component/FirstTimeHint.kt">
+package com.tao0524.tickat.ui.component
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun FirstTimeHint(
+    message: String,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "💡 $message",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Text(
+                    text = "OK",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
 }
 </file>
 
@@ -1890,52 +1890,6 @@ class ViewModelFactory(
 }
 </file>
 
-<file path="app/src/main/res/layout/widget_tickat_base.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="8dp">
-
-        <ImageView
-            android:id="@+id/widget_time_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <ImageView
-            android:id="@+id/widget_date_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/widget_task_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="10sp"
-            android:gravity="center"
-            android:paddingTop="2dp"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
 package com.tao0524.tickat.data.local
 
@@ -2322,345 +2276,48 @@ object TaskAlertScheduler {
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt">
-package com.tao0524.tickat.widget
+<file path="app/src/main/res/layout/widget_tickat_base.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.Service
-import android.appwidget.AppWidgetManager
-import android.content.BroadcastReceiver
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.graphics.Typeface
-import android.os.IBinder
-import android.view.View
-import android.util.TypedValue
-import androidx.core.app.NotificationCompat
-import com.tao0524.tickat.R
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-import com.tao0524.tickat.ui.screen.settings.AmPmLabel
-import com.tao0524.tickat.ui.screen.settings.AmPmPosition
-import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
-import com.tao0524.tickat.ui.screen.settings.GradientCenter
-import com.tao0524.tickat.ui.screen.settings.GradientDirection
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_TIME_OFFSET
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TASK_NAME
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
-import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
-import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
-import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
-import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
-import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_DATE_WEEKDAY_ORDER
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
-import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
-import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
-import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
-import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
-import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
-import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
-import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
-import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
-import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
-import com.tao0524.tickat.ui.screen.settings.TextWeight
-import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.WidgetSize
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import com.tao0524.tickat.data.local.AppDatabase
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskType
-import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
 
-class WidgetUpdateService : Service() {
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="8dp">
 
-    private val serviceScope = CoroutineScope(Dispatchers.IO)
-    private var tickJob: Job? = null
-    private var settingsJob: Job? = null
-    private var isScreenOn = true
+        <ImageView
+            android:id="@+id/widget_time_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
-    @Volatile private var cachedSettings: AppSettings = AppSettings()
-    @Volatile private var cachedTypeface: Typeface = Typeface.DEFAULT
-    @Volatile private var cachedClockPx: Float = 0f
-    @Volatile private var cachedDatePx: Float = 0f
-    @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
-    @Volatile private var isFullRedrawNeeded: Boolean = true
-    @Volatile private var cachedTasks: List<Task> = emptyList()
+        <ImageView
+            android:id="@+id/widget_date_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone" />
 
-    private val taskRepository by lazy {
-        TaskRepository(AppDatabase.getInstance(applicationContext).taskDao())
-    }
+        <ImageView
+            android:id="@+id/widget_task_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="4dp"
+            android:visibility="gone" />
 
-    private val screenReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.action) {
-                Intent.ACTION_SCREEN_ON -> {
-                    isScreenOn = true
-                    isFullRedrawNeeded = true
-                    startTicking()
-                }
-                Intent.ACTION_SCREEN_OFF -> {
-                    isScreenOn = false
-                    stopTicking()
-                }
-                Intent.ACTION_TIME_TICK -> {
-                    if (isScreenOn && (tickJob == null || tickJob?.isActive == false)) {
-                        startTicking()
-                    }
-                }
-            }
-        }
-    }
-
-    override fun onCreate() {
-        super.onCreate()
-        startForegroundWithNotification()
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_SCREEN_ON)
-            addAction(Intent.ACTION_SCREEN_OFF)
-            addAction(Intent.ACTION_TIME_TICK)
-        }
-        registerReceiver(screenReceiver, filter)
-        startSettingsObserver()
-        startTaskObserver()
-    }
-
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        return START_STICKY
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopTicking()
-        settingsJob?.cancel()
-        unregisterReceiver(screenReceiver)
-        serviceScope.cancel()
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    private fun startSettingsObserver() {
-        settingsJob = serviceScope.launch {
-            displaySettingsDataStore.data.collect { prefs ->
-                val newSettings = AppSettings(
-                    bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
-                    bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
-                    bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
-                    textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
-                    use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
-                    widgetSize           = prefs[KEY_WIDGET_SIZE]
-                        ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
-                        ?: WidgetSize.M,
-                    showTime             = prefs[KEY_SHOW_TIME]          ?: true,
-                    showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
-                    dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
-                    weekdayFormat        = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
-                    dateWeekdayOrder     = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
-                    fontWeight           = prefs[KEY_FONT_WEIGHT]
-                        ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
-                        ?: TextWeight.BOLD,
-                    cornerStyle          = prefs[KEY_CORNER_STYLE]
-                        ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                        ?: CornerStyle.PILL,
-                    dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
-                    notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
-                    notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
-                    bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
-                    gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
-                    bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
-                    compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
-                    bgType               = prefs[KEY_BG_TYPE]
-                        ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
-                        ?: BackgroundType.SOLID,
-                    gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
-                        ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                        ?: GradientDirection.DIAGONAL,
-                    clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
-                    fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
-                    gradientCenter       = prefs[KEY_GRADIENT_CENTER]
-                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                        ?: GradientCenter.CENTER,
-                    linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
-                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                        ?: GradientCenter.TOP_LEFT,
-                    isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
-                    fontFamily           = prefs[KEY_FONT_FAMILY]
-                        ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                        ?: WidgetFont.ROBOTO,
-                    showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
-                    amPmPosition         = prefs[KEY_AM_PM_POSITION]
-                        ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
-                        ?: AmPmPosition.AFTER,
-                    amPmLabel            = prefs[KEY_AM_PM_LABEL]
-                        ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
-                        ?: AmPmLabel.JAPANESE,
-                    amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
-                    bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
-                    bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
-                    amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
-                    timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
-                    showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
-                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true
-                )
-                val typefaceStyle = when {
-                    newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
-                    newSettings.fontWeight == TextWeight.BOLD                         -> Typeface.BOLD
-                    newSettings.isItalic                                              -> Typeface.ITALIC
-                    else                                                              -> Typeface.NORMAL
-                }
-                cachedTypeface = when (newSettings.fontFamily) {
-                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-                    WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-                    WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-                    else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-                }
-                val scaledDensity = resources.displayMetrics.scaledDensity
-                val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
-                val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
-                val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
-                val (clockSp, dateSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale)
-                val isFirstLoad = cachedClockPx == 0f
-                cachedClockPx = clockSp * scaledDensity
-                cachedDatePx  = dateSp  * scaledDensity
-                cachedBgBitmap = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
-                val prevShowSeconds = cachedSettings.showSeconds
-                cachedSettings = newSettings
-                isFullRedrawNeeded = true
-                if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
-                    startTicking()
-                }
-            }
-        }
-    }
-
-    private fun startTaskObserver() {
-        serviceScope.launch {
-            taskRepository.allTasks.collect { tasks ->
-                cachedTasks = tasks
-            }
-        }
-    }
-
-    private fun startTicking() {
-        tickJob?.cancel()
-        isFullRedrawNeeded = true
-        tickJob = serviceScope.launch {
-            val initialDelay = 1000L - (System.currentTimeMillis() % 1000L)
-            delay(initialDelay.coerceAtLeast(0L))
-            while (isActive) {
-                updateWidgets()
-                val nextDelay = 1000L - (System.currentTimeMillis() % 1000L)
-                delay(if (cachedSettings.showSeconds) nextDelay.coerceAtLeast(1L) else 60_000L)
-            }
-        }
-    }
-
-    private fun stopTicking() {
-        tickJob?.cancel()
-        tickJob = null
-    }
-
-    private fun updateWidgets() {
-        val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
-            ComponentName(this, TickAtWidgetReceiver::class.java)
-        )
-        if (ids.isEmpty()) {
-            stopSelf()
-            return
-        }
-        val settings = cachedSettings
-        val now = java.time.LocalTime.now()
-        val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
-        val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
-        val displayText: String = if (activeBlock != null && settings.showTaskName) {
-            val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
-            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
-            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-        } else if (activeBlock == null && settings.showCountdown) {
-            val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
-            if (nextBlock != null) {
-                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
-                when {
-                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                    else          -> "${nextBlock.name}まで あと1分未満"
-                }
-            } else ""
-        } else ""
-        for (id in ids) {
-            val opts = manager.getAppWidgetOptions(id)
-            val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-            val views = if (isFullRedrawNeeded) {
-                TickAtWidget.buildViews(this, settings, h)
-            } else {
-                buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
-            }
-            if (displayText.isNotEmpty()) {
-                views.setTextViewText(R.id.widget_task_name, displayText)
-                views.setTextColor(R.id.widget_task_name, settings.dateTextColor.toInt())
-                views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
-            } else {
-                views.setViewVisibility(R.id.widget_task_name, View.GONE)
-            }
-            manager.updateAppWidget(id, views)
-        }
-        isFullRedrawNeeded = false
-    }
-
-    private fun startForegroundWithNotification() {
-        val channelId = "tickat_widget_update"
-        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (manager.getNotificationChannel(channelId) == null) {
-            val channel = NotificationChannel(
-                channelId,
-                "ウィジェット更新",
-                NotificationManager.IMPORTANCE_MIN
-            ).apply {
-                setShowBadge(false)
-                setSound(null, null)
-            }
-            manager.createNotificationChannel(channel)
-        }
-        val notification = NotificationCompat.Builder(this, channelId)
-            .setContentTitle("TickAt")
-            .setContentText("ウィジェットを更新中")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
-            .setSilent(true)
-            .build()
-        startForeground(1001, notification)
-    }
-}
+    </LinearLayout>
+</FrameLayout>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/help/HelpScreen.kt">
@@ -3379,6 +3036,540 @@ private fun FeatureChip(label: String, color: Color) {
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt">
+package com.tao0524.tickat.widget
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.Service
+import android.appwidget.AppWidgetManager
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Typeface
+import android.os.IBinder
+import android.view.View
+import android.util.TypedValue
+import androidx.core.app.NotificationCompat
+import com.tao0524.tickat.R
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.BackgroundType
+import com.tao0524.tickat.ui.screen.settings.CornerStyle
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.GradientDirection
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_TIME_OFFSET
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TASK_NAME
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_LABEL
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_POSITION
+import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_SCALE
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_COLOR2_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_GRADIENT_END_ALPHA
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
+import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
+import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
+import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
+import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_WEEKDAY_ORDER
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_SCALE
+import com.tao0524.tickat.ui.screen.settings.KEY_FONT_WEIGHT
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_CENTER
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_COLOR_COUNT
+import com.tao0524.tickat.ui.screen.settings.KEY_GRADIENT_DIRECTION
+import com.tao0524.tickat.ui.screen.settings.KEY_IS_ITALIC
+import com.tao0524.tickat.ui.screen.settings.KEY_LINEAR_START_POINT
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
+import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_SECONDS
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TEXT_SHADOW
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_TIME
+import com.tao0524.tickat.ui.screen.settings.KEY_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
+import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
+import com.tao0524.tickat.ui.screen.settings.KEY_WIDGET_SIZE
+import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import com.tao0524.tickat.ui.screen.settings.WidgetSize
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
+
+class WidgetUpdateService : Service() {
+
+    private val serviceScope = CoroutineScope(Dispatchers.IO)
+    private var tickJob: Job? = null
+    private var settingsJob: Job? = null
+    private var isScreenOn = true
+
+    @Volatile private var cachedSettings: AppSettings = AppSettings()
+    @Volatile private var cachedTypeface: Typeface = Typeface.DEFAULT
+    @Volatile private var cachedClockPx: Float = 0f
+    @Volatile private var cachedDatePx: Float = 0f
+    @Volatile private var cachedMessagePx: Float = 0f
+    @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
+    @Volatile private var isFullRedrawNeeded: Boolean = true
+    @Volatile private var cachedTasks: List<Task> = emptyList()
+
+    private val taskRepository by lazy {
+        TaskRepository(AppDatabase.getInstance(applicationContext).taskDao())
+    }
+
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_ON -> {
+                    isScreenOn = true
+                    isFullRedrawNeeded = true
+                    startTicking()
+                }
+                Intent.ACTION_SCREEN_OFF -> {
+                    isScreenOn = false
+                    stopTicking()
+                }
+                Intent.ACTION_TIME_TICK -> {
+                    if (isScreenOn && (tickJob == null || tickJob?.isActive == false)) {
+                        startTicking()
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        startForegroundWithNotification()
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_TIME_TICK)
+        }
+        registerReceiver(screenReceiver, filter)
+        startSettingsObserver()
+        startTaskObserver()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopTicking()
+        settingsJob?.cancel()
+        unregisterReceiver(screenReceiver)
+        serviceScope.cancel()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun startSettingsObserver() {
+        settingsJob = serviceScope.launch {
+            displaySettingsDataStore.data.collect { prefs ->
+                val newSettings = AppSettings(
+                    bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
+                    bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
+                    bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
+                    textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
+                    use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
+                    widgetSize           = prefs[KEY_WIDGET_SIZE]
+                        ?.let { runCatching { WidgetSize.valueOf(it) }.getOrNull() }
+                        ?: WidgetSize.M,
+                    showTime             = prefs[KEY_SHOW_TIME]          ?: true,
+                    showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,
+                    dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
+                    weekdayFormat        = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
+                    dateWeekdayOrder     = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
+                    fontWeight           = prefs[KEY_FONT_WEIGHT]
+                        ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                        ?: TextWeight.BOLD,
+                    cornerStyle          = prefs[KEY_CORNER_STYLE]
+                        ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
+                        ?: CornerStyle.PILL,
+                    dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                    notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                    notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                    bgImageUri           = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                    gradientColorCount   = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                    bgColor2             = prefs[KEY_BG_COLOR2]             ?: 0L,
+                    compactBg            = prefs[KEY_COMPACT_BG]            ?: false,
+                    bgType               = prefs[KEY_BG_TYPE]
+                        ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                        ?: BackgroundType.SOLID,
+                    gradientDirection    = prefs[KEY_GRADIENT_DIRECTION]
+                        ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                        ?: GradientDirection.DIAGONAL,
+                    clockDateBalance     = prefs[KEY_CLOCK_DATE_BALANCE]    ?: 0,
+                    fontScale            = prefs[KEY_FONT_SCALE]            ?: 1.0f,
+                    gradientCenter       = prefs[KEY_GRADIENT_CENTER]
+                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                        ?: GradientCenter.CENTER,
+                    linearStartPoint     = prefs[KEY_LINEAR_START_POINT]
+                        ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                        ?: GradientCenter.TOP_LEFT,
+                    isItalic             = prefs[KEY_IS_ITALIC]            ?: false,
+                    fontFamily           = prefs[KEY_FONT_FAMILY]
+                        ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                        ?: WidgetFont.ROBOTO,
+                    showTextShadow       = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                    amPmPosition         = prefs[KEY_AM_PM_POSITION]
+                        ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                        ?: AmPmPosition.AFTER,
+                    amPmLabel            = prefs[KEY_AM_PM_LABEL]
+                        ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                        ?: AmPmLabel.JAPANESE,
+                    amPmScale            = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                    bgColor2Alpha        = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                    bgGradientEndAlpha   = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
+                    amPmColor            = prefs[KEY_AM_PM_COLOR]           ?: 0L,
+                    timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
+                    showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
+                    showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true
+                )
+                val typefaceStyle = when {
+                    newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
+                    newSettings.fontWeight == TextWeight.BOLD                         -> Typeface.BOLD
+                    newSettings.isItalic                                              -> Typeface.ITALIC
+                    else                                                              -> Typeface.NORMAL
+                }
+                cachedTypeface = when (newSettings.fontFamily) {
+                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+                    WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+                    WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+                    else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+                }
+                val scaledDensity = resources.displayMetrics.scaledDensity
+                val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
+                val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
+                val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
+                val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
+                val hasMessage = newSettings.showTaskName || newSettings.showCountdown
+                val (clockSp, dateSp, messageSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale, newSettings.showTime, hasDate, hasMessage)
+                val isFirstLoad = cachedClockPx == 0f
+                cachedClockPx   = clockSp * scaledDensity
+                cachedDatePx    = dateSp  * scaledDensity
+                cachedMessagePx = messageSp * scaledDensity
+                cachedBgBitmap = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
+                val prevShowSeconds = cachedSettings.showSeconds
+                cachedSettings = newSettings
+                isFullRedrawNeeded = true
+                if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
+                    startTicking()
+                }
+            }
+        }
+    }
+
+    private fun startTaskObserver() {
+        serviceScope.launch {
+            taskRepository.allTasks.collect { tasks ->
+                cachedTasks = tasks
+            }
+        }
+    }
+
+    private fun startTicking() {
+        tickJob?.cancel()
+        isFullRedrawNeeded = true
+        tickJob = serviceScope.launch {
+            val initialDelay = 1000L - (System.currentTimeMillis() % 1000L)
+            delay(initialDelay.coerceAtLeast(0L))
+            while (isActive) {
+                updateWidgets()
+                val nextDelay = 1000L - (System.currentTimeMillis() % 1000L)
+                delay(if (cachedSettings.showSeconds) nextDelay.coerceAtLeast(1L) else 60_000L)
+            }
+        }
+    }
+
+    private fun stopTicking() {
+        tickJob?.cancel()
+        tickJob = null
+    }
+
+    private fun updateWidgets() {
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(
+            ComponentName(this, TickAtWidgetReceiver::class.java)
+        )
+        if (ids.isEmpty()) {
+            stopSelf()
+            return
+        }
+        val settings = cachedSettings
+        val now = java.time.LocalTime.now()
+        val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
+        val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
+        val displayText: String = if (activeBlock != null && settings.showTaskName) {
+            val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
+            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
+        } else if (activeBlock == null && settings.showCountdown) {
+            val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
+            if (nextBlock != null) {
+                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
+                when {
+                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                    else          -> "${nextBlock.name}まで あと1分未満"
+                }
+            } else ""
+        } else ""
+        for (id in ids) {
+            val opts = manager.getAppWidgetOptions(id)
+            val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
+            val views = if (isFullRedrawNeeded) {
+                TickAtWidget.buildViews(this, settings, h)
+            } else {
+                buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
+            }
+            if (displayText.isNotEmpty()) {
+                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.dateTextColor.toInt(), cachedTypeface, settings.showTextShadow)
+                views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
+                views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_task_name, View.GONE)
+            }
+            manager.updateAppWidget(id, views)
+        }
+        isFullRedrawNeeded = false
+    }
+
+    private fun startForegroundWithNotification() {
+        val channelId = "tickat_widget_update"
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(channelId) == null) {
+            val channel = NotificationChannel(
+                channelId,
+                "ウィジェット更新",
+                NotificationManager.IMPORTANCE_MIN
+            ).apply {
+                setShowBadge(false)
+                setSound(null, null)
+            }
+            manager.createNotificationChannel(channel)
+        }
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("TickAt")
+            .setContentText("ウィジェットを更新中")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setSilent(true)
+            .build()
+        startForeground(1001, notification)
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
+package com.tao0524.tickat.ui.screen.expanded
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.format.DateTimeFormatter
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpandedScreen(
+    viewModel: ExpandedViewModel,
+    targetTaskId: String? = null,
+    onDismiss: () -> Unit
+) {
+    LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "今日のスケジュール",
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        if (uiState.isLoading) {
+            // ローディング中
+        } else if (uiState.scheduleItems.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "スケジュールが登録されていません",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item { Spacer(Modifier.height(8.dp)) }
+                items(uiState.scheduleItems) { item ->
+                    ScheduleCard(
+                        item = item,
+                        showCheckbox = uiState.showCheckboxes,
+                        onToggleCheck = { viewModel.toggleCheck(item.task.id) }
+                    )
+                }
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScheduleCard(
+    item: ScheduleItem,
+    showCheckbox: Boolean,
+    onToggleCheck: () -> Unit
+) {
+    val task = item.task
+    val timeFormatter = DateTimeFormatter.ofPattern("H:mm")
+    val timeText = when (task.taskType) {
+        TaskType.TIMEBLOCK -> "${task.startTime.format(timeFormatter)}\u301C${task.endTime.format(timeFormatter)}"
+        TaskType.REMINDER -> task.startTime.format(timeFormatter)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.isActive)
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = if (showCheckbox) 4.dp else 16.dp,
+                    end = 16.dp,
+                    top = 12.dp,
+                    bottom = 12.dp
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (showCheckbox) {
+                Checkbox(
+                    checked = item.isChecked,
+                    onCheckedChange = { onToggleCheck() }
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.name,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (task.memoText.isNotBlank()) {
+                    Text(
+                        text = "\uD83D\uDCAC ${task.memoText}",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(8.dp))
+
+            Text(
+                text = timeText,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditScreen.kt">
 package com.tao0524.tickat.ui.screen.taskedit
 
@@ -3759,195 +3950,6 @@ private fun RepeatType.label() = when (this) {
     RepeatType.WEEKDAY -> "平日"
     RepeatType.WEEKLY  -> "週1回"
     RepeatType.ONCE    -> "1回のみ"
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
-package com.tao0524.tickat.ui.screen.expanded
-
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.format.DateTimeFormatter
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ExpandedScreen(
-    viewModel: ExpandedViewModel,
-    targetTaskId: String? = null,
-    onDismiss: () -> Unit
-) {
-    LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
-
-    val uiState by viewModel.uiState.collectAsState()
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "今日のスケジュール",
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        if (uiState.isLoading) {
-            // ローディング中
-        } else if (uiState.scheduleItems.isEmpty()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "スケジュールが登録されていません",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 16.sp
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item { Spacer(Modifier.height(8.dp)) }
-                items(uiState.scheduleItems) { item ->
-                    ScheduleCard(
-                        item = item,
-                        showCheckbox = uiState.showCheckboxes,
-                        onToggleCheck = { viewModel.toggleCheck(item.task.id) }
-                    )
-                }
-                item { Spacer(Modifier.height(16.dp)) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ScheduleCard(
-    item: ScheduleItem,
-    showCheckbox: Boolean,
-    onToggleCheck: () -> Unit
-) {
-    val task = item.task
-    val timeFormatter = DateTimeFormatter.ofPattern("H:mm")
-    val timeText = when (task.taskType) {
-        TaskType.TIMEBLOCK -> "${task.startTime.format(timeFormatter)}\u301C${task.endTime.format(timeFormatter)}"
-        TaskType.REMINDER -> task.startTime.format(timeFormatter)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (item.isActive)
-                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-            else
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = if (showCheckbox) 4.dp else 16.dp,
-                    end = 16.dp,
-                    top = 12.dp,
-                    bottom = 12.dp
-                ),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (showCheckbox) {
-                Checkbox(
-                    checked = item.isChecked,
-                    onCheckedChange = { onToggleCheck() }
-                )
-                Spacer(Modifier.width(4.dp))
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (task.memoText.isNotBlank()) {
-                    Text(
-                        text = "\uD83D\uDCAC ${task.memoText}",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            Spacer(Modifier.width(8.dp))
-
-            Text(
-                text = timeText,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
 }
 </file>
 
@@ -4912,6 +4914,56 @@ private fun GuideCard(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+class TickAtWidgetReceiver : AppWidgetProvider() {
+
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray
+    ) {
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+    }
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        context.stopService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+    }
+
+    companion object {
+        fun updateAllWidgets(context: Context) {
+            context.startForegroundService(
+                Intent(context, WidgetUpdateService::class.java)
+            )
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt">
 package com.tao0524.tickat.widget
 
@@ -5046,11 +5098,52 @@ object TickAtWidget {
     }
 }
 
-internal fun calcFontSizes(widgetHeightDp: Int, balance: Int, fontScale: Float = 1.0f): Pair<Int, Int> {
-    val t       = (balance + 10f) / 20f
-    val clockSp = (widgetHeightDp * (0.80f - t * 0.40f) * fontScale).roundToInt().coerceIn(10, 60)
-    val dateSp  = (widgetHeightDp * (0.12f + t * 0.38f) * fontScale).roundToInt().coerceIn(8,  40)
-    return clockSp to dateSp
+internal fun calcFontSizes(
+    widgetHeightDp: Int,
+    balance: Int,
+    fontScale: Float = 1.0f,
+    showClock: Boolean = true,
+    showDate: Boolean = true,
+    showMessage: Boolean = false
+): Triple<Int, Int, Int> {
+    val t = (balance + 10f) / 20f
+    val h = widgetHeightDp.toFloat()
+    val s = fontScale
+    val visibleCount = listOf(showClock, showDate, showMessage).count { it }
+    if (visibleCount == 0) return Triple(10, 8, 8)
+
+    val (cRaw, dRaw, mRaw) = when {
+        showClock && showDate && showMessage -> Triple(
+            h * (0.55f - t * 0.20f) * s,
+            h * (0.14f + t * 0.18f) * s,
+            h * 0.16f * s
+        )
+        showClock && showDate -> Triple(
+            h * (0.80f - t * 0.40f) * s,
+            h * (0.12f + t * 0.38f) * s,
+            0f
+        )
+        showClock && showMessage -> Triple(
+            h * (0.60f - t * 0.20f) * s,
+            0f,
+            h * (0.20f + t * 0.18f) * s
+        )
+        showDate && showMessage -> Triple(
+            0f,
+            h * (0.40f - t * 0.15f) * s,
+            h * (0.25f + t * 0.15f) * s
+        )
+        showClock   -> Triple(h * 0.70f * s, 0f, 0f)
+        showDate    -> Triple(0f, h * 0.55f * s, 0f)
+        showMessage -> Triple(0f, 0f, h * 0.50f * s)
+        else -> Triple(0f, 0f, 0f)
+    }
+
+    return Triple(
+        cRaw.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
+        dRaw.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
+        mRaw.roundToInt().coerceIn(if (showMessage) 8 else 0, 36)
+    )
 }
 
 internal fun buildTextBitmap(
@@ -5283,56 +5376,6 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
     }
     canvas.drawRoundRect(rect, r, r, paint)
     return bitmap
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt">
-package com.tao0524.tickat.widget
-
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-
-class TickAtWidgetReceiver : AppWidgetProvider() {
-
-    override fun onUpdate(
-        context: Context,
-        appWidgetManager: AppWidgetManager,
-        appWidgetIds: IntArray
-    ) {
-        context.startForegroundService(
-            Intent(context, WidgetUpdateService::class.java)
-        )
-    }
-
-    override fun onEnabled(context: Context) {
-        super.onEnabled(context)
-        context.startForegroundService(
-            Intent(context, WidgetUpdateService::class.java)
-        )
-    }
-
-    override fun onDisabled(context: Context) {
-        super.onDisabled(context)
-        context.stopService(
-            Intent(context, WidgetUpdateService::class.java)
-        )
-    }
-
-    companion object {
-        fun updateAllWidgets(context: Context) {
-            context.startForegroundService(
-                Intent(context, WidgetUpdateService::class.java)
-            )
-        }
-    }
 }
 </file>
 
@@ -7459,31 +7502,27 @@ private fun WidgetPreview(draft: AppSettings) {
         }
     }
 
-    val (actualW, actualH) = remember {
-        val manager = android.appwidget.AppWidgetManager.getInstance(context)
-        val ids = manager.getAppWidgetIds(
-            android.content.ComponentName(
-                context,
-                com.tao0524.tickat.widget.TickAtWidgetReceiver::class.java
-            )
-        )
-        if (ids.isNotEmpty()) {
-            val opts = manager.getAppWidgetOptions(ids[0])
-            val w = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 110).toFloat()
-            val h = opts.getInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44).toFloat()
-            w to h
-        } else {
-            110f to 44f
-        }
+    val hasDate = draft.dateFormat.isNotEmpty() || draft.weekdayFormat.isNotEmpty() || !draft.showTime
+    val hasMessage = draft.showTaskName || draft.showCountdown
+
+    val refWidth = 400f
+    val refHeight = 250f
+
+    val previewHeightDp = when (draft.widgetSize) {
+        WidgetSize.S -> 120f
+        WidgetSize.M -> 180f
+        WidgetSize.L -> 250f
     }
 
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
-    val scale = minOf(screenWidthDp * 0.90f / actualW, 110f / actualH)
+    val scaleX = screenWidthDp * 0.85f / refWidth
+    val scaleY = previewHeightDp / refHeight
+    val scale = minOf(scaleX, scaleY)
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(130.dp)
+            .height((refHeight * scale).dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFFC0C0C0)),
         contentAlignment = Alignment.Center
@@ -7498,10 +7537,11 @@ private fun WidgetPreview(draft: AppSettings) {
                 }
             },
             update = { view ->
-                val (clockSp, dateSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale)
+                val (clockSp, dateSp, messageSp) = calcFontSizes(refHeight.toInt(), draft.clockDateBalance, draft.fontScale, draft.showTime, hasDate, hasMessage)
                 val scaledDensity = view.context.resources.displayMetrics.scaledDensity
                 val clockPx = clockSp * scaledDensity
                 val datePx  = dateSp  * scaledDensity
+                val messagePx = messageSp * scaledDensity
                 val typefaceStyle = when {
                     draft.fontWeight == TextWeight.BOLD && draft.isItalic -> android.graphics.Typeface.BOLD_ITALIC
                     draft.fontWeight == TextWeight.BOLD                   -> android.graphics.Typeface.BOLD
@@ -7550,13 +7590,27 @@ private fun WidgetPreview(draft: AppSettings) {
                     if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
                     visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                 }
+                val messageText = when {
+                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                    draft.showCountdown -> "次のタスクまで あと30分"
+                    else -> ""
+                }
+                view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
+                    if (messageText.isNotEmpty()) {
+                        setImageBitmap(buildTextBitmap(messageText, messagePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
+                        visibility = android.view.View.VISIBLE
+                    } else {
+                        visibility = android.view.View.GONE
+                    }
+                }
                 bgBitmap?.let {
                     view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
                 }
+                view.requestLayout()
             },
             modifier = Modifier
-                .width(actualW.dp)
-                .height(actualH.dp)
+                .width(refWidth.dp)
+                .height(refHeight.dp)
                 .scale(scale)
         )
     }
