@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
 
 val Context.displaySettingsDataStore by preferencesDataStore(name = "tickat_display_settings")
 
@@ -114,7 +117,18 @@ data class AppSettings(
     val alertMode:                String             = "NOTIFICATION"
 )
 
-class SettingsViewModel(private val context: Context) : ViewModel() {
+class SettingsViewModel(
+    private val context: Context,
+    private val taskRepository: TaskRepository? = null
+) : ViewModel() {
+
+    val timeblockTasks: StateFlow<List<Task>> = if (taskRepository != null) {
+        taskRepository.allTasks
+            .map { list -> list.filter { it.taskType == TaskType.TIMEBLOCK } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    } else {
+        kotlinx.coroutines.flow.MutableStateFlow(emptyList())
+    }
 
     val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
         .map { prefs ->

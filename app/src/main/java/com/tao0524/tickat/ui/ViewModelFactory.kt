@@ -23,7 +23,7 @@ class ViewModelFactory(
         modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
             ExpandedViewModel(repository, context) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(context.applicationContext) as T
+            SettingsViewModel(context.applicationContext, repository) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }

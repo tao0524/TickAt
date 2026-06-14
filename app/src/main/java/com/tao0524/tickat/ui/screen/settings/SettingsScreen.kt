@@ -108,6 +108,8 @@ import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 import androidx.compose.foundation.text.KeyboardActions
 import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.Alignment
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
 
 private data class ThemePreset(
     val name: String,
@@ -212,6 +214,7 @@ fun SettingsScreen(
 ) {
     val saved   by viewModel.settings.collectAsState()
     val hintShown by viewModel.hintSettingsShown.collectAsState()
+    val tasks by viewModel.timeblockTasks.collectAsState()
     val context = LocalContext.current
     var draft   by remember(saved) { mutableStateOf(saved) }
 
@@ -298,6 +301,7 @@ fun SettingsScreen(
             currentBalance = draft.clockDateBalance,
             currentScale   = draft.fontScale,
             draft          = draft,
+            tasks          = tasks,
             onDismiss      = { showFontSizeDialog = false },
             onConfirm      = { balance, scale ->
                 draft = draft.copy(clockDateBalance = balance, fontScale = scale)
@@ -368,7 +372,7 @@ fun SettingsScreen(
                 .padding(padding)
         ) {
             Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                WidgetPreview(draft)
+                WidgetPreview(draft, tasks)
             }
             if (!hintShown) {
                 FirstTimeHint(
@@ -1676,7 +1680,7 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun WidgetPreview(draft: AppSettings) {
+private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList()) {
     val context = LocalContext.current
     var bgBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
@@ -1792,10 +1796,31 @@ private fun WidgetPreview(draft: AppSettings) {
                         if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
                         visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
                     }
-                    val messageText = when {
-                        draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                        draft.showCountdown -> "次のタスクまで あと30分"
-                        else -> ""
+                    val messageText = run {
+                        val now = java.time.LocalTime.now()
+                        val activeBlock = tasks.firstOrNull { now >= it.startTime && now < it.endTime }
+                        if (activeBlock != null && draft.showTaskName) {
+                            val fmt = if (draft.use24Hour) "H:mm" else "h:mm"
+                            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+                            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
+                        } else if (activeBlock == null && draft.showCountdown) {
+                            val nextBlock = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
+                            if (nextBlock != null) {
+                                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
+                                when {
+                                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                                    else          -> "${nextBlock.name}まで あと1分未満"
+                                }
+                            } else {
+                                // タスク未登録時のフォールバック
+                                when {
+                                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                                    draft.showCountdown -> "次のタスクまで あと30分"
+                                    else -> ""
+                                }
+                            }
+                        } else ""
                     }
                     view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
                         if (messageText.isNotEmpty()) {
@@ -1821,6 +1846,7 @@ private fun FontSizePickerDialog(
     currentBalance: Int,
     currentScale:   Float,
     draft:          AppSettings,
+    tasks:          List<Task>,
     onDismiss:      () -> Unit,
     onConfirm:      (Int, Float) -> Unit
 ) {
@@ -1838,7 +1864,7 @@ private fun FontSizePickerDialog(
             ) {
                 Text("フォントサイズ", fontSize = 17.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(16.dp))
-                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, dateFormat = "M月d日"))
+                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, dateFormat = "M月d日"), tasks = tasks)
                 Spacer(Modifier.height(16.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
