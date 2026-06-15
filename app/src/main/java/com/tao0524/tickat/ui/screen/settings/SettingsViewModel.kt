@@ -62,6 +62,8 @@ val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
+private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
+private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
@@ -204,6 +206,30 @@ class SettingsViewModel(
     val hintSettingsShown = context.displaySettingsDataStore.data
         .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val previewVisible: StateFlow<Boolean> = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_PREVIEW_VISIBLE] ?: true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val previewSizePercent: StateFlow<Int> = context.displaySettingsDataStore.data
+        .map { prefs -> (prefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 90)
+
+    fun savePreviewVisible(visible: Boolean) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_PREVIEW_VISIBLE] = visible
+            }
+        }
+    }
+
+    fun savePreviewSizePercent(percent: Int) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_PREVIEW_SIZE_PERCENT] = percent.coerceIn(40, 100)
+            }
+        }
+    }
 
     fun dismissHintSettings() {
         viewModelScope.launch {

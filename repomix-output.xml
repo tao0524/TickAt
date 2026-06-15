@@ -3711,6 +3711,201 @@ class TaskEditViewModel(
 }
 </file>
 
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
+package com.tao0524.tickat.ui.screen.tasklist
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalTime
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import android.content.Context
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.map
+
+private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
+private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
+
+class TaskListViewModel(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModel() {
+
+    val tasks = repository.allTasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
+
+    val guideStep = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun advanceGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                val current = prefs[KEY_GUIDE_STEP] ?: 0
+                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
+            }
+        }
+    }
+
+    fun completeGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 4
+            }
+        }
+    }
+
+    val hintTaskListShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskList() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKLIST] = true
+            }
+        }
+    }
+
+    fun delete(task: Task) {
+        viewModelScope.launch {
+            TaskAlertScheduler.cancel(context, task.id)
+            repository.delete(task)
+        }
+    }
+
+    fun applyTemplate() {
+        viewModelScope.launch {
+            val templates = listOf(
+                Task(
+                    name = "朝のルーティン",
+                    startTime = LocalTime.of(7, 0),
+                    endTime = LocalTime.of(9, 0),
+                    repeat = RepeatType.DAILY,
+                    sortOrder = 0,
+                    taskType = TaskType.TIMEBLOCK
+                ),
+                Task(
+                    name = "お昼のリマインダー",
+                    startTime = LocalTime.of(12, 0),
+                    endTime = LocalTime.of(12, 0),
+                    repeat = RepeatType.DAILY,
+                    memoText = "お昼ごはん忘れずに",
+                    sortOrder = 1,
+                    taskType = TaskType.REMINDER
+                ),
+                Task(
+                    name = "おつかれさま",
+                    startTime = LocalTime.of(18, 0),
+                    endTime = LocalTime.of(23, 0),
+                    repeat = RepeatType.DAILY,
+                    memoText = "今日もおつかれさま",
+                    sortOrder = 2,
+                    taskType = TaskType.TIMEBLOCK
+                )
+            )
+            templates.forEach {
+                repository.save(it)
+                TaskAlertScheduler.schedule(context, it)
+            }
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 1
+            }
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt">
 package com.tao0524.tickat.widget
 
@@ -4049,201 +4244,6 @@ class WidgetUpdateService : Service() {
             .setSilent(true)
             .build()
         startForeground(1001, notification)
-    }
-}
-</file>
-
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
-package com.tao0524.tickat.ui.screen.tasklist
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalTime
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import android.content.Context
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.map
-
-private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
-private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
-
-class TaskListViewModel(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModel() {
-
-    val tasks = repository.allTasks.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
-
-    val guideStep = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
-
-    fun advanceGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                val current = prefs[KEY_GUIDE_STEP] ?: 0
-                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
-            }
-        }
-    }
-
-    fun completeGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 4
-            }
-        }
-    }
-
-    val hintTaskListShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    fun dismissHintTaskList() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_HINT_TASKLIST] = true
-            }
-        }
-    }
-
-    fun delete(task: Task) {
-        viewModelScope.launch {
-            TaskAlertScheduler.cancel(context, task.id)
-            repository.delete(task)
-        }
-    }
-
-    fun applyTemplate() {
-        viewModelScope.launch {
-            val templates = listOf(
-                Task(
-                    name = "朝のルーティン",
-                    startTime = LocalTime.of(7, 0),
-                    endTime = LocalTime.of(9, 0),
-                    repeat = RepeatType.DAILY,
-                    sortOrder = 0,
-                    taskType = TaskType.TIMEBLOCK
-                ),
-                Task(
-                    name = "お昼のリマインダー",
-                    startTime = LocalTime.of(12, 0),
-                    endTime = LocalTime.of(12, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "お昼ごはん忘れずに",
-                    sortOrder = 1,
-                    taskType = TaskType.REMINDER
-                ),
-                Task(
-                    name = "おつかれさま",
-                    startTime = LocalTime.of(18, 0),
-                    endTime = LocalTime.of(23, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "今日もおつかれさま",
-                    sortOrder = 2,
-                    taskType = TaskType.TIMEBLOCK
-                )
-            )
-            templates.forEach {
-                repository.save(it)
-                TaskAlertScheduler.schedule(context, it)
-            }
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 1
-            }
-        }
     }
 }
 </file>
@@ -5444,6 +5444,8 @@ val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
+private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
+private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
@@ -5586,6 +5588,30 @@ class SettingsViewModel(
     val hintSettingsShown = context.displaySettingsDataStore.data
         .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val previewVisible: StateFlow<Boolean> = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_PREVIEW_VISIBLE] ?: true }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val previewSizePercent: StateFlow<Int> = context.displaySettingsDataStore.data
+        .map { prefs -> (prefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 90)
+
+    fun savePreviewVisible(visible: Boolean) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_PREVIEW_VISIBLE] = visible
+            }
+        }
+    }
+
+    fun savePreviewSizePercent(percent: Int) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_PREVIEW_SIZE_PERCENT] = percent.coerceIn(40, 100)
+            }
+        }
+    }
 
     fun dismissHintSettings() {
         viewModelScope.launch {
@@ -5759,6 +5785,10 @@ import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.Alignment
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.draw.rotate
+import androidx.compose.runtime.mutableStateMapOf
 
 private data class ThemePreset(
     val name: String,
@@ -5840,6 +5870,55 @@ private fun SectionHeader(title: String) {
     )
 }
 
+@Composable
+private fun AccordionHeader(
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    val rotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "chevron"
+    )
+    Surface(
+        shape    = RoundedCornerShape(14.dp),
+        color    = MaterialTheme.colorScheme.surface,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier            = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment   = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text       = title,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    fontSize   = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                if (summary.isNotEmpty()) {
+                    Text(
+                        text     = summary,
+                        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+            Icon(
+                imageVector        = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "閉じる" else "開く",
+                tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier           = Modifier.rotate(rotation)
+            )
+        }
+    }
+}
+
 private fun DrawScope.drawCheckerboard(cellSizeDp: Float = 6f) {
     val cellPx = cellSizeDp.dp.toPx()
     val cols = (size.width  / cellPx).toInt() + 1
@@ -5900,6 +5979,9 @@ fun SettingsScreen(
     var showFontSizeDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
+    val previewVisible by viewModel.previewVisible.collectAsState()
+    val previewSizePercent by viewModel.previewSizePercent.collectAsState()
+    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
 
     val target = pickerTarget.value
     if (target != null) {
@@ -6023,8 +6105,65 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            Box(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-                WidgetPreview(draft, tasks)
+            Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.savePreviewVisible(!previewVisible) }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "プレビュー",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!previewVisible) {
+                                Text(
+                                    text = "${previewSizePercent}%",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                            }
+                            val chevronRotation by animateFloatAsState(
+                                targetValue = if (previewVisible) 180f else 0f,
+                                label = "previewChevron"
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = if (previewVisible) "閉じる" else "開く",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.rotate(chevronRotation)
+                            )
+                        }
+                    }
+                }
+                AnimatedVisibility(visible = previewVisible) {
+                    Column {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("サイズ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            Slider(
+                                value = previewSizePercent.toFloat(),
+                                onValueChange = { viewModel.savePreviewSizePercent(it.roundToInt()) },
+                                valueRange = 40f..100f,
+                                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                            )
+                            Text("${previewSizePercent}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        }
+                        WidgetPreview(draft, tasks, previewSizePercent)
+                    }
+                }
             }
             if (!hintShown) {
                 FirstTimeHint(
@@ -6039,146 +6178,157 @@ fun SettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
             ) {
-                SectionHeader("テーマ")
-                val tabThemes = when (selectedThemeTab) {
-                    0    -> darkThemes
-                    1    -> lightThemes
-                    2    -> gradientThemes
-                    else -> emptyList()
-                }
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+
+                // --- テーマ ---
+                AccordionHeader(
+                    title = "テーマ",
+                    summary = listOf("ダーク", "ライト", "グラデーション", "画像").getOrElse(selectedThemeTab) { "" },
+                    expanded = expandedSections["theme"] == true,
+                    onClick = { expandedSections["theme"] = expandedSections["theme"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["theme"] == true) {
                     Column {
-                        TabRow(
-                            selectedTabIndex = selectedThemeTab,
-                            containerColor   = MaterialTheme.colorScheme.surface,
-                            contentColor     = MaterialTheme.colorScheme.primary
-                        ) {
-                            listOf("ダーク", "ライト", "グラデーション", "画像").forEachIndexed { index, title ->
-                                Tab(
-                                    selected = selectedThemeTab == index,
-                                    onClick  = { selectedThemeTab = index },
-                                    text     = { Text(title, fontSize = 12.sp) }
-                                )
-                            }
+                        val tabThemes = when (selectedThemeTab) {
+                            0    -> darkThemes
+                            1    -> lightThemes
+                            2    -> gradientThemes
+                            else -> emptyList()
                         }
-                        if (selectedThemeTab == 3) {
-                            val imageLauncher = rememberLauncherForActivityResult(
-                                contract = ActivityResultContracts.GetContent()
-                            ) { uri ->
-                                uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                if (draft.bgImageUri.isNotEmpty()) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(96.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                    ) {
-                                        AsyncImage(
-                                            model = draft.bgImageUri,
-                                            contentDescription = "背景画像",
-                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                            modifier = Modifier.fillMaxSize()
+                        Card(
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column {
+                                TabRow(
+                                    selectedTabIndex = selectedThemeTab,
+                                    containerColor   = MaterialTheme.colorScheme.surface,
+                                    contentColor     = MaterialTheme.colorScheme.primary
+                                ) {
+                                    listOf("ダーク", "ライト", "グラデーション", "画像").forEachIndexed { index, title ->
+                                        Tab(
+                                            selected = selectedThemeTab == index,
+                                            onClick  = { selectedThemeTab = index },
+                                            text     = { Text(title, fontSize = 12.sp) }
                                         )
                                     }
                                 }
-                                Button(
-                                    onClick = { imageLauncher.launch("image/*") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Text(
-                                        text = if (draft.bgImageUri.isEmpty()) "＋ 画像を選ぶ" else "画像を変更する",
-                                        fontSize = 14.sp
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                tabThemes.chunked(2).forEach { rowThemes ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        rowThemes.forEach { theme ->
-                                            ThemeCard(
-                                                theme      = theme,
-                                                isSelected = draft.bgColor == theme.bgColor &&
-                                                        draft.bgGradientEnd == theme.bgGradientEnd &&
-                                                        draft.textColor == theme.textColor,
-                                                modifier   = Modifier.weight(1f),
-                                                onSelect   = {
-                                                    val newBgType =
-                                                        if (selectedThemeTab == 2 && theme == gradientThemes.last()) BackgroundType.RADIAL
-                                                        else if (selectedThemeTab == 2) BackgroundType.LINEAR
-                                                        else BackgroundType.SOLID
-                                                    val newGradDir = theme.gradientDirection ?: GradientDirection.DIAGONAL
-                                                    draft = draft.copy(
-                                                        bgColor           = theme.bgColor,
-                                                        bgGradientEnd     = theme.bgGradientEnd,
-                                                        textColor         = theme.textColor,
-                                                        bgType            = newBgType,
-                                                        gradientDirection = newGradDir
-                                                    )
-                                                }
+                                if (selectedThemeTab == 3) {
+                                    val imageLauncher = rememberLauncherForActivityResult(
+                                        contract = ActivityResultContracts.GetContent()
+                                    ) { uri ->
+                                        uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
+                                    }
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        if (draft.bgImageUri.isNotEmpty()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(96.dp)
+                                                    .clip(RoundedCornerShape(14.dp))
+                                            ) {
+                                                AsyncImage(
+                                                    model = draft.bgImageUri,
+                                                    contentDescription = "背景画像",
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
+                                                )
+                                            }
+                                        }
+                                        Button(
+                                            onClick = { imageLauncher.launch("image/*") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            )
+                                        ) {
+                                            Text(
+                                                text = if (draft.bgImageUri.isEmpty()) "＋ 画像を選ぶ" else "画像を変更する",
+                                                fontSize = 14.sp
                                             )
                                         }
-                                        if (rowThemes.size < 2) {
-                                            if (selectedThemeTab == 0) {
-                                                val isTransparentSelected = draft.bgAlpha == 0
-                                                Box(
-                                                    modifier = Modifier
-                                                        .weight(1f)
-                                                        .height(96.dp)
-                                                        .clip(RoundedCornerShape(14.dp))
-                                                        .background(
-                                                            Brush.linearGradient(
-                                                                listOf(Color(0xFF888888), Color(0xFF444444))
+                                    }
+                                } else {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        tabThemes.chunked(2).forEach { rowThemes ->
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                rowThemes.forEach { theme ->
+                                                    ThemeCard(
+                                                        theme      = theme,
+                                                        isSelected = draft.bgColor == theme.bgColor &&
+                                                                draft.bgGradientEnd == theme.bgGradientEnd &&
+                                                                draft.textColor == theme.textColor,
+                                                        modifier   = Modifier.weight(1f),
+                                                        onSelect   = {
+                                                            val newBgType =
+                                                                if (selectedThemeTab == 2 && theme == gradientThemes.last()) BackgroundType.RADIAL
+                                                                else if (selectedThemeTab == 2) BackgroundType.LINEAR
+                                                                else BackgroundType.SOLID
+                                                            val newGradDir = theme.gradientDirection ?: GradientDirection.DIAGONAL
+                                                            draft = draft.copy(
+                                                                bgColor           = theme.bgColor,
+                                                                bgGradientEnd     = theme.bgGradientEnd,
+                                                                textColor         = theme.textColor,
+                                                                bgType            = newBgType,
+                                                                gradientDirection = newGradDir
                                                             )
-                                                        )
-                                                        .border(
-                                                            width = if (isTransparentSelected) 2.5.dp else 1.dp,
-                                                            color = if (isTransparentSelected) MaterialTheme.colorScheme.primary else Color(0xFF3A383F),
-                                                            shape = RoundedCornerShape(14.dp)
-                                                        )
-                                                        .clickable { draft = draft.copy(bgAlpha = 0) }
-                                                        .padding(12.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Column(
-                                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                                                    ) {
-                                                        Text("完全透明", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                                        Text("bgAlpha = 0", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp)
-                                                    }
-                                                    if (isTransparentSelected) {
+                                                        }
+                                                    )
+                                                }
+                                                if (rowThemes.size < 2) {
+                                                    if (selectedThemeTab == 0) {
+                                                        val isTransparentSelected = draft.bgAlpha == 0
                                                         Box(
                                                             modifier = Modifier
-                                                                .align(Alignment.TopEnd)
-                                                                .padding(6.dp)
-                                                                .size(18.dp)
-                                                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                                                .weight(1f)
+                                                                .height(96.dp)
+                                                                .clip(RoundedCornerShape(14.dp))
+                                                                .background(
+                                                                    Brush.linearGradient(
+                                                                        listOf(Color(0xFF888888), Color(0xFF444444))
+                                                                    )
+                                                                )
+                                                                .border(
+                                                                    width = if (isTransparentSelected) 2.5.dp else 1.dp,
+                                                                    color = if (isTransparentSelected) MaterialTheme.colorScheme.primary else Color(0xFF3A383F),
+                                                                    shape = RoundedCornerShape(14.dp)
+                                                                )
+                                                                .clickable { draft = draft.copy(bgAlpha = 0) }
+                                                                .padding(12.dp),
                                                             contentAlignment = Alignment.Center
                                                         ) {
-                                                            Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                            Column(
+                                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                            ) {
+                                                                Text("完全透明", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                                                Text("bgAlpha = 0", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp)
+                                                            }
+                                                            if (isTransparentSelected) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .align(Alignment.TopEnd)
+                                                                        .padding(6.dp)
+                                                                        .size(18.dp)
+                                                                        .background(MaterialTheme.colorScheme.primary, CircleShape),
+                                                                    contentAlignment = Alignment.Center
+                                                                ) {
+                                                                    Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                }
+                                                            }
                                                         }
+                                                    } else {
+                                                        Spacer(Modifier.weight(1f))
                                                     }
                                                 }
-                                            } else {
-                                                Spacer(Modifier.weight(1f))
                                             }
                                         }
                                     }
@@ -6188,679 +6338,739 @@ fun SettingsScreen(
                     }
                 }
 
-                SectionHeader("背景の種類")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    listOf(
-                        BackgroundType.TRANSPARENT to "透明",
-                        BackgroundType.SOLID        to "単色",
-                        BackgroundType.LINEAR       to "線形グラデーション",
-                        BackgroundType.RADIAL       to "放射状グラデーション",
-                        BackgroundType.IMAGE        to "画像"
-                    ).forEachIndexed { index, (type, label) ->
-                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                // --- 背景の種類 ---
+                AccordionHeader(
+                    title = "背景の種類",
+                    summary = when (draft.bgType) { BackgroundType.TRANSPARENT -> "透明"; BackgroundType.SOLID -> "単色"; BackgroundType.LINEAR -> "線形グラデーション"; BackgroundType.RADIAL -> "放射状グラデーション"; BackgroundType.IMAGE -> "画像" },
+                    expanded = expandedSections["bg_type"] == true,
+                    onClick = { expandedSections["bg_type"] = expandedSections["bg_type"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["bg_type"] == true) {
+                    Column {
+                        Card(
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            listOf(
+                                BackgroundType.TRANSPARENT to "透明",
+                                BackgroundType.SOLID        to "単色",
+                                BackgroundType.LINEAR       to "線形グラデーション",
+                                BackgroundType.RADIAL       to "放射状グラデーション",
+                                BackgroundType.IMAGE        to "画像"
+                            ).forEachIndexed { index, (type, label) ->
+                                if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { draft = draft.copy(bgType = type) }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = draft.bgType == type,
+                                        onClick  = { draft = draft.copy(bgType = type) }
+                                    )
+                                    Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                }
+                            }
+                        }
+                        AnimatedVisibility(visible = draft.bgType == BackgroundType.IMAGE) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (draft.bgImageUri.isNotEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(80.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                    ) {
+                                        AsyncImage(
+                                            model              = draft.bgImageUri,
+                                            contentDescription = "背景画像",
+                                            contentScale       = ContentScale.Crop,
+                                            modifier           = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                                Button(
+                                    onClick  = { bgImageLauncher.launch("image/*") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors   = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Text(
+                                        if (draft.bgImageUri.isEmpty()) "＋ 画像を選ぶ" else "画像を変更する",
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
+
+                        AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR) {
+                            Column(modifier = Modifier.padding(top = 0.dp)) {
+                                SectionHeader("グラデーションの始点")
+                                LinearStartPicker(
+                                    selected           = draft.linearStartPoint,
+                                    bgColor            = draft.bgColor,
+                                    endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                                    bgColor2           = draft.bgColor2,
+                                    gradientColorCount = draft.gradientColorCount,
+                                    onSelect           = { draft = draft.copy(linearStartPoint = it) }
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = draft.bgType == BackgroundType.RADIAL) {
+                            Column(modifier = Modifier.padding(top = 0.dp)) {
+                                SectionHeader("グラデーションの中心")
+                                RadialCenterPicker(
+                                    selected           = draft.gradientCenter,
+                                    bgColor            = draft.bgColor,
+                                    endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
+                                    bgColor2           = draft.bgColor2,
+                                    gradientColorCount = draft.gradientColorCount,
+                                    onSelect           = { draft = draft.copy(gradientCenter = it) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // --- カラー ---
+                AccordionHeader(
+                    title = "カラー",
+                    summary = "",
+                    expanded = expandedSections["color"] == true,
+                    onClick = { expandedSections["color"] = expandedSections["color"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["color"] == true) {
+                    Card(
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
+                            Column {
+                                Row(
+                                    modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment     = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text     = "グラデーション色数",
+                                        color    = MaterialTheme.colorScheme.onSurface,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SelectOption(
+                                        label      = "2色",
+                                        isSelected = draft.gradientColorCount == 2,
+                                        modifier   = Modifier.width(56.dp),
+                                        onSelect   = { draft = draft.copy(gradientColorCount = 2) }
+                                    )
+                                    SelectOption(
+                                        label      = "3色",
+                                        isSelected = draft.gradientColorCount == 3,
+                                        modifier   = Modifier.width(56.dp),
+                                        onSelect   = { draft = draft.copy(gradientColorCount = 3) }
+                                    )
+                                }
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            }
+                        }
+                        ColorRow(
+                            label   = "背景色",
+                            sub     = "アプリ全画面・ウィジェット",
+                            color   = draft.bgColor,
+                            onClick = { pickerTarget.value = "bg" }
+                        )
+                        AnimatedVisibility(visible = draft.bgType != BackgroundType.TRANSPARENT && draft.bgType != BackgroundType.IMAGE) {
+                            Column {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                    AlphaSliderRow(
+                                        alpha    = draft.bgAlpha,
+                                        onChange = { draft = draft.copy(bgAlpha = it) }
+                                    )
+                                }
+                            }
+                        }
+                        AnimatedVisibility(visible = (draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) && draft.gradientColorCount == 3) {
+                            Column {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                val bgColor2Display = if (draft.bgColor2 != 0L) draft.bgColor2 else 0xFF808080L
+                                ColorRow(
+                                    label   = "背景色2",
+                                    sub     = "グラデーション中間色",
+                                    color   = bgColor2Display,
+                                    onClick = { pickerTarget.value = "bgColor2" }
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                    AlphaSliderRow(
+                                        alpha    = draft.bgColor2Alpha,
+                                        onChange = { draft = draft.copy(bgColor2Alpha = it) }
+                                    )
+                                }
+                            }
+                        }
+                        AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
+                            Column {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                ColorRow(
+                                    label   = "グラデーション終了色",
+                                    sub     = if (draft.bgGradientEnd != 0L) "設定済み" else "未設定（タップして追加）",
+                                    color   = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L,
+                                    onClick = { pickerTarget.value = "gradEnd" }
+                                )
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+                                    AlphaSliderRow(
+                                        alpha    = draft.bgGradientEndAlpha,
+                                        onChange = { draft = draft.copy(bgGradientEndAlpha = it) }
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        ColorRow(
+                            label   = "テキスト色",
+                            sub     = "時刻・スケジュール名・ラベル",
+                            color   = draft.textColor,
+                            onClick = { pickerTarget.value = "text" }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        ColorRow(
+                            label   = "日付・秒数テキスト色",
+                            sub     = "日付・秒数の表示色",
+                            color   = draft.dateTextColor,
+                            onClick = { pickerTarget.value = "date" }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        ColorRow(
+                            label   = "メッセージテキスト色",
+                            sub     = "シーン名・カウントダウンの表示色",
+                            color   = draft.messageTextColor,
+                            onClick = { pickerTarget.value = "message" }
+                        )
+                    }
+                }
+
+                // --- フォント ---
+                AccordionHeader(
+                    title = "フォント",
+                    summary = "${draft.fontFamily.name} / ${draft.fontWeight.name}",
+                    expanded = expandedSections["font"] == true,
+                    onClick = { expandedSections["font"] = expandedSections["font"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["font"] == true) {
+                    Card(
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    WidgetFont.ROBOTO    to "Roboto\n標準",
+                                    WidgetFont.SERIF     to "Serif\nセリフ",
+                                    WidgetFont.CONDENSED to "Cond.\n細身",
+                                    WidgetFont.MONO      to "Mono\n等幅"
+                                ).forEach { (font, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.fontFamily == font,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(fontFamily = font) }
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    TextWeight.REGULAR to "Regular\n標準",
+                                    TextWeight.BOLD    to "Bold\n太め"
+                                ).forEach { (weight, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.fontWeight == weight,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(fontWeight = weight) }
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "斜體",
+                            sub      = "イタリック体で表示",
+                            checked  = draft.isItalic,
+                            onToggle = { draft = draft.copy(isItalic = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "テキストシャドウ",
+                            sub      = "文字に影をつける",
+                            checked  = draft.showTextShadow,
+                            onToggle = { draft = draft.copy(showTextShadow = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { draft = draft.copy(bgType = type) }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable { showFontSizeDialog = true }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            RadioButton(
-                                selected = draft.bgType == type,
-                                onClick  = { draft = draft.copy(bgType = type) }
-                            )
-                            Text(label, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        }
-                    }
-                }
-                AnimatedVisibility(visible = draft.bgType == BackgroundType.IMAGE) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (draft.bgImageUri.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(80.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                            ) {
-                                AsyncImage(
-                                    model              = draft.bgImageUri,
-                                    contentDescription = "背景画像",
-                                    contentScale       = ContentScale.Crop,
-                                    modifier           = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
-                        Button(
-                            onClick  = { bgImageLauncher.launch("image/*") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors   = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(
-                                if (draft.bgImageUri.isEmpty()) "＋ 画像を選ぶ" else "画像を変更する",
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
-                }
-
-                AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR) {
-                    Column(modifier = Modifier.padding(top = 0.dp)) {
-                        SectionHeader("グラデーションの始点")
-                        LinearStartPicker(
-                            selected           = draft.linearStartPoint,
-                            bgColor            = draft.bgColor,
-                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
-                            bgColor2           = draft.bgColor2,
-                            gradientColorCount = draft.gradientColorCount,
-                            onSelect           = { draft = draft.copy(linearStartPoint = it) }
-                        )
-                    }
-                }
-
-                AnimatedVisibility(visible = draft.bgType == BackgroundType.RADIAL) {
-                    Column(modifier = Modifier.padding(top = 0.dp)) {
-                        SectionHeader("グラデーションの中心")
-                        RadialCenterPicker(
-                            selected           = draft.gradientCenter,
-                            bgColor            = draft.bgColor,
-                            endColor           = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else draft.bgColor,
-                            bgColor2           = draft.bgColor2,
-                            gradientColorCount = draft.gradientColorCount,
-                            onSelect           = { draft = draft.copy(gradientCenter = it) }
-                        )
-                    }
-                }
-
-                SectionHeader("カラー")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
-                        Column {
-                            Row(
-                                modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment     = Alignment.CenterVertically
-                            ) {
+                            Column {
+                                Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                                 Text(
-                                    text     = "グラデーション色数",
-                                    color    = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                SelectOption(
-                                    label      = "2色",
-                                    isSelected = draft.gradientColorCount == 2,
-                                    modifier   = Modifier.width(56.dp),
-                                    onSelect   = { draft = draft.copy(gradientColorCount = 2) }
-                                )
-                                SelectOption(
-                                    label      = "3色",
-                                    isSelected = draft.gradientColorCount == 3,
-                                    modifier   = Modifier.width(56.dp),
-                                    onSelect   = { draft = draft.copy(gradientColorCount = 3) }
+                                    text = "%.1f".format(draft.fontScale) + "×  " + when {
+                                        draft.clockDateBalance == 0 -> "均等"
+                                        draft.clockDateBalance < 0  -> "時刻寄り"
+                                        else                        -> "日付寄り"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
                                 )
                             }
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
                         }
-                    }
-                    ColorRow(
-                        label   = "背景色",
-                        sub     = "アプリ全画面・ウィジェット",
-                        color   = draft.bgColor,
-                        onClick = { pickerTarget.value = "bg" }
-                    )
-                    AnimatedVisibility(visible = draft.bgType != BackgroundType.TRANSPARENT && draft.bgType != BackgroundType.IMAGE) {
-                        Column {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                AlphaSliderRow(
-                                    alpha    = draft.bgAlpha,
-                                    onChange = { draft = draft.copy(bgAlpha = it) }
-                                )
-                            }
-                        }
-                    }
-                    AnimatedVisibility(visible = (draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) && draft.gradientColorCount == 3) {
-                        Column {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                            val bgColor2Display = if (draft.bgColor2 != 0L) draft.bgColor2 else 0xFF808080L
-                            ColorRow(
-                                label   = "背景色2",
-                                sub     = "グラデーション中間色",
-                                color   = bgColor2Display,
-                                onClick = { pickerTarget.value = "bgColor2" }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                AlphaSliderRow(
-                                    alpha    = draft.bgColor2Alpha,
-                                    onChange = { draft = draft.copy(bgColor2Alpha = it) }
-                                )
-                            }
-                        }
-                    }
-                    AnimatedVisibility(visible = draft.bgType == BackgroundType.LINEAR || draft.bgType == BackgroundType.RADIAL) {
-                        Column {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                            ColorRow(
-                                label   = "グラデーション終了色",
-                                sub     = if (draft.bgGradientEnd != 0L) "設定済み" else "未設定（タップして追加）",
-                                color   = if (draft.bgGradientEnd != 0L) draft.bgGradientEnd else 0xFF808080L,
-                                onClick = { pickerTarget.value = "gradEnd" }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                            Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
-                                AlphaSliderRow(
-                                    alpha    = draft.bgGradientEndAlpha,
-                                    onChange = { draft = draft.copy(bgGradientEndAlpha = it) }
-                                )
-                            }
-                        }
-                    }
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    ColorRow(
-                        label   = "テキスト色",
-                        sub     = "時刻・スケジュール名・ラベル",
-                        color   = draft.textColor,
-                        onClick = { pickerTarget.value = "text" }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    ColorRow(
-                        label   = "日付・秒数テキスト色",
-                        sub     = "日付・秒数の表示色",
-                        color   = draft.dateTextColor,
-                        onClick = { pickerTarget.value = "date" }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    ColorRow(
-                        label   = "メッセージテキスト色",
-                        sub     = "シーン名・カウントダウンの表示色",
-                        color   = draft.messageTextColor,
-                        onClick = { pickerTarget.value = "message" }
-                    )
-                }
-
-                SectionHeader("フォント")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                WidgetFont.ROBOTO    to "Roboto\n標準",
-                                WidgetFont.SERIF     to "Serif\nセリフ",
-                                WidgetFont.CONDENSED to "Cond.\n細身",
-                                WidgetFont.MONO      to "Mono\n等幅"
-                            ).forEach { (font, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontFamily == font,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontFamily = font) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                TextWeight.REGULAR to "Regular\n標準",
-                                TextWeight.BOLD    to "Bold\n太め"
-                            ).forEach { (weight, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.fontWeight == weight,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(fontWeight = weight) }
-                                )
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "斜體",
-                        sub      = "イタリック体で表示",
-                        checked  = draft.isItalic,
-                        onToggle = { draft = draft.copy(isItalic = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "テキストシャドウ",
-                        sub      = "文字に影をつける",
-                        checked  = draft.showTextShadow,
-                        onToggle = { draft = draft.copy(showTextShadow = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showFontSizeDialog = true }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                            Text(
-                                text = "%.1f".format(draft.fontScale) + "×  " + when {
-                                    draft.clockDateBalance == 0 -> "均等"
-                                    draft.clockDateBalance < 0  -> "時刻寄り"
-                                    else                        -> "日付寄り"
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
-                            )
-                        }
-                        Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
                     }
                 }
 
-                SectionHeader("時刻")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { formatExpanded = !formatExpanded }
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
+                // --- 時刻 ---
+                AccordionHeader(
+                    title = "時刻",
+                    summary = (if (draft.use24Hour) "24時間制" else "12時間制") + if (draft.showSeconds) " / 秒表示" else "",
+                    expanded = expandedSections["time"] == true,
+                    onClick = { expandedSections["time"] = expandedSections["time"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["time"] == true) {
+                    Card(
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column {
-                            Text("時間表示形式", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                            Text(
-                                when {
-                                    draft.use24Hour -> "24時間制 — 14:32"
-                                    draft.amPmPosition == AmPmPosition.AFTER && draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 2:32 午後"
-                                    draft.amPmPosition == AmPmPosition.AFTER -> "12時間制 — 2:32 PM"
-                                    draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 午後 2:32"
-                                    else -> "12時間制 — PM 2:32"
-                                },
-                                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
-                            )
-                        }
-                        Text(if (formatExpanded) "▲" else "▼", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                    }
-                    AnimatedVisibility(
-                        visible = formatExpanded,
-                        enter   = expandVertically(tween(250)) + fadeIn(tween(250)),
-                        exit    = shrinkVertically(tween(200)) + fadeOut(tween(150))
-                    ) {
-                        Column {
-                            Row(
-                                modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                listOf(true to "24時間制\n14:32", false to "12時間制\n2:32 PM").forEach { (is24, label) ->
-                                    SelectOption(
-                                        label      = label,
-                                        isSelected = draft.use24Hour == is24,
-                                        modifier   = Modifier.weight(1f),
-                                        onSelect   = { draft = draft.copy(use24Hour = is24) }
-                                    )
-                                }
-                            }
-                            AnimatedVisibility(
-                                visible = !draft.use24Hour,
-                                enter   = expandVertically(tween(200)) + fadeIn(tween(200)),
-                                exit    = shrinkVertically(tween(150)) + fadeOut(tween(150))
-                            ) {
-                                Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp)) {
-                                    Text("AM/PM位置", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        listOf(AmPmPosition.BEFORE to "前\n午後 3:52", AmPmPosition.AFTER to "後ろ\n3:52 午後").forEach { (pos, label) ->
-                                            SelectOption(
-                                                label      = label,
-                                                isSelected = draft.amPmPosition == pos,
-                                                modifier   = Modifier.weight(1f),
-                                                onSelect   = { draft = draft.copy(amPmPosition = pos) }
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("AM/PM表記", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        listOf(AmPmLabel.JAPANESE to "日本語\n午前/午後", AmPmLabel.ENGLISH to "英語\nAM/PM").forEach { (lbl, label) ->
-                                            SelectOption(
-                                                label      = label,
-                                                isSelected = draft.amPmLabel == lbl,
-                                                modifier   = Modifier.weight(1f),
-                                                onSelect   = { draft = draft.copy(amPmLabel = lbl) }
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Row(
-                                        modifier              = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment     = Alignment.CenterVertically
-                                    ) {
-                                        Text("AM/PMサイズ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                                        Text("${(draft.amPmScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                                    }
-                                    Slider(
-                                        value         = draft.amPmScale,
-                                        onValueChange = { draft = draft.copy(amPmScale = it) },
-                                        valueRange    = 0.3f..0.8f,
-                                        steps         = 4,
-                                        modifier      = Modifier.fillMaxWidth()
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("AM/PMテキスト色", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
-                                    ColorRow(
-                                        label   = if (draft.amPmColor != 0L) "カスタム" else "テキスト色と同じ",
-                                        sub     = if (draft.amPmColor != 0L) "" else "テキスト色に連動します",
-                                        color   = if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor,
-                                        onClick = { pickerTarget.value = "amPm" }
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "時刻を表示",
-                        sub      = "時刻の表示・非表示",
-                        checked  = draft.showTime,
-                        onToggle = { draft = draft.copy(showTime = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "秒数を表示",
-                        sub      = if (draft.showSeconds) "14:32:00" else "14:32",
-                        checked  = draft.showSeconds,
-                        onToggle = { draft = draft.copy(showSeconds = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        val offsetSec = draft.timeOffset / 1000f
-                        val offsetLabel = when {
-                            draft.timeOffset > 0 -> "+%.2f秒".format(offsetSec)
-                            draft.timeOffset < 0 -> "%.2f秒".format(offsetSec)
-                            else                 -> "0秒（補正なし）"
-                        }
-                        var offsetInput by remember(draft.timeOffset) { mutableStateOf(draft.timeOffset.toString()) }
                         Row(
-                            verticalAlignment     = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { formatExpanded = !formatExpanded }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier              = Modifier.fillMaxWidth()
+                            verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Text("時刻の微調整", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                            Text(offsetLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                            Column {
+                                Text("時間表示形式", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                Text(
+                                    when {
+                                        draft.use24Hour -> "24時間制 — 14:32"
+                                        draft.amPmPosition == AmPmPosition.AFTER && draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 2:32 午後"
+                                        draft.amPmPosition == AmPmPosition.AFTER -> "12時間制 — 2:32 PM"
+                                        draft.amPmLabel == AmPmLabel.JAPANESE -> "12時間制 — 午後 2:32"
+                                        else -> "12時間制 — PM 2:32"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
+                                )
+                            }
+                            Text(if (formatExpanded) "▲" else "▼", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                         }
-                        Slider(
-                            value         = draft.timeOffset.toFloat().coerceIn(-1000f, 1000f),
-                            onValueChange = { draft = draft.copy(timeOffset = it.toInt()) },
-                            valueRange    = -1000f..1000f,
-                            steps         = 19,
-                            modifier      = Modifier.fillMaxWidth()
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier              = Modifier.fillMaxWidth()
+                        AnimatedVisibility(
+                            visible = formatExpanded,
+                            enter   = expandVertically(tween(250)) + fadeIn(tween(250)),
+                            exit    = shrinkVertically(tween(200)) + fadeOut(tween(150))
                         ) {
-                            listOf(-10, -5, -1, 1, 5, 10).forEach { sec ->
-                                val label = if (sec > 0) "+${sec}s" else "${sec}s"
-                                OutlinedButton(
-                                    onClick  = { draft = draft.copy(timeOffset = draft.timeOffset + sec * 1000) },
-                                    modifier = Modifier.weight(1f),
-                                    contentPadding = PaddingValues(0.dp)
+                            Column {
+                                Row(
+                                    modifier              = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(label, fontSize = 11.sp)
+                                    listOf(true to "24時間制\n14:32", false to "12時間制\n2:32 PM").forEach { (is24, label) ->
+                                        SelectOption(
+                                            label      = label,
+                                            isSelected = draft.use24Hour == is24,
+                                            modifier   = Modifier.weight(1f),
+                                            onSelect   = { draft = draft.copy(use24Hour = is24) }
+                                        )
+                                    }
+                                }
+                                AnimatedVisibility(
+                                    visible = !draft.use24Hour,
+                                    enter   = expandVertically(tween(200)) + fadeIn(tween(200)),
+                                    exit    = shrinkVertically(tween(150)) + fadeOut(tween(150))
+                                ) {
+                                    Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 10.dp)) {
+                                        Text("AM/PM位置", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            listOf(AmPmPosition.BEFORE to "前\n午後 3:52", AmPmPosition.AFTER to "後ろ\n3:52 午後").forEach { (pos, label) ->
+                                                SelectOption(
+                                                    label      = label,
+                                                    isSelected = draft.amPmPosition == pos,
+                                                    modifier   = Modifier.weight(1f),
+                                                    onSelect   = { draft = draft.copy(amPmPosition = pos) }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text("AM/PM表記", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            listOf(AmPmLabel.JAPANESE to "日本語\n午前/午後", AmPmLabel.ENGLISH to "英語\nAM/PM").forEach { (lbl, label) ->
+                                                SelectOption(
+                                                    label      = label,
+                                                    isSelected = draft.amPmLabel == lbl,
+                                                    modifier   = Modifier.weight(1f),
+                                                    onSelect   = { draft = draft.copy(amPmLabel = lbl) }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier              = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment     = Alignment.CenterVertically
+                                        ) {
+                                            Text("AM/PMサイズ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                            Text("${(draft.amPmScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                        }
+                                        Slider(
+                                            value         = draft.amPmScale,
+                                            onValueChange = { draft = draft.copy(amPmScale = it) },
+                                            valueRange    = 0.3f..0.8f,
+                                            steps         = 4,
+                                            modifier      = Modifier.fillMaxWidth()
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text("AM/PMテキスト色", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                        ColorRow(
+                                            label   = if (draft.amPmColor != 0L) "カスタム" else "テキスト色と同じ",
+                                            sub     = if (draft.amPmColor != 0L) "" else "テキスト色に連動します",
+                                            color   = if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor,
+                                            onClick = { pickerTarget.value = "amPm" }
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Row(
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier              = Modifier.fillMaxWidth()
-                        ) {
-                            OutlinedTextField(
-                                value         = offsetInput,
-                                onValueChange = { offsetInput = it },
-                                label           = { Text("ms", fontSize = 11.sp) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                                keyboardActions = KeyboardActions(onDone = {
-                                    val v = offsetInput.toIntOrNull()
-                                    if (v != null) draft = draft.copy(timeOffset = v)
-                                    else offsetInput = draft.timeOffset.toString()
-                                }),
-                                singleLine      = true,
-                                modifier        = Modifier.width(100.dp)
-                            )
-                        }
-                        Row(
-                            verticalAlignment     = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier              = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                "表示が世界時計より早い場合はマイナス方向、遅い場合はプラス方向に調整してください",
-                                fontSize = 10.sp,
-                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f)
-                            )
-                            TextButton(onClick = { draft = draft.copy(timeOffset = 0) }) {
-                                Text("リセット", fontSize = 12.sp)
-                            }
-                        }
-                    }
-                }
 
-                SectionHeader("日付")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                        Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("" to "なし", "M月d日" to "5月25日", "MM/dd" to "05/25", "M/d" to "5/25").forEach { (fmt, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.dateFormat == fmt,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(dateFormat = fmt) }
-                                )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "時刻を表示",
+                            sub      = "時刻の表示・非表示",
+                            checked  = draft.showTime,
+                            onToggle = { draft = draft.copy(showTime = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "秒数を表示",
+                            sub      = if (draft.showSeconds) "14:32:00" else "14:32",
+                            checked  = draft.showSeconds,
+                            onToggle = { draft = draft.copy(showSeconds = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            val offsetSec = draft.timeOffset / 1000f
+                            val offsetLabel = when {
+                                draft.timeOffset > 0 -> "+%.2f秒".format(offsetSec)
+                                draft.timeOffset < 0 -> "%.2f秒".format(offsetSec)
+                                else                 -> "0秒（補正なし）"
                             }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text("曜日の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("" to "なし", "EEE" to "月", "(EEE)" to "(月)", "EEEE" to "月曜日").forEach { (fmt, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.weekdayFormat == fmt,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(weekdayFormat = fmt) }
-                                )
-                            }
-                        }
-                        AnimatedVisibility(visible = draft.dateFormat.isNotEmpty() && draft.weekdayFormat.isNotEmpty()) {
-                            val weekdayExample = java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(java.util.Date())
-                            val dateExample    = java.text.SimpleDateFormat(draft.dateFormat,    java.util.Locale.getDefault()).format(java.util.Date())
-                            val preview = if (draft.dateWeekdayOrder == "DATE_FIRST") "$dateExample, $weekdayExample" else "$weekdayExample, $dateExample"
+                            var offsetInput by remember(draft.timeOffset) { mutableStateOf(draft.timeOffset.toString()) }
                             Row(
                                 verticalAlignment     = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier              = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 10.dp)
+                                modifier              = Modifier.fillMaxWidth()
                             ) {
-                                Text(preview, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                TextButton(onClick = {
-                                    draft = draft.copy(
-                                        dateWeekdayOrder = if (draft.dateWeekdayOrder == "WEEKDAY_FIRST") "DATE_FIRST" else "WEEKDAY_FIRST"
-                                    )
-                                }) {
-                                    Text("⇄ 入れ替え", fontSize = 13.sp)
+                                Text("時刻の微調整", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text(offsetLabel, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Slider(
+                                value         = draft.timeOffset.toFloat().coerceIn(-1000f, 1000f),
+                                onValueChange = { draft = draft.copy(timeOffset = it.toInt()) },
+                                valueRange    = -1000f..1000f,
+                                steps         = 19,
+                                modifier      = Modifier.fillMaxWidth()
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier              = Modifier.fillMaxWidth()
+                            ) {
+                                listOf(-10, -5, -1, 1, 5, 10).forEach { sec ->
+                                    val label = if (sec > 0) "+${sec}s" else "${sec}s"
+                                    OutlinedButton(
+                                        onClick  = { draft = draft.copy(timeOffset = draft.timeOffset + sec * 1000) },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text(label, fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                            Row(
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier              = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value         = offsetInput,
+                                    onValueChange = { offsetInput = it },
+                                    label           = { Text("ms", fontSize = 11.sp) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                                    keyboardActions = KeyboardActions(onDone = {
+                                        val v = offsetInput.toIntOrNull()
+                                        if (v != null) draft = draft.copy(timeOffset = v)
+                                        else offsetInput = draft.timeOffset.toString()
+                                    }),
+                                    singleLine      = true,
+                                    modifier        = Modifier.width(100.dp)
+                                )
+                            }
+                            Row(
+                                verticalAlignment     = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier              = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "表示が世界時計より早い場合はマイナス方向、遅い場合はプラス方向に調整してください",
+                                    fontSize = 10.sp,
+                                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                TextButton(onClick = { draft = draft.copy(timeOffset = 0) }) {
+                                    Text("リセット", fontSize = 12.sp)
                                 }
                             }
                         }
                     }
                 }
 
-                SectionHeader("レイアウト")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(
-                                CornerStyle.PILL    to "Pill\n全丸",
-                                CornerStyle.ROUNDED to "Rounded\n丸め",
-                                CornerStyle.SOFT    to "Soft\n角小",
-                                CornerStyle.SQUARE  to "Square\n四角"
-                            ).forEach { (style, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.cornerStyle == style,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(cornerStyle = style) }
-                                )
+                // --- 日付 ---
+                AccordionHeader(
+                    title = "日付",
+                    summary = listOf(if (draft.dateFormat.isEmpty()) "日付なし" else draft.dateFormat, if (draft.weekdayFormat.isEmpty()) "曜日なし" else draft.weekdayFormat).joinToString(" / "),
+                    expanded = expandedSections["date"] == true,
+                    onClick = { expandedSections["date"] = expandedSections["date"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["date"] == true) {
+                    Card(
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                            Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("" to "なし", "M月d日" to "5月25日", "MM/dd" to "05/25", "M/d" to "5/25").forEach { (fmt, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.dateFormat == fmt,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(dateFormat = fmt) }
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("曜日の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf("" to "なし", "EEE" to "月", "(EEE)" to "(月)", "EEEE" to "月曜日").forEach { (fmt, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.weekdayFormat == fmt,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(weekdayFormat = fmt) }
+                                    )
+                                }
+                            }
+                            AnimatedVisibility(visible = draft.dateFormat.isNotEmpty() && draft.weekdayFormat.isNotEmpty()) {
+                                val weekdayExample = java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(java.util.Date())
+                                val dateExample    = java.text.SimpleDateFormat(draft.dateFormat,    java.util.Locale.getDefault()).format(java.util.Date())
+                                val preview = if (draft.dateWeekdayOrder == "DATE_FIRST") "$dateExample, $weekdayExample" else "$weekdayExample, $dateExample"
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier              = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 10.dp)
+                                ) {
+                                    Text(preview, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                    TextButton(onClick = {
+                                        draft = draft.copy(
+                                            dateWeekdayOrder = if (draft.dateWeekdayOrder == "WEEKDAY_FIRST") "DATE_FIRST" else "WEEKDAY_FIRST"
+                                        )
+                                    }) {
+                                        Text("⇄ 入れ替え", fontSize = 13.sp)
+                                    }
+                                }
                             }
                         }
                     }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "スケジュール名を表示",
-                        sub      = "ウィジェットに現在のスケジュール名を表示",
-                        checked  = draft.showTaskName,
-                        onToggle = { draft = draft.copy(showTaskName = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "カウントダウンを表示",
-                        sub      = "空き時間に次のスケジュールまでの残り時間を表示",
-                        checked  = draft.showCountdown,
-                        onToggle = { draft = draft.copy(showCountdown = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "チェックボックスを表示",
-                        sub      = "スケジュール一覧にチェックボックスを表示します",
-                        checked  = draft.showCheckboxes,
-                        onToggle = { draft = draft.copy(showCheckboxes = it) }
-                    )
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    SwitchRow(
-                        label    = "コンパクトな背景",
-                        sub      = "ウィジェットの縦幅を詰める",
-                        checked  = draft.compactBg,
-                        onToggle = { draft = draft.copy(compactBg = it) }
-                    )
                 }
 
-                SectionHeader("通知")
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
-                                SelectOption(
-                                    label      = label,
-                                    isSelected = draft.alertMode == value,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(alertMode = value) }
-                                )
+                // --- レイアウト ---
+                AccordionHeader(
+                    title = "レイアウト",
+                    summary = "${draft.cornerStyle.name} / タスク名" + if (draft.showTaskName) "ON" else "OFF",
+                    expanded = expandedSections["layout"] == true,
+                    onClick = { expandedSections["layout"] = expandedSections["layout"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["layout"] == true) {
+                    Card(
+                        shape    = RoundedCornerShape(14.dp),
+                        colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    CornerStyle.PILL    to "Pill\n全丸",
+                                    CornerStyle.ROUNDED to "Rounded\n丸め",
+                                    CornerStyle.SOFT    to "Soft\n角小",
+                                    CornerStyle.SQUARE  to "Square\n四角"
+                                ).forEach { (style, label) ->
+                                    SelectOption(
+                                        label      = label,
+                                        isSelected = draft.cornerStyle == style,
+                                        modifier   = Modifier.weight(1f),
+                                        onSelect   = { draft = draft.copy(cornerStyle = style) }
+                                    )
+                                }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = when (draft.alertMode) {
-                                "FULLSCREEN"   -> "開始時に全画面で表示します"
-                                "NOTIFICATION" -> "開始時にバナー通知を表示します"
-                                else           -> "通知を表示しません"
-                            },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "スケジュール名を表示",
+                            sub      = "ウィジェットに現在のスケジュール名を表示",
+                            checked  = draft.showTaskName,
+                            onToggle = { draft = draft.copy(showTaskName = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "カウントダウンを表示",
+                            sub      = "空き時間に次のスケジュールまでの残り時間を表示",
+                            checked  = draft.showCountdown,
+                            onToggle = { draft = draft.copy(showCountdown = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "チェックボックスを表示",
+                            sub      = "スケジュール一覧にチェックボックスを表示します",
+                            checked  = draft.showCheckboxes,
+                            onToggle = { draft = draft.copy(showCheckboxes = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "コンパクトな背景",
+                            sub      = "ウィジェットの縦幅を詰める",
+                            checked  = draft.compactBg,
+                            onToggle = { draft = draft.copy(compactBg = it) }
                         )
                     }
                 }
-                Spacer(Modifier.height(12.dp))
-                Card(
-                    shape    = RoundedCornerShape(14.dp),
-                    colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                        Text("カウントダウン通知音", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                        Spacer(Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape    = RoundedCornerShape(8.dp),
-                                color    = MaterialTheme.colorScheme.surfaceVariant,
-                                modifier = Modifier.weight(1f).clickable {
-                                    val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                        if (draft.notificationSoundUri.isNotEmpty()) {
-                                            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
-                                        }
+
+                // --- 通知 ---
+                AccordionHeader(
+                    title = "通知",
+                    summary = when(draft.alertMode) { "FULLSCREEN" -> "フルスクリーン"; "NOTIFICATION" -> "バナー通知"; else -> "OFF" },
+                    expanded = expandedSections["notification"] == true,
+                    onClick = { expandedSections["notification"] = expandedSections["notification"] != true }
+                )
+                AnimatedVisibility(visible = expandedSections["notification"] == true) {
+                    Column {
+                        Card(
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                                Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
+                                        SelectOption(
+                                            label      = label,
+                                            isSelected = draft.alertMode == value,
+                                            modifier   = Modifier.weight(1f),
+                                            onSelect   = { draft = draft.copy(alertMode = value) }
+                                        )
                                     }
-                                    ringtonePickerLauncher.launch(intent)
                                 }
-                            ) {
-                                Text(soundName, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))
-                            }
-                            if (currentSoundUri.isNotEmpty()) {
-                                TextButton(onClick = {
-                                    currentSoundUri = ""
-                                    draft = draft.copy(notificationSoundUri = "")
-                                    viewModel.save(draft.copy(notificationSoundUri = ""))
-                                }) {
-                                    Text("デフォルト\nに戻す", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center)
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text("再生時間", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf(3, 5, 10, 15, 30).forEach { sec ->
-                                SelectOption(
-                                    label      = "${sec}秒",
-                                    isSelected = draft.notificationDuration == sec,
-                                    modifier   = Modifier.weight(1f),
-                                    onSelect   = { draft = draft.copy(notificationDuration = sec) }
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = when (draft.alertMode) {
+                                        "FULLSCREEN"   -> "開始時に全画面で表示します"
+                                        "NOTIFICATION" -> "開始時にバナー通知を表示します"
+                                        else           -> "通知を表示しません"
+                                    },
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 11.sp
                                 )
                             }
                         }
-                        Spacer(Modifier.height(6.dp))
-                        Text("タップして端末の着信音・通知音から選択できます", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                        Spacer(Modifier.height(12.dp))
+                        Card(
+                            shape    = RoundedCornerShape(14.dp),
+                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                                Text("カウントダウン通知音", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                Spacer(Modifier.height(10.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape    = RoundedCornerShape(8.dp),
+                                        color    = MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.weight(1f).clickable {
+                                            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
+                                                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
+                                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                                if (draft.notificationSoundUri.isNotEmpty()) {
+                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
+                                                }
+                                            }
+                                            ringtonePickerLauncher.launch(intent)
+                                        }
+                                    ) {
+                                        Text(soundName, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))
+                                    }
+                                    if (currentSoundUri.isNotEmpty()) {
+                                        TextButton(onClick = {
+                                            currentSoundUri = ""
+                                            draft = draft.copy(notificationSoundUri = "")
+                                            viewModel.save(draft.copy(notificationSoundUri = ""))
+                                        }) {
+                                            Text("デフォルト\nに戻す", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center)
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(12.dp))
+                                Text("再生時間", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf(3, 5, 10, 15, 30).forEach { sec ->
+                                        SelectOption(
+                                            label      = "${sec}秒",
+                                            isSelected = draft.notificationDuration == sec,
+                                            modifier   = Modifier.weight(1f),
+                                            onSelect   = { draft = draft.copy(notificationDuration = sec) }
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Text("タップして端末の着信音・通知音から選択できます", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                            }
+                        }
                     }
                 }
 
@@ -7339,7 +7549,7 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList()) {
+private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), sizePercent: Int = 90) {
     val context = LocalContext.current
     var bgBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
@@ -7372,7 +7582,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList()) {
     }
 
     val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.toFloat()
-    val maxPreviewWidth = screenWidthDp * 0.90f
+    val maxPreviewWidth = screenWidthDp * (sizePercent / 100f)
 
     // 実機の縦横比を完全に維持したまま、画面幅の90%まで拡大するスケールを算出
     val previewScale = maxPreviewWidth / actualW
