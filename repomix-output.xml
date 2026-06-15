@@ -3017,13 +3017,15 @@ private fun FeatureChip(label: String, color: Color) {
         <ImageView
             android:id="@+id/widget_time_img"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true" />
 
         <ImageView
             android:id="@+id/widget_date_img"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
             android:visibility="gone" />
 
         <ImageView
@@ -3031,6 +3033,7 @@ private fun FeatureChip(label: String, color: Color) {
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -3983,6 +3986,7 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
 
 class WidgetUpdateService : Service() {
 
@@ -4111,7 +4115,8 @@ class WidgetUpdateService : Service() {
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
                     showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                     showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
-                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
+                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
+                    messageScale         = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -4131,7 +4136,17 @@ class WidgetUpdateService : Service() {
                 val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
                 val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
                 val hasMessage = newSettings.showTaskName || newSettings.showCountdown
-                val (clockSp, dateSp, messageSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale, newSettings.showTime, hasDate, hasMessage)
+                val (clockSp, dateSp, messageSp) = calcFontSizes(
+                    widgetHeightDp = h,
+                    balance = newSettings.clockDateBalance,
+                    fontScale = newSettings.fontScale,
+                    showClock = newSettings.showTime,
+                    showDate = hasDate,
+                    showMessage = hasMessage,
+                    messageScale = newSettings.messageScale,
+                    use24Hour = newSettings.use24Hour,
+                    amPmScale = newSettings.amPmScale
+                )
                 val isFirstLoad = cachedClockPx == 0f
                 cachedClockPx   = clockSp * scaledDensity
                 cachedDatePx    = dateSp  * scaledDensity
@@ -5023,7 +5038,17 @@ object TickAtWidget {
         // フォントサイズ（px変換）
         val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
         val hasMessage = settings.showTaskName || settings.showCountdown
-        val (clockSp, dateSp, _) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale, settings.showTime, hasDate, hasMessage)
+        val (clockSp, dateSp, _) = calcFontSizes(
+            widgetHeightDp = widgetHeightDp,
+            balance = settings.clockDateBalance,
+            fontScale = settings.fontScale,
+            showClock = settings.showTime,
+            showDate = hasDate,
+            showMessage = hasMessage,
+            messageScale = settings.messageScale,
+            use24Hour = settings.use24Hour,
+            amPmScale = settings.amPmScale
+        )
         val scaledDensity = context.resources.displayMetrics.scaledDensity
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
@@ -5104,45 +5129,42 @@ internal fun calcFontSizes(
     fontScale: Float = 1.0f,
     showClock: Boolean = true,
     showDate: Boolean = true,
-    showMessage: Boolean = false
+    showMessage: Boolean = false,
+    messageScale: Float = 1.0f,
+    use24Hour: Boolean = true,
+    amPmScale: Float = 0.55f
 ): Triple<Int, Int, Int> {
-    val t = (balance + 10f) / 20f
     val h = widgetHeightDp.toFloat()
     val s = fontScale
-    val visibleCount = listOf(showClock, showDate, showMessage).count { it }
-    if (visibleCount == 0) return Triple(10, 8, 8)
 
-    val (cRaw, dRaw, mRaw) = when {
-        showClock && showDate && showMessage -> Triple(
-            h * (0.42f - t * 0.14f) * s,
-            h * (0.14f + t * 0.12f) * s,
-            h * 0.15f * s
-        )
-        showClock && showDate -> Triple(
-            h * (0.80f - t * 0.40f) * s,
-            h * (0.12f + t * 0.38f) * s,
-            0f
-        )
-        showClock && showMessage -> Triple(
-            h * (0.60f - t * 0.20f) * s,
-            0f,
-            h * (0.20f + t * 0.18f) * s
-        )
-        showDate && showMessage -> Triple(
-            0f,
-            h * (0.40f - t * 0.15f) * s,
-            h * (0.25f + t * 0.15f) * s
-        )
-        showClock   -> Triple(h * 0.70f * s, 0f, 0f)
-        showDate    -> Triple(0f, h * 0.55f * s, 0f)
-        showMessage -> Triple(0f, 0f, h * 0.50f * s)
-        else -> Triple(0f, 0f, 0f)
+    // 固定パディングを確保 (全高の20%)
+    val totalPadding = h * 0.2f
+    val availableSpace = h - totalPadding
+
+    // バランスによるウェイト可変（balance: -10～+10）
+    val shift = balance * 0.1f
+    val clockWeight = if (showClock) (3.0f - shift).coerceIn(1.5f, 4.5f) else 0f
+    val dateWeight = if (showDate) (1.5f + shift).coerceIn(0.5f, 3.0f) else 0f
+    val messageWeight = if (showMessage) 1.5f else 0f
+    val totalWeight = clockWeight + dateWeight + messageWeight
+
+    if (totalWeight == 0f) return Triple(10, 8, 8)
+
+    // 領域の分配
+    var clockBase = (availableSpace * (clockWeight / totalWeight)) * s
+    val dateBase = (availableSpace * (dateWeight / totalWeight)) * s
+    val messageBase = (availableSpace * (messageWeight / totalWeight)) * s * messageScale
+
+    // 12時間制の補正（AM/PMサイズ変更による時計領域の自動補正）
+    if (!use24Hour && showClock) {
+        val amPmDelta = amPmScale - 0.55f
+        clockBase *= (1.0f - amPmDelta).coerceIn(0.5f, 1.5f)
     }
 
     return Triple(
-        cRaw.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
-        dRaw.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
-        mRaw.roundToInt().coerceIn(if (showMessage) 8 else 0, 36)
+        clockBase.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
+        dateBase.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
+        messageBase.roundToInt().coerceIn(if (showMessage) 8 else 0, 54)
     )
 }
 
@@ -5159,14 +5181,16 @@ internal fun buildTextBitmap(
         this.color    = textColor
         if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
+    val bounds = android.graphics.Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
     val textWidth = paint.measureText(text)
-    val fm        = paint.fontMetrics
     val padX      = 8f
+    val shadowPadY = if (hasShadow) 18 else 0 // 影が見切れないための余白
     val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (fm.descent - fm.ascent).toInt().coerceAtLeast(1)
+    val bitmapH   = (bounds.height() + shadowPadY).coerceAtLeast(1)
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
-    canvas.drawText(text, padX, -fm.ascent, paint)
+    canvas.drawText(text, padX, -bounds.top.toFloat(), paint)
     return bitmap
 }
 
@@ -5199,20 +5223,23 @@ internal fun buildTimeWithAmPmBitmap(
         if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
 
+    val timeBounds = android.graphics.Rect()
+    timePaint.getTextBounds(timeText, 0, timeText.length, timeBounds)
+    val amPmBounds = android.graphics.Rect()
+    amPmPaint.getTextBounds(amPmText, 0, amPmText.length, amPmBounds)
+
     val timeW  = timePaint.measureText(timeText)
     val amPmW  = amPmPaint.measureText(amPmText)
-    val timeFm = timePaint.fontMetrics
-    val amPmFm = amPmPaint.fontMetrics
 
+    val shadowPadY = if (hasShadow) 18 else 0
     val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (timeFm.descent - timeFm.ascent).toInt().coerceAtLeast(1)
+    val bitmapH = (maxOf(timeBounds.height(), amPmBounds.height()) + shadowPadY).coerceAtLeast(1)
 
     val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val timeBaseline = -timeFm.ascent
-    val amPmH        = -amPmFm.ascent + amPmFm.descent
-    val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
+    val timeBaseline = (bitmapH - shadowPadY - timeBounds.height()) / 2f - timeBounds.top.toFloat()
+    val amPmBaseline = (bitmapH - shadowPadY - amPmBounds.height()) / 2f - amPmBounds.top.toFloat()
 
     when (amPmPosition) {
         AmPmPosition.AFTER  -> {
@@ -5444,6 +5471,7 @@ val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
+val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
@@ -5500,7 +5528,8 @@ data class AppSettings(
     val showCountdown:            Boolean            = true,
     val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION",
-    val messageTextColor:         Long               = 0x99E6E1E5L
+    val messageTextColor:         Long               = 0x99E6E1E5L,
+    val messageScale:             Float              = 1.0f
 )
 
 class SettingsViewModel(
@@ -5576,7 +5605,8 @@ class SettingsViewModel(
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
-                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
+                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
+                messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
             )
         }
         .stateIn(
@@ -5664,6 +5694,7 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
+                prefs[KEY_MESSAGE_SCALE]         = s.messageScale
             }
         }
     }
@@ -5976,7 +6007,10 @@ fun SettingsScreen(
     }
 
     var formatExpanded by remember { mutableStateOf(false) }
-    var showFontSizeDialog by remember { mutableStateOf(false) }
+    var showTimeSizeDialog by remember { mutableStateOf(false) }
+    var showDateSizeDialog by remember { mutableStateOf(false) }
+    var showMessageSizeDialog by remember { mutableStateOf(false) }
+    var showAmPmSizeDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
     val previewVisible by viewModel.previewVisible.collectAsState()
@@ -6030,16 +6064,78 @@ fun SettingsScreen(
         )
     }
 
-    if (showFontSizeDialog) {
-        FontSizePickerDialog(
-            currentBalance = draft.clockDateBalance,
-            currentScale   = draft.fontScale,
-            draft          = draft,
-            tasks          = tasks,
-            onDismiss      = { showFontSizeDialog = false },
-            onConfirm      = { balance, scale ->
-                draft = draft.copy(clockDateBalance = balance, fontScale = scale)
-                showFontSizeDialog = false
+    // --- 時刻のサイズ ---
+    if (showTimeSizeDialog) {
+        var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        SizeAdjustDialog(
+            title        = "時刻のサイズ",
+            previewDraft = draft.copy(clockDateBalance = tempBalance),
+            tasks        = tasks,
+            canPlus      = tempBalance > -10,
+            canMinus     = tempBalance < 10,
+            onPlus       = { tempBalance = (tempBalance - 2).coerceIn(-10, 10) },
+            onMinus      = { tempBalance = (tempBalance + 2).coerceIn(-10, 10) },
+            onDismiss    = { showTimeSizeDialog = false },
+            onConfirm    = {
+                draft = draft.copy(clockDateBalance = tempBalance)
+                showTimeSizeDialog = false
+            }
+        )
+    }
+
+    // --- 日付のサイズ ---
+    if (showDateSizeDialog) {
+        var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        SizeAdjustDialog(
+            title        = "日付のサイズ",
+            previewDraft = draft.copy(clockDateBalance = tempBalance),
+            tasks        = tasks,
+            canPlus      = tempBalance < 10,
+            canMinus     = tempBalance > -10,
+            onPlus       = { tempBalance = (tempBalance + 1).coerceIn(-10, 10) },
+            onMinus      = { tempBalance = (tempBalance - 1).coerceIn(-10, 10) },
+            onDismiss    = { showDateSizeDialog = false },
+            onConfirm    = {
+                draft = draft.copy(clockDateBalance = tempBalance)
+                showDateSizeDialog = false
+            }
+        )
+    }
+
+    // --- メッセージのサイズ ---
+    if (showMessageSizeDialog) {
+        var tempScale by remember { mutableStateOf(draft.messageScale) }
+        SizeAdjustDialog(
+            title        = "メッセージのサイズ",
+            previewDraft = draft.copy(messageScale = tempScale, showTaskName = true, showCountdown = true),
+            tasks        = tasks,
+            canPlus      = tempScale < 2.5f,
+            canMinus     = tempScale > 0.5f,
+            onPlus       = { tempScale = (tempScale + 0.1f).coerceIn(0.5f, 2.5f) },
+            onMinus      = { tempScale = (tempScale - 0.1f).coerceIn(0.5f, 2.5f) },
+            onDismiss    = { showMessageSizeDialog = false },
+            onConfirm    = {
+                draft = draft.copy(messageScale = tempScale)
+                showMessageSizeDialog = false
+            }
+        )
+    }
+
+    // --- AM/PMのサイズ ---
+    if (showAmPmSizeDialog) {
+        var tempScale by remember { mutableStateOf(draft.amPmScale) }
+        SizeAdjustDialog(
+            title        = "AM/PMのサイズ",
+            previewDraft = draft.copy(amPmScale = tempScale),
+            tasks        = tasks,
+            canPlus      = tempScale < 0.8f,
+            canMinus     = tempScale > 0.3f,
+            onPlus       = { tempScale = (tempScale + 0.025f).coerceIn(0.3f, 0.8f) },
+            onMinus      = { tempScale = (tempScale - 0.025f).coerceIn(0.3f, 0.8f) },
+            onDismiss    = { showAmPmSizeDialog = false },
+            onConfirm    = {
+                draft = draft.copy(amPmScale = tempScale)
+                showAmPmSizeDialog = false
             }
         )
     }
@@ -6625,26 +6721,77 @@ fun SettingsScreen(
                             onToggle = { draft = draft.copy(showTextShadow = it) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        // --- 全体の大きさ（インラインスライダー）---
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Row(
+                                modifier              = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text("全体の大きさ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                Text("%.1f×".format(draft.fontScale), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                            }
+                            Slider(
+                                value         = draft.fontScale,
+                                onValueChange = { draft = draft.copy(fontScale = it) },
+                                valueRange    = 0.5f..1.5f,
+                                steps         = 9,
+                                modifier      = Modifier.fillMaxWidth()
+                            )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        // --- 時刻のサイズ ---
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showFontSizeDialog = true }
+                                .clickable { showTimeSizeDialog = true }
                                 .padding(horizontal = 16.dp, vertical = 14.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment     = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text("フォントサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                Text(
-                                    text = "%.1f".format(draft.fontScale) + "×  " + when {
-                                        draft.clockDateBalance == 0 -> "均等"
-                                        draft.clockDateBalance < 0  -> "時刻寄り"
-                                        else                        -> "日付寄り"
-                                    },
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp
-                                )
-                            }
+                            Text("時刻のサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                             Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        // --- 日付のサイズ ---
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDateSizeDialog = true }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Text("日付のサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        // --- メッセージのサイズ ---
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showMessageSizeDialog = true }
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment     = Alignment.CenterVertically
+                        ) {
+                            Text("メッセージのサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                        }
+                        // --- AM/PMのサイズ（12時間制のみ）---
+                        if (!draft.use24Hour) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showAmPmSizeDialog = true }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Text("AM/PMのサイズ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                                Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 18.sp)
+                            }
                         }
                     }
                 }
@@ -6733,22 +6880,6 @@ fun SettingsScreen(
                                                 )
                                             }
                                         }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Row(
-                                            modifier              = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment     = Alignment.CenterVertically
-                                        ) {
-                                            Text("AM/PMサイズ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                                            Text("${(draft.amPmScale * 100).toInt()}%", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-                                        }
-                                        Slider(
-                                            value         = draft.amPmScale,
-                                            onValueChange = { draft = draft.copy(amPmScale = it) },
-                                            valueRange    = 0.3f..0.8f,
-                                            steps         = 4,
-                                            modifier      = Modifier.fillMaxWidth()
-                                        )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text("AM/PMテキスト色", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
                                         ColorRow(
@@ -7609,7 +7740,17 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                 },
                 update = { view ->
                     // フォント計算用のベース高度は、実機そのままの生の actualH を引き渡してクランプタイミングを同期
-                    val (clockSp, dateSp, messageSp) = calcFontSizes(actualH.toInt(), draft.clockDateBalance, draft.fontScale, draft.showTime, hasDate, hasMessage)
+                    val (clockSp, dateSp, messageSp) = calcFontSizes(
+                        widgetHeightDp = actualH.toInt(),
+                        balance = draft.clockDateBalance,
+                        fontScale = draft.fontScale,
+                        showClock = draft.showTime,
+                        showDate = hasDate,
+                        showMessage = hasMessage,
+                        messageScale = draft.messageScale,
+                        use24Hour = draft.use24Hour,
+                        amPmScale = draft.amPmScale
+                    )
                     val scaledDensity = view.context.resources.displayMetrics.scaledDensity
 
                     // プレビューが拡大された倍率（previewScale）を各文字のピクセル値にも正確に乗算し、グラフィックとはみ出しを完全同期
@@ -7657,48 +7798,69 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                     val fallbackDate = if (dateText.isEmpty() && !draft.showTime)
                         java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault()).format(now.time) else ""
                     val displayDate = dateText.ifEmpty { fallbackDate }
-                    view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
-                        setImageBitmap(timeBitmap)
-                        visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
-                    }
-                    view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
-                        if (displayDate.isNotEmpty()) setImageBitmap(buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow))
-                        visibility = if (displayDate.isNotEmpty()) android.view.View.VISIBLE else android.view.View.GONE
-                    }
+// --- 個別ビットマップ構築 ---
+                    val dateBitmap = if (displayDate.isNotEmpty())
+                        buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow)
+                    else null
+
                     val messageText = run {
-                        val now = java.time.LocalTime.now()
-                        val activeBlock = tasks.firstOrNull { now >= it.startTime && now < it.endTime }
+                        val nowLocal = java.time.LocalTime.now()
+                        val activeBlock = tasks.firstOrNull { nowLocal >= it.startTime && nowLocal < it.endTime }
                         if (activeBlock != null && draft.showTaskName) {
                             val fmt = if (draft.use24Hour) "H:mm" else "h:mm"
                             val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
                             "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-                        } else if (activeBlock == null && draft.showCountdown) {
-                            val nextBlock = tasks.filter { it.startTime > now }.minByOrNull { it.startTime }
-                            if (nextBlock != null) {
-                                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
-                                when {
-                                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                                    else          -> "${nextBlock.name}まで あと1分未満"
-                                }
-                            } else {
-                                // タスク未登録時のフォールバック
-                                when {
-                                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                                    draft.showCountdown -> "次のタスクまで あと30分"
-                                    else -> ""
-                                }
+                        } else if (activeBlock == null && draft.showCountdown && tasks.any { it.startTime > nowLocal }) {
+                            val nextBlock = tasks.filter { it.startTime > nowLocal }.minByOrNull { it.startTime }!!
+                            val minutes = java.time.Duration.between(nowLocal, nextBlock.startTime).toMinutes()
+                            when {
+                                minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                                minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                                else          -> "${nextBlock.name}まで あと1分未満"
                             }
-                        } else ""
-                    }
-                    view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
-                        if (messageText.isNotEmpty()) {
-                            setImageBitmap(buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow))
-                            visibility = android.view.View.VISIBLE
                         } else {
-                            visibility = android.view.View.GONE
+                            when {
+                                draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                                draft.showCountdown -> "次のタスクまで あと30分"
+                                else -> ""
+                            }
                         }
                     }
+                    val messageBitmap = if (messageText.isNotEmpty())
+                        buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow)
+                    else null
+
+                    // --- 合成ビットマップ（AM/PMと同じ原理：1枚に統合して内部比率を保存） ---
+                    val compositeParts = mutableListOf<android.graphics.Bitmap>()
+                    if (draft.showTime) compositeParts.add(timeBitmap)
+                    dateBitmap?.let { compositeParts.add(it) }
+                    messageBitmap?.let { compositeParts.add(it) }
+
+                    if (compositeParts.isNotEmpty()) {
+                        val maxW = compositeParts.maxOf { it.width }
+                        val spacingPx = (4 * view.context.resources.displayMetrics.density).toInt()
+                        val totalH = compositeParts.sumOf { it.height } + spacingPx * (compositeParts.size - 1)
+                        val composite = android.graphics.Bitmap.createBitmap(maxW, totalH, android.graphics.Bitmap.Config.ARGB_8888)
+                        val compCanvas = android.graphics.Canvas(composite)
+                        var drawY = 0f
+                        compositeParts.forEachIndexed { index, bmp ->
+                            compCanvas.drawBitmap(bmp, (maxW - bmp.width) / 2f, drawY, null)
+                            drawY += bmp.height
+                            if (index < compositeParts.size - 1) drawY += spacingPx
+                        }
+                        view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
+                            scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                            adjustViewBounds = true
+                            setImageBitmap(composite)
+                            visibility = android.view.View.VISIBLE
+                        }
+                    } else {
+                        view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.visibility = android.view.View.GONE
+                    }
+                    // 個別ImageViewは非表示（合成ビットマップに統合済み）
+                    view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.visibility = android.view.View.GONE
+                    view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.visibility = android.view.View.GONE
+
                     bgBitmap?.let {
                         view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
                     }
@@ -7711,17 +7873,17 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
 }
 
 @Composable
-private fun FontSizePickerDialog(
-    currentBalance: Int,
-    currentScale:   Float,
-    draft:          AppSettings,
-    tasks:          List<Task>,
-    onDismiss:      () -> Unit,
-    onConfirm:      (Int, Float) -> Unit
+private fun SizeAdjustDialog(
+    title: String,
+    previewDraft: AppSettings,
+    tasks: List<Task>,
+    canPlus: Boolean,
+    canMinus: Boolean,
+    onPlus: () -> Unit,
+    onMinus: () -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
 ) {
-    var tempBalance by remember { mutableStateOf(currentBalance.toFloat()) }
-    var tempScale   by remember { mutableStateOf(currentScale) }
-    val balance = tempBalance.roundToInt()
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -7731,47 +7893,51 @@ private fun FontSizePickerDialog(
                 modifier            = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("フォントサイズ", fontSize = 17.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.height(16.dp))
-                WidgetPreview(draft = draft.copy(clockDateBalance = balance, fontScale = tempScale, dateFormat = "M月d日"), tasks = tasks)
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("小さく", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("%.1f".format(tempScale) + "×", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
-                    Text("大きく", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Slider(
-                    value         = tempScale,
-                    onValueChange = { tempScale = it },
-                    valueRange    = 0.5f..1.5f,
-                    steps         = 9,
-                    modifier      = Modifier.fillMaxWidth()
+                Text(
+                    title,
+                    fontSize   = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color      = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
+                WidgetPreview(draft = previewDraft, tasks = tasks)
+                Spacer(Modifier.height(20.dp))
                 Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment     = Alignment.CenterVertically
                 ) {
-                    Text("時刻優先", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("日付優先", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Button(
+                        onClick  = onMinus,
+                        enabled  = canMinus,
+                        shape    = RoundedCornerShape(50),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        modifier = Modifier.size(56.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("−", fontSize = 28.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Button(
+                        onClick  = onPlus,
+                        enabled  = canPlus,
+                        shape    = RoundedCornerShape(50),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        modifier = Modifier.size(56.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text("＋", fontSize = 28.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
                 }
-                Slider(
-                    value         = tempBalance,
-                    onValueChange = { tempBalance = it },
-                    valueRange    = -10f..10f,
-                    steps         = 19,
-                    modifier      = Modifier.fillMaxWidth()
-                )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) { Text("キャンセル") }
-                    TextButton(onClick = { onConfirm(balance, tempScale) }) { Text("OK") }
+                    TextButton(onClick = onConfirm) { Text("OK") }
                 }
             }
         }

@@ -58,7 +58,17 @@ object TickAtWidget {
         // フォントサイズ（px変換）
         val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
         val hasMessage = settings.showTaskName || settings.showCountdown
-        val (clockSp, dateSp, _) = calcFontSizes(widgetHeightDp, settings.clockDateBalance, settings.fontScale, settings.showTime, hasDate, hasMessage)
+        val (clockSp, dateSp, _) = calcFontSizes(
+            widgetHeightDp = widgetHeightDp,
+            balance = settings.clockDateBalance,
+            fontScale = settings.fontScale,
+            showClock = settings.showTime,
+            showDate = hasDate,
+            showMessage = hasMessage,
+            messageScale = settings.messageScale,
+            use24Hour = settings.use24Hour,
+            amPmScale = settings.amPmScale
+        )
         val scaledDensity = context.resources.displayMetrics.scaledDensity
         val clockPx = clockSp * scaledDensity
         val datePx  = dateSp  * scaledDensity
@@ -139,45 +149,42 @@ internal fun calcFontSizes(
     fontScale: Float = 1.0f,
     showClock: Boolean = true,
     showDate: Boolean = true,
-    showMessage: Boolean = false
+    showMessage: Boolean = false,
+    messageScale: Float = 1.0f,
+    use24Hour: Boolean = true,
+    amPmScale: Float = 0.55f
 ): Triple<Int, Int, Int> {
-    val t = (balance + 10f) / 20f
     val h = widgetHeightDp.toFloat()
     val s = fontScale
-    val visibleCount = listOf(showClock, showDate, showMessage).count { it }
-    if (visibleCount == 0) return Triple(10, 8, 8)
 
-    val (cRaw, dRaw, mRaw) = when {
-        showClock && showDate && showMessage -> Triple(
-            h * (0.42f - t * 0.14f) * s,
-            h * (0.14f + t * 0.12f) * s,
-            h * 0.15f * s
-        )
-        showClock && showDate -> Triple(
-            h * (0.80f - t * 0.40f) * s,
-            h * (0.12f + t * 0.38f) * s,
-            0f
-        )
-        showClock && showMessage -> Triple(
-            h * (0.60f - t * 0.20f) * s,
-            0f,
-            h * (0.20f + t * 0.18f) * s
-        )
-        showDate && showMessage -> Triple(
-            0f,
-            h * (0.40f - t * 0.15f) * s,
-            h * (0.25f + t * 0.15f) * s
-        )
-        showClock   -> Triple(h * 0.70f * s, 0f, 0f)
-        showDate    -> Triple(0f, h * 0.55f * s, 0f)
-        showMessage -> Triple(0f, 0f, h * 0.50f * s)
-        else -> Triple(0f, 0f, 0f)
+    // 固定パディングを確保 (全高の20%)
+    val totalPadding = h * 0.2f
+    val availableSpace = h - totalPadding
+
+    // バランスによるウェイト可変（balance: -10～+10）
+    val shift = balance * 0.1f
+    val clockWeight = if (showClock) (3.0f - shift).coerceIn(1.5f, 4.5f) else 0f
+    val dateWeight = if (showDate) (1.5f + shift).coerceIn(0.5f, 3.0f) else 0f
+    val messageWeight = if (showMessage) 1.5f else 0f
+    val totalWeight = clockWeight + dateWeight + messageWeight
+
+    if (totalWeight == 0f) return Triple(10, 8, 8)
+
+    // 領域の分配
+    var clockBase = (availableSpace * (clockWeight / totalWeight)) * s
+    val dateBase = (availableSpace * (dateWeight / totalWeight)) * s
+    val messageBase = (availableSpace * (messageWeight / totalWeight)) * s * messageScale
+
+    // 12時間制の補正（AM/PMサイズ変更による時計領域の自動補正）
+    if (!use24Hour && showClock) {
+        val amPmDelta = amPmScale - 0.55f
+        clockBase *= (1.0f - amPmDelta).coerceIn(0.5f, 1.5f)
     }
 
     return Triple(
-        cRaw.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
-        dRaw.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
-        mRaw.roundToInt().coerceIn(if (showMessage) 8 else 0, 36)
+        clockBase.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
+        dateBase.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
+        messageBase.roundToInt().coerceIn(if (showMessage) 8 else 0, 54)
     )
 }
 
@@ -194,14 +201,16 @@ internal fun buildTextBitmap(
         this.color    = textColor
         if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
+    val bounds = android.graphics.Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
     val textWidth = paint.measureText(text)
-    val fm        = paint.fontMetrics
     val padX      = 8f
+    val shadowPadY = if (hasShadow) 18 else 0 // 影が見切れないための余白
     val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (fm.descent - fm.ascent).toInt().coerceAtLeast(1)
+    val bitmapH   = (bounds.height() + shadowPadY).coerceAtLeast(1)
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
-    canvas.drawText(text, padX, -fm.ascent, paint)
+    canvas.drawText(text, padX, -bounds.top.toFloat(), paint)
     return bitmap
 }
 
@@ -234,20 +243,23 @@ internal fun buildTimeWithAmPmBitmap(
         if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
 
+    val timeBounds = android.graphics.Rect()
+    timePaint.getTextBounds(timeText, 0, timeText.length, timeBounds)
+    val amPmBounds = android.graphics.Rect()
+    amPmPaint.getTextBounds(amPmText, 0, amPmText.length, amPmBounds)
+
     val timeW  = timePaint.measureText(timeText)
     val amPmW  = amPmPaint.measureText(amPmText)
-    val timeFm = timePaint.fontMetrics
-    val amPmFm = amPmPaint.fontMetrics
 
+    val shadowPadY = if (hasShadow) 18 else 0
     val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (timeFm.descent - timeFm.ascent).toInt().coerceAtLeast(1)
+    val bitmapH = (maxOf(timeBounds.height(), amPmBounds.height()) + shadowPadY).coerceAtLeast(1)
 
     val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val timeBaseline = -timeFm.ascent
-    val amPmH        = -amPmFm.ascent + amPmFm.descent
-    val amPmBaseline = (bitmapH - amPmH) / 2f - amPmFm.ascent
+    val timeBaseline = (bitmapH - shadowPadY - timeBounds.height()) / 2f - timeBounds.top.toFloat()
+    val amPmBaseline = (bitmapH - shadowPadY - amPmBounds.height()) / 2f - amPmBounds.top.toFloat()
 
     when (amPmPosition) {
         AmPmPosition.AFTER  -> {

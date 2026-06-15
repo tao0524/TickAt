@@ -74,6 +74,7 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
+import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
 
 class WidgetUpdateService : Service() {
 
@@ -202,7 +203,8 @@ class WidgetUpdateService : Service() {
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
                     showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                     showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
-                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
+                    messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
+                    messageScale         = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
                 )
                 val typefaceStyle = when {
                     newSettings.fontWeight == TextWeight.BOLD && newSettings.isItalic -> Typeface.BOLD_ITALIC
@@ -222,7 +224,17 @@ class WidgetUpdateService : Service() {
                 val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
                 val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
                 val hasMessage = newSettings.showTaskName || newSettings.showCountdown
-                val (clockSp, dateSp, messageSp) = calcFontSizes(h, newSettings.clockDateBalance, newSettings.fontScale, newSettings.showTime, hasDate, hasMessage)
+                val (clockSp, dateSp, messageSp) = calcFontSizes(
+                    widgetHeightDp = h,
+                    balance = newSettings.clockDateBalance,
+                    fontScale = newSettings.fontScale,
+                    showClock = newSettings.showTime,
+                    showDate = hasDate,
+                    showMessage = hasMessage,
+                    messageScale = newSettings.messageScale,
+                    use24Hour = newSettings.use24Hour,
+                    amPmScale = newSettings.amPmScale
+                )
                 val isFirstLoad = cachedClockPx == 0f
                 cachedClockPx   = clockSp * scaledDensity
                 cachedDatePx    = dateSp  * scaledDensity

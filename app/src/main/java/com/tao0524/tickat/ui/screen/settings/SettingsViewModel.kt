@@ -62,6 +62,7 @@ val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
+val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
@@ -118,7 +119,8 @@ data class AppSettings(
     val showCountdown:            Boolean            = true,
     val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION",
-    val messageTextColor:         Long               = 0x99E6E1E5L
+    val messageTextColor:         Long               = 0x99E6E1E5L,
+    val messageScale:             Float              = 1.0f
 )
 
 class SettingsViewModel(
@@ -194,7 +196,8 @@ class SettingsViewModel(
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
-                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L
+                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
+                messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
             )
         }
         .stateIn(
@@ -282,6 +285,7 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
+                prefs[KEY_MESSAGE_SCALE]         = s.messageScale
             }
         }
     }
