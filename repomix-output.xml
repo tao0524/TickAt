@@ -2992,54 +2992,6 @@ private fun FeatureChip(label: String, color: Color) {
 }
 </file>
 
-<file path="app/src/main/res/layout/widget_tickat_base.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="2dp">
-
-        <ImageView
-            android:id="@+id/widget_time_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true" />
-
-        <ImageView
-            android:id="@+id/widget_date_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:adjustViewBounds="true"
-            android:visibility="gone" />
-
-        <ImageView
-            android:id="@+id/widget_task_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:adjustViewBounds="true"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
 package com.tao0524.tickat.ui.screen.expanded
 
@@ -3714,6 +3666,54 @@ class TaskEditViewModel(
 }
 </file>
 
+<file path="app/src/main/res/layout/widget_tickat_base.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="2dp">
+
+        <ImageView
+            android:id="@+id/widget_time_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true" />
+
+        <ImageView
+            android:id="@+id/widget_date_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/widget_task_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
 <file path="app/src/main/AndroidManifest.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -3904,6 +3904,183 @@ class TaskListViewModel(
             context.displaySettingsDataStore.edit { prefs ->
                 prefs[KEY_GUIDE_STEP] = 1
             }
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import com.tao0524.tickat.FullScreenAlertActivity
+import com.tao0524.tickat.MainActivity
+import com.tao0524.tickat.R
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import java.time.LocalTime
+
+class TaskStartAlertReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val taskId    = intent.getStringExtra("task_id")    ?: return
+        val taskName  = intent.getStringExtra("task_name")  ?: return
+        val start     = intent.getStringExtra("task_start") ?: ""
+        val end       = intent.getStringExtra("task_end")   ?: ""
+        val memo      = intent.getStringExtra("task_memo")  ?: ""
+        val repeat    = intent.getStringExtra("task_repeat") ?: ""
+        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
+        val alertType = intent.getStringExtra("alert_type") ?: "START"
+
+        val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
+
+        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
+        if (alertType == "END") {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            createChannelIfNeeded(manager)
+
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("show_expanded", true)
+                putExtra("expanded_task_id", taskId)
+            }
+            val pendingOpen = PendingIntent.getActivity(
+                context, taskId.hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("$taskName 終了")
+                .setContentText("$start〜$end")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingOpen)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(("end_$taskId").hashCode(), notification)
+            return
+        }
+
+        // DataStoreからアラートモードを読み込む
+        val alertMode = runBlocking {
+            try {
+                context.displaySettingsDataStore.data.first()[KEY_ALERT_MODE] ?: "NOTIFICATION"
+            } catch (_: Exception) {
+                "NOTIFICATION"
+            }
+        }
+
+        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
+        rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
+
+        // OFFの場合は通知を出さない
+        if (alertMode == "OFF") return
+
+        // 通知を表示
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        createChannelIfNeeded(manager)
+
+        val contentText = when (taskType) {
+            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
+            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
+            else        -> "$start〜$end"
+        }
+
+        // ExpandedScreen用PendingIntent（通知タップ時）
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("show_expanded", true)
+            putExtra("expanded_task_id", taskId)
+        }
+        val pendingOpen = PendingIntent.getActivity(
+            context,
+            taskId.hashCode(),
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(taskName)
+            .setContentText(contentText)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingOpen)
+            .setAutoCancel(true)
+
+        // メモがある場合はBigTextStyleで展開表示
+        if (memo.isNotEmpty()) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+        }
+
+        // フルスクリーンモードの場合、setFullScreenIntentを追加
+        if (alertMode == "FULLSCREEN") {
+            val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("task_name", taskName)
+                putExtra("task_type_label", featureLabel)
+                putExtra("time_range", "$start〜$end")
+            }
+            val fullScreenPending = PendingIntent.getActivity(
+                context,
+                taskId.hashCode() + 1,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.setFullScreenIntent(fullScreenPending, true)
+            builder.setContentIntent(fullScreenPending)
+        }
+
+        manager.notify(("start_$taskId").hashCode(), builder.build())
+    }
+
+    private fun rescheduleIfNeeded(
+        context: Context,
+        taskId: String, taskName: String,
+        start: String, end: String, memo: String, repeat: String,
+        taskType: String
+    ) {
+        if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
+        try {
+            val task = Task(
+                id        = taskId,
+                name      = taskName,
+                startTime = LocalTime.parse(start),
+                endTime   = LocalTime.parse(end),
+                repeat    = RepeatType.valueOf(repeat),
+                memoText  = memo,
+                taskType  = TaskType.valueOf(taskType)
+            )
+            TaskAlertScheduler.schedule(context, task)
+        } catch (_: Exception) {
+            // パース失敗時は再スケジュールしない
+        }
+    }
+
+    companion object {
+        const val CHANNEL_ID = "tickat_task_start"
+
+        fun createChannelIfNeeded(manager: NotificationManager) {
+            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "スケジュール開始通知",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "スケジュールの開始時刻に通知します"
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(channel)
         }
     }
 }
@@ -4215,6 +4392,38 @@ class WidgetUpdateService : Service() {
                     minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
                     else          -> "${nextBlock.name}まで あと1分未満"
                 }
+            } else if (settings.showNextAlarm) {
+                val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                val nextAlarm = alarmManager.nextAlarmClock
+                if (nextAlarm != null) {
+                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                    if (settings.use24Hour) {
+                        val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                        val m = cal.get(java.util.Calendar.MINUTE)
+                        "⏰ %d:%02d".format(h, m)
+                    } else {
+                        val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                        val m = cal.get(java.util.Calendar.MINUTE)
+                        val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                        "⏰ $amPm$h:%02d".format(m)
+                    }
+                } else ""
+            } else ""
+        } else if (settings.showNextAlarm) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val nextAlarm = alarmManager.nextAlarmClock
+            if (nextAlarm != null) {
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                if (settings.use24Hour) {
+                    val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                    val m = cal.get(java.util.Calendar.MINUTE)
+                    "⏰ %d:%02d".format(h, m)
+                } else {
+                    val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                    val m = cal.get(java.util.Calendar.MINUTE)
+                    val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                    "⏰ $amPm$h:%02d".format(m)
+                }
             } else ""
         } else ""
         for (id in ids) {
@@ -4259,183 +4468,6 @@ class WidgetUpdateService : Service() {
             .setSilent(true)
             .build()
         startForeground(1001, notification)
-    }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
-package com.tao0524.tickat.widget
-
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import androidx.core.app.NotificationCompat
-import com.tao0524.tickat.FullScreenAlertActivity
-import com.tao0524.tickat.MainActivity
-import com.tao0524.tickat.R
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskType
-import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import java.time.LocalTime
-
-class TaskStartAlertReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        val taskId    = intent.getStringExtra("task_id")    ?: return
-        val taskName  = intent.getStringExtra("task_name")  ?: return
-        val start     = intent.getStringExtra("task_start") ?: ""
-        val end       = intent.getStringExtra("task_end")   ?: ""
-        val memo      = intent.getStringExtra("task_memo")  ?: ""
-        val repeat    = intent.getStringExtra("task_repeat") ?: ""
-        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
-        val alertType = intent.getStringExtra("alert_type") ?: "START"
-
-        val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
-
-        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
-        if (alertType == "END") {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            createChannelIfNeeded(manager)
-
-            val openIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("show_expanded", true)
-                putExtra("expanded_task_id", taskId)
-            }
-            val pendingOpen = PendingIntent.getActivity(
-                context, taskId.hashCode(), openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("$taskName 終了")
-                .setContentText("$start〜$end")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingOpen)
-                .setAutoCancel(true)
-                .build()
-            manager.notify(("end_$taskId").hashCode(), notification)
-            return
-        }
-
-        // DataStoreからアラートモードを読み込む
-        val alertMode = runBlocking {
-            try {
-                context.displaySettingsDataStore.data.first()[KEY_ALERT_MODE] ?: "NOTIFICATION"
-            } catch (_: Exception) {
-                "NOTIFICATION"
-            }
-        }
-
-        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
-        rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
-
-        // OFFの場合は通知を出さない
-        if (alertMode == "OFF") return
-
-        // 通知を表示
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createChannelIfNeeded(manager)
-
-        val contentText = when (taskType) {
-            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
-            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
-            else        -> "$start〜$end"
-        }
-
-        // ExpandedScreen用PendingIntent（通知タップ時）
-        val openIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("show_expanded", true)
-            putExtra("expanded_task_id", taskId)
-        }
-        val pendingOpen = PendingIntent.getActivity(
-            context,
-            taskId.hashCode(),
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(taskName)
-            .setContentText(contentText)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingOpen)
-            .setAutoCancel(true)
-
-        // メモがある場合はBigTextStyleで展開表示
-        if (memo.isNotEmpty()) {
-            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-        }
-
-        // フルスクリーンモードの場合、setFullScreenIntentを追加
-        if (alertMode == "FULLSCREEN") {
-            val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("task_name", taskName)
-                putExtra("task_type_label", featureLabel)
-                putExtra("time_range", "$start〜$end")
-            }
-            val fullScreenPending = PendingIntent.getActivity(
-                context,
-                taskId.hashCode() + 1,
-                fullScreenIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.setFullScreenIntent(fullScreenPending, true)
-            builder.setContentIntent(fullScreenPending)
-        }
-
-        manager.notify(("start_$taskId").hashCode(), builder.build())
-    }
-
-    private fun rescheduleIfNeeded(
-        context: Context,
-        taskId: String, taskName: String,
-        start: String, end: String, memo: String, repeat: String,
-        taskType: String
-    ) {
-        if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
-        try {
-            val task = Task(
-                id        = taskId,
-                name      = taskName,
-                startTime = LocalTime.parse(start),
-                endTime   = LocalTime.parse(end),
-                repeat    = RepeatType.valueOf(repeat),
-                memoText  = memo,
-                taskType  = TaskType.valueOf(taskType)
-            )
-            TaskAlertScheduler.schedule(context, task)
-        } catch (_: Exception) {
-            // パース失敗時は再スケジュールしない
-        }
-    }
-
-    companion object {
-        const val CHANNEL_ID = "tickat_task_start"
-
-        fun createChannelIfNeeded(manager: NotificationManager) {
-            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "スケジュール開始通知",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "スケジュールの開始時刻に通知します"
-                enableVibration(true)
-            }
-            manager.createNotificationChannel(channel)
-        }
     }
 }
 </file>
@@ -5468,6 +5500,7 @@ val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
+val KEY_SHOW_NEXT_ALARM        = booleanPreferencesKey("show_next_alarm")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
@@ -5529,7 +5562,8 @@ data class AppSettings(
     val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION",
     val messageTextColor:         Long               = 0x99E6E1E5L,
-    val messageScale:             Float              = 1.0f
+    val messageScale:             Float              = 1.0f,
+    val showNextAlarm:            Boolean            = true
 )
 
 class SettingsViewModel(
@@ -5603,6 +5637,7 @@ class SettingsViewModel(
                 timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                showNextAlarm            = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
                 messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
@@ -5691,6 +5726,7 @@ class SettingsViewModel(
                 prefs[KEY_TIME_OFFSET]           = s.timeOffset
                 prefs[KEY_SHOW_TASK_NAME]        = s.showTaskName
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
+                prefs[KEY_SHOW_NEXT_ALARM]       = s.showNextAlarm
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
@@ -7091,6 +7127,13 @@ fun SettingsScreen(
                             sub      = "空き時間に次のスケジュールまでの残り時間を表示",
                             checked  = draft.showCountdown,
                             onToggle = { draft = draft.copy(showCountdown = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
+                            label    = "次のアラームを表示",
+                            sub      = "スケジュールがない時間帯にシステムの次のアラーム時刻を表示",
+                            checked  = draft.showNextAlarm,
+                            onToggle = { draft = draft.copy(showNextAlarm = it) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(

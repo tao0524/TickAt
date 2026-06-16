@@ -303,6 +303,38 @@ class WidgetUpdateService : Service() {
                     minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
                     else          -> "${nextBlock.name}まで あと1分未満"
                 }
+            } else if (settings.showNextAlarm) {
+                val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                val nextAlarm = alarmManager.nextAlarmClock
+                if (nextAlarm != null) {
+                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                    if (settings.use24Hour) {
+                        val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                        val m = cal.get(java.util.Calendar.MINUTE)
+                        "⏰ %d:%02d".format(h, m)
+                    } else {
+                        val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                        val m = cal.get(java.util.Calendar.MINUTE)
+                        val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                        "⏰ $amPm$h:%02d".format(m)
+                    }
+                } else ""
+            } else ""
+        } else if (settings.showNextAlarm) {
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+            val nextAlarm = alarmManager.nextAlarmClock
+            if (nextAlarm != null) {
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                if (settings.use24Hour) {
+                    val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                    val m = cal.get(java.util.Calendar.MINUTE)
+                    "⏰ %d:%02d".format(h, m)
+                } else {
+                    val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                    val m = cal.get(java.util.Calendar.MINUTE)
+                    val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                    "⏰ $amPm$h:%02d".format(m)
+                }
             } else ""
         } else ""
         for (id in ids) {

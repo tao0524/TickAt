@@ -1388,6 +1388,13 @@ fun SettingsScreen(
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
+                            label    = "次のアラームを表示",
+                            sub      = "スケジュールがない時間帯にシステムの次のアラーム時刻を表示",
+                            checked  = draft.showNextAlarm,
+                            onToggle = { draft = draft.copy(showNextAlarm = it) }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        SwitchRow(
                             label    = "チェックボックスを表示",
                             sub      = "スケジュール一覧にチェックボックスを表示します",
                             checked  = draft.showCheckboxes,

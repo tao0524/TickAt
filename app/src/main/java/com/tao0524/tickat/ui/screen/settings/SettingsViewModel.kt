@@ -59,6 +59,7 @@ val KEY_AM_PM_COLOR            = longPreferencesKey("am_pm_color")
 val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
+val KEY_SHOW_NEXT_ALARM        = booleanPreferencesKey("show_next_alarm")
 val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
@@ -120,7 +121,8 @@ data class AppSettings(
     val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION",
     val messageTextColor:         Long               = 0x99E6E1E5L,
-    val messageScale:             Float              = 1.0f
+    val messageScale:             Float              = 1.0f,
+    val showNextAlarm:            Boolean            = true
 )
 
 class SettingsViewModel(
@@ -194,6 +196,7 @@ class SettingsViewModel(
                 timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
                 showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                 showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                showNextAlarm            = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
                 showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
                 messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
@@ -282,6 +285,7 @@ class SettingsViewModel(
                 prefs[KEY_TIME_OFFSET]           = s.timeOffset
                 prefs[KEY_SHOW_TASK_NAME]        = s.showTaskName
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
+                prefs[KEY_SHOW_NEXT_ALARM]       = s.showNextAlarm
                 prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
