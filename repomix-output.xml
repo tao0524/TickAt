@@ -6683,14 +6683,14 @@ fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         ColorRow(
                             label   = "テキスト色",
-                            sub     = "時刻・スケジュール名・ラベル",
+                            sub     = "時刻の表示色",
                             color   = draft.textColor,
                             onClick = { pickerTarget.value = "text" }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         ColorRow(
-                            label   = "日付・秒数テキスト色",
-                            sub     = "日付・秒数の表示色",
+                            label   = "日付テキスト色",
+                            sub     = "日付の表示色",
                             color   = draft.dateTextColor,
                             onClick = { pickerTarget.value = "date" }
                         )
@@ -6701,6 +6701,17 @@ fun SettingsScreen(
                             color   = draft.messageTextColor,
                             onClick = { pickerTarget.value = "message" }
                         )
+                        AnimatedVisibility(visible = !draft.use24Hour) {
+                            Column {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                                ColorRow(
+                                    label   = "AM/PMテキスト色",
+                                    sub     = if (draft.amPmColor != 0L) "カスタム設定中" else "テキスト色に連動",
+                                    color   = if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor,
+                                    onClick = { pickerTarget.value = "amPm" }
+                                )
+                            }
+                        }
                     }
                 }
 
