@@ -1998,7 +1998,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
     }
 
     val hasDate = draft.dateFormat.isNotEmpty() || draft.weekdayFormat.isNotEmpty() || !draft.showTime
-    val hasMessage = draft.showTaskName || draft.showCountdown
+    val hasMessage = draft.showTaskName || draft.showCountdown || draft.showNextAlarm
 
     val (actualW, actualH) = remember {
         val manager = android.appwidget.AppWidgetManager.getInstance(context)
@@ -2123,6 +2123,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                             when {
                                 draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
                                 draft.showCountdown -> "次のタスクまで あと30分"
+                                draft.showNextAlarm -> if (draft.use24Hour) "⏰ 6:30" else "⏰ 午前6:30"
                                 else -> ""
                             }
                         }

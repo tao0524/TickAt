@@ -57,7 +57,7 @@ object TickAtWidget {
 
         // フォントサイズ（px変換）
         val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
-        val hasMessage = settings.showTaskName || settings.showCountdown
+        val hasMessage = settings.showTaskName || settings.showCountdown || settings.showNextAlarm
         val (clockSp, dateSp, _) = calcFontSizes(
             widgetHeightDp = widgetHeightDp,
             balance = settings.clockDateBalance,

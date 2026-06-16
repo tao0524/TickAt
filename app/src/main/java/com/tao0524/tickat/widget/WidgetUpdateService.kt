@@ -223,7 +223,7 @@ class WidgetUpdateService : Service() {
                 val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
                 val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
                 val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
-                val hasMessage = newSettings.showTaskName || newSettings.showCountdown
+                val hasMessage = newSettings.showTaskName || newSettings.showCountdown || newSettings.showNextAlarm
                 val (clockSp, dateSp, messageSp) = calcFontSizes(
                     widgetHeightDp = h,
                     balance = newSettings.clockDateBalance,
@@ -306,7 +306,7 @@ class WidgetUpdateService : Service() {
             } else if (settings.showNextAlarm) {
                 val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
                 val nextAlarm = alarmManager.nextAlarmClock
-                if (nextAlarm != null) {
+                if (nextAlarm?.showIntent != null) {
                     val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
                     if (settings.use24Hour) {
                         val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
@@ -323,7 +323,7 @@ class WidgetUpdateService : Service() {
         } else if (settings.showNextAlarm) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             val nextAlarm = alarmManager.nextAlarmClock
-            if (nextAlarm != null) {
+            if (nextAlarm?.showIntent != null) {
                 val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
                 if (settings.use24Hour) {
                     val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
