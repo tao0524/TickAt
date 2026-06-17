@@ -1350,58 +1350,240 @@ fun SettingsScreen(
                 // --- 日付 ---
                 AccordionHeader(
                     title = "日付",
-                    summary = listOf(if (draft.dateFormat.isEmpty()) "日付なし" else draft.dateFormat, if (draft.weekdayFormat.isEmpty()) "曜日なし" else draft.weekdayFormat).joinToString(" / "),
+                    summary = if (draft.datePattern.isEmpty()) "日付なし" else runCatching {
+                        java.text.SimpleDateFormat(draft.datePattern, java.util.Locale.getDefault()).format(java.util.Date())
+                    }.getOrDefault(draft.datePattern),
                     expanded = expandedSections["date"] == true,
                     onClick = { expandedSections["date"] = expandedSections["date"] != true }
                 )
                 AnimatedVisibility(visible = expandedSections["date"] == true) {
+                    var isCustomMode by remember { mutableStateOf(false) }
+                    var showTemplateDialog by remember { mutableStateOf(false) }
+                    var showSymbolHelp by remember { mutableStateOf(false) }
+
                     Card(
                         shape    = RoundedCornerShape(14.dp),
                         colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                            Text("日付の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("" to "なし", "M月d日" to "5月25日", "MM/dd" to "05/25", "M/d" to "5/25").forEach { (fmt, label) ->
-                                    SelectOption(
-                                        label      = label,
-                                        isSelected = draft.dateFormat == fmt,
-                                        modifier   = Modifier.weight(1f),
-                                        onSelect   = { draft = draft.copy(dateFormat = fmt) }
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text("曜日の形式", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.padding(bottom = 8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("" to "なし", "EEE" to "月", "(EEE)" to "(月)", "EEEE" to "月曜日").forEach { (fmt, label) ->
-                                    SelectOption(
-                                        label      = label,
-                                        isSelected = draft.weekdayFormat == fmt,
-                                        modifier   = Modifier.weight(1f),
-                                        onSelect   = { draft = draft.copy(weekdayFormat = fmt) }
-                                    )
-                                }
-                            }
-                            AnimatedVisibility(visible = draft.dateFormat.isNotEmpty() && draft.weekdayFormat.isNotEmpty()) {
-                                val weekdayExample = java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(java.util.Date())
-                                val dateExample    = java.text.SimpleDateFormat(draft.dateFormat,    java.util.Locale.getDefault()).format(java.util.Date())
-                                val preview = if (draft.dateWeekdayOrder == "DATE_FIRST") "$dateExample, $weekdayExample" else "$weekdayExample, $dateExample"
-                                Row(
-                                    verticalAlignment     = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier              = Modifier
+
+                            // プレビュー
+                            if (draft.datePattern.isNotEmpty()) {
+                                val previewText = runCatching {
+                                    java.text.SimpleDateFormat(draft.datePattern, java.util.Locale.getDefault()).format(java.util.Date())
+                                }.getOrDefault("⚠ 無効なパターン")
+                                Box(
+                                    modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(top = 10.dp)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                        .padding(vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(preview, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                    TextButton(onClick = {
-                                        draft = draft.copy(
-                                            dateWeekdayOrder = if (draft.dateWeekdayOrder == "WEEKDAY_FIRST") "DATE_FIRST" else "WEEKDAY_FIRST"
+                                    Text(
+                                        text = previewText,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Spacer(Modifier.height(14.dp))
+                            }
+
+                            // モード切り替え
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SelectOption(
+                                    label = "テンプレート",
+                                    isSelected = !isCustomMode,
+                                    modifier = Modifier.weight(1f),
+                                    onSelect = { isCustomMode = false }
+                                )
+                                SelectOption(
+                                    label = "カスタム",
+                                    isSelected = isCustomMode,
+                                    modifier = Modifier.weight(1f),
+                                    onSelect = { isCustomMode = true }
+                                )
+                            }
+
+                            Spacer(Modifier.height(12.dp))
+
+                            if (!isCustomMode) {
+                                // テンプレートモード
+                                val now = java.util.Date()
+                                val templates = listOf(
+                                    "" to "なし（非表示）",
+                                    "MM/dd" to "",
+                                    "dd/MM" to "",
+                                    "M月 d" to "",
+                                    "M月 d日" to "",
+                                    "M/d" to "",
+                                    "EEE" to "",
+                                    "EEE, MM/dd" to "",
+                                    "EEE, dd/MM" to "",
+                                    "EEE, M月 d" to "",
+                                    "EEE, M月 d日" to "",
+                                    "MM/dd (EEE)" to "",
+                                    "M月 d日 (EEE)" to "",
+                                    "EEE, MM/dd/yyyy" to "",
+                                    "EEE, M月 d, yyyy" to "",
+                                    "yyyy/MM/dd" to "",
+                                    "yyyy/MM/dd (EEE)" to "",
+                                    "EEEE, M月 d日" to ""
+                                )
+
+                                // 選択中のテンプレート表示
+                                val currentLabel = if (draft.datePattern.isEmpty()) "なし（非表示）"
+                                else runCatching {
+                                    java.text.SimpleDateFormat(draft.datePattern, java.util.Locale.getDefault()).format(now)
+                                }.getOrDefault(draft.datePattern)
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showTemplateDialog = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = currentLabel,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            fontSize = 15.sp
                                         )
-                                    }) {
-                                        Text("⇄ 入れ替え", fontSize = 13.sp)
+                                        Text(
+                                            text = "▼",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                // テンプレート選択ダイアログ
+                                if (showTemplateDialog) {
+                                    AlertDialog(
+                                        onDismissRequest = { showTemplateDialog = false },
+                                        title = { Text("日付テンプレート") },
+                                        text = {
+                                            Column(
+                                                modifier = Modifier.verticalScroll(rememberScrollState())
+                                            ) {
+                                                templates.forEach { (pattern, fixedLabel) ->
+                                                    val displayLabel = if (fixedLabel.isNotEmpty()) fixedLabel
+                                                    else runCatching {
+                                                        java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault()).format(now)
+                                                    }.getOrDefault(pattern)
+                                                    val isSelected = draft.datePattern == pattern
+                                                    Surface(
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                                        else Color.Transparent,
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .clickable {
+                                                                draft = draft.copy(datePattern = pattern)
+                                                                showTemplateDialog = false
+                                                            }
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 14.dp),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                        ) {
+                                                            Text(
+                                                                text = displayLabel,
+                                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                                                                else MaterialTheme.colorScheme.onSurface,
+                                                                fontSize = 15.sp,
+                                                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                                            )
+                                                            if (pattern.isNotEmpty()) {
+                                                                Text(
+                                                                    text = pattern,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    fontSize = 12.sp
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {},
+                                        dismissButton = {
+                                            TextButton(onClick = { showTemplateDialog = false }) {
+                                                Text("キャンセル")
+                                            }
+                                        }
+                                    )
+                                }
+                            } else {
+                                // カスタムモード
+                                OutlinedTextField(
+                                    value = draft.datePattern,
+                                    onValueChange = { draft = draft.copy(datePattern = it) },
+                                    label = { Text("日付パターン") },
+                                    placeholder = { Text("例: EEE, M月 d日") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                    )
+                                )
+
+                                Spacer(Modifier.height(8.dp))
+
+                                // シンボルヘルプ表示トグル
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showSymbolHelp = !showSymbolHelp }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("シンボル一覧", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                                        Text(if (showSymbolHelp) "▲" else "▼", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                    }
+                                }
+
+                                AnimatedVisibility(visible = showSymbolHelp) {
+                                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                                        val now = java.util.Date()
+                                        val symbols = listOf(
+                                            Triple("yyyy", "年、4桁", "yyyy"),
+                                            Triple("yy", "年、2桁", "yy"),
+                                            Triple("M", "月番号（1〜12）", "M"),
+                                            Triple("MM", "2桁の月（01〜12）", "MM"),
+                                            Triple("MMM", "省略月", "MMM"),
+                                            Triple("d", "月日（1〜31）", "d"),
+                                            Triple("dd", "2桁の日（01〜31）", "dd"),
+                                            Triple("EEE", "曜日の略称", "EEE"),
+                                            Triple("EEEE", "曜日、フルネーム", "EEEE")
+                                        )
+                                        symbols.forEach { (symbol, desc, fmt) ->
+                                            val example = runCatching {
+                                                java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now)
+                                            }.getOrDefault("?")
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(symbol, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(0.8f))
+                                                Text(example, color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, modifier = Modifier.weight(0.8f))
+                                                Text(desc, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, modifier = Modifier.weight(2f))
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -2066,7 +2248,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
         }
     }
 
-    val hasDate = draft.dateFormat.isNotEmpty() || draft.weekdayFormat.isNotEmpty() || !draft.showTime
+    val hasDate = draft.datePattern.isNotEmpty() || !draft.showTime
     val hasMessage = draft.showTaskName || draft.showCountdown || draft.showNextAlarm
 
     val (actualW, actualH) = remember {
@@ -2155,20 +2337,9 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         val amPmStr  = java.text.SimpleDateFormat("a", timeLocale).format(now.time)
                         buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, draft.amPmPosition, draft.amPmScale, if (draft.amPmColor != 0L) draft.amPmColor.toInt() else draft.textColor.toInt())
                     }
-                    val datePart = if (draft.dateFormat.isNotEmpty())
-                        java.text.SimpleDateFormat(draft.dateFormat, java.util.Locale.getDefault()).format(now.time)
+                    val dateText = if (draft.datePattern.isNotEmpty())
+                        java.text.SimpleDateFormat(draft.datePattern, java.util.Locale.getDefault()).format(now.time)
                     else ""
-                    val weekdayPart = if (draft.weekdayFormat.isNotEmpty())
-                        java.text.SimpleDateFormat(draft.weekdayFormat, java.util.Locale.getDefault()).format(now.time)
-                    else ""
-                    val dateText = when {
-                        weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
-                            if (draft.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
-                            else "$weekdayPart, $datePart"
-                        weekdayPart.isNotEmpty() -> weekdayPart
-                        datePart.isNotEmpty()    -> datePart
-                        else                     -> ""
-                    }
                     val fallbackDate = if (dateText.isEmpty() && !draft.showTime)
                         java.text.SimpleDateFormat("M/d", java.util.Locale.getDefault()).format(now.time) else ""
                     val displayDate = dateText.ifEmpty { fallbackDate }

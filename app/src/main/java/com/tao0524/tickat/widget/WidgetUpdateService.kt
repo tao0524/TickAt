@@ -40,6 +40,7 @@ import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
 import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
 import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
+import com.tao0524.tickat.ui.screen.settings.KEY_DATE_PATTERN
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_WEEKDAY_ORDER
 import com.tao0524.tickat.ui.screen.settings.KEY_FONT_FAMILY
@@ -158,6 +159,7 @@ class WidgetUpdateService : Service() {
                     dateFormat           = prefs[KEY_DATE_FORMAT]        ?: "",
                     weekdayFormat        = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
                     dateWeekdayOrder     = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
+                    datePattern          = prefs[KEY_DATE_PATTERN]       ?: "",
                     fontWeight           = prefs[KEY_FONT_WEIGHT]
                         ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                         ?: TextWeight.BOLD,
@@ -226,7 +228,7 @@ class WidgetUpdateService : Service() {
                 val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
                 val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
                 val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
-                val hasDate = newSettings.dateFormat.isNotEmpty() || newSettings.weekdayFormat.isNotEmpty() || !newSettings.showTime
+                val hasDate = newSettings.datePattern.isNotEmpty() || !newSettings.showTime
                 val hasMessage = newSettings.showTaskName || newSettings.showCountdown || newSettings.showNextAlarm
                 val (clockSp, dateSp, messageSp) = calcFontSizes(
                     widgetHeightDp = h,

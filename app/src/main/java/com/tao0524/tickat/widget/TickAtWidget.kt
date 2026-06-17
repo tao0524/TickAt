@@ -60,7 +60,7 @@ object TickAtWidget {
         }
 
         // フォントサイズ（px変換）
-        val hasDate = settings.dateFormat.isNotEmpty() || settings.weekdayFormat.isNotEmpty() || !settings.showTime
+        val hasDate = settings.datePattern.isNotEmpty() || !settings.showTime
         val hasMessage = settings.showTaskName || settings.showCountdown || settings.showNextAlarm
         val (clockSp, dateSp, _) = calcFontSizes(
             widgetHeightDp = widgetHeightDp,
@@ -94,20 +94,9 @@ object TickAtWidget {
             val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
             buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
         }
-        val datePart    = if (settings.dateFormat.isNotEmpty())
-            SimpleDateFormat(settings.dateFormat, Locale.getDefault()).format(now.time)
+        val dateText = if (settings.datePattern.isNotEmpty())
+            SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
         else ""
-        val weekdayPart = if (settings.weekdayFormat.isNotEmpty())
-            SimpleDateFormat(settings.weekdayFormat, Locale.getDefault()).format(now.time)
-        else ""
-        val dateText = when {
-            weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
-                if (settings.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart"
-                else "$weekdayPart, $datePart"
-            weekdayPart.isNotEmpty() -> weekdayPart
-            datePart.isNotEmpty()    -> datePart
-            else                     -> ""
-        }
         val fallbackDate = if (dateText.isEmpty() && !settings.showTime)
             SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
         val displayDate = dateText.ifEmpty { fallbackDate }
@@ -303,15 +292,9 @@ internal fun buildTimeOnlyViews(
         val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
         buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
     }
-    val datePart    = if (settings.dateFormat.isNotEmpty())    SimpleDateFormat(settings.dateFormat,    Locale.getDefault()).format(now.time) else ""
-    val weekdayPart = if (settings.weekdayFormat.isNotEmpty()) SimpleDateFormat(settings.weekdayFormat, Locale.getDefault()).format(now.time) else ""
-    val dateText = when {
-        weekdayPart.isNotEmpty() && datePart.isNotEmpty() ->
-            if (settings.dateWeekdayOrder == "DATE_FIRST") "$datePart, $weekdayPart" else "$weekdayPart, $datePart"
-        weekdayPart.isNotEmpty() -> weekdayPart
-        datePart.isNotEmpty()    -> datePart
-        else                     -> ""
-    }
+    val dateText = if (settings.datePattern.isNotEmpty())
+        SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
+    else ""
     val fallbackDate = if (dateText.isEmpty() && !settings.showTime) SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
     val displayDate = dateText.ifEmpty { fallbackDate }
     views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)

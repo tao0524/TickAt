@@ -32,6 +32,7 @@ val KEY_SHOW_SECONDS         = booleanPreferencesKey("show_seconds")
 val KEY_DATE_FORMAT          = stringPreferencesKey("date_format")
 val KEY_WEEKDAY_FORMAT       = stringPreferencesKey("weekday_format")
 val KEY_DATE_WEEKDAY_ORDER   = stringPreferencesKey("date_weekday_order")
+val KEY_DATE_PATTERN         = stringPreferencesKey("date_pattern")
 val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
 val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
 val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
@@ -91,6 +92,7 @@ data class AppSettings(
     val dateFormat:          String      = "",
     val weekdayFormat:       String      = "",
     val dateWeekdayOrder:    String      = "WEEKDAY_FIRST",
+    val datePattern:         String      = "",
     val fontWeight:          TextWeight  = TextWeight.BOLD,
     val cornerStyle:         CornerStyle = CornerStyle.PILL,
     val dateTextColor:            Long   = 0x99E6E1E5L,
@@ -151,6 +153,7 @@ class SettingsViewModel(
                 dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
                 weekdayFormat    = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
                 dateWeekdayOrder = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
+                datePattern      = prefs[KEY_DATE_PATTERN]       ?: "",
                 fontWeight   = prefs[KEY_FONT_WEIGHT]
                     ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                     ?: TextWeight.BOLD,
@@ -201,7 +204,19 @@ class SettingsViewModel(
                 alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
                 messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
                 messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
-            )
+            ).let { raw ->
+                if (raw.datePattern.isNotEmpty()) return@let raw
+                val datePart    = raw.dateFormat
+                val weekdayPart = raw.weekdayFormat
+                val merged = when {
+                    datePart.isEmpty() && weekdayPart.isEmpty() -> ""
+                    datePart.isEmpty()  -> weekdayPart
+                    weekdayPart.isEmpty() -> datePart
+                    raw.dateWeekdayOrder == "DATE_FIRST" -> "$datePart, $weekdayPart"
+                    else -> "$weekdayPart, $datePart"
+                }
+                raw.copy(datePattern = merged)
+            }
         }
         .stateIn(
             scope        = viewModelScope,
@@ -258,6 +273,7 @@ class SettingsViewModel(
                 prefs[KEY_DATE_FORMAT]        = s.dateFormat
                 prefs[KEY_WEEKDAY_FORMAT]     = s.weekdayFormat
                 prefs[KEY_DATE_WEEKDAY_ORDER] = s.dateWeekdayOrder
+                prefs[KEY_DATE_PATTERN]       = s.datePattern
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
                 prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
                 prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
