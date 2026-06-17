@@ -49,8 +49,12 @@ object TickAtWidget {
             else                                                        -> Typeface.NORMAL
         }
         val typeface = when (settings.fontFamily) {
-            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+            WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
+            WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
+            WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
+            WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
             WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
             WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
             else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
         }

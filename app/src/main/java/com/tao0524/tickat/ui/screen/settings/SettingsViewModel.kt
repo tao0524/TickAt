@@ -76,7 +76,7 @@ enum class GradientCenter {
     CENTER_LEFT, CENTER, CENTER_RIGHT,
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
-enum class WidgetFont { ROBOTO, SERIF, CONDENSED, MONO }
+enum class WidgetFont { ROBOTO, THIN, LIGHT, MEDIUM, BLACK, CONDENSED, SERIF, MONO }
 enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
 

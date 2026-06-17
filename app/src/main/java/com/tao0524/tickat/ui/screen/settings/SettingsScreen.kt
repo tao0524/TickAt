@@ -41,6 +41,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -305,6 +306,7 @@ fun SettingsScreen(
     var showDateSizeDialog by remember { mutableStateOf(false) }
     var showMessageSizeDialog by remember { mutableStateOf(false) }
     var showAmPmSizeDialog by remember { mutableStateOf(false) }
+    var showFontFamilyDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
     val previewVisible by viewModel.previewVisible.collectAsState()
@@ -354,6 +356,60 @@ fun SettingsScreen(
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
+            }
+        )
+    }
+
+    // --- フォントファミリー選択 ---
+    if (showFontFamilyDialog) {
+        AlertDialog(
+            onDismissRequest = { showFontFamilyDialog = false },
+            title = { Text("フォントファミリー") },
+            text = {
+                Column {
+                    listOf(
+                        WidgetFont.ROBOTO    to "Roboto",
+                        WidgetFont.THIN      to "Roboto Thin",
+                        WidgetFont.LIGHT     to "Roboto Light",
+                        WidgetFont.MEDIUM    to "Roboto Medium",
+                        WidgetFont.BLACK     to "Roboto Black",
+                        WidgetFont.CONDENSED to "Roboto Condensed",
+                        WidgetFont.SERIF     to "Noto Serif",
+                        WidgetFont.MONO      to "Droid Sans Mono"
+                    ).forEach { (font, label) ->
+                        val fontFamily = when (font) {
+                            WidgetFont.THIN      -> FontFamily(android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL))
+                            WidgetFont.LIGHT     -> FontFamily(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL))
+                            WidgetFont.MEDIUM    -> FontFamily(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL))
+                            WidgetFont.BLACK     -> FontFamily(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL))
+                            WidgetFont.CONDENSED -> FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
+                            WidgetFont.SERIF     -> FontFamily.Serif
+                            WidgetFont.MONO      -> FontFamily.Monospace
+                            else                 -> FontFamily.Default
+                        }
+                        val isSelected = draft.fontFamily == font
+                        Text(
+                            text       = label,
+                            fontFamily = fontFamily,
+                            fontSize   = 16.sp,
+                            color      = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            modifier   = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    draft = draft.copy(fontFamily = font)
+                                    showFontFamilyDialog = false
+                                }
+                                .padding(vertical = 12.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showFontFamilyDialog = false }) {
+                    Text("キャンセル")
+                }
             }
         )
     }
@@ -976,20 +1032,22 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(
-                                    WidgetFont.ROBOTO    to "Roboto\n標準",
-                                    WidgetFont.SERIF     to "Serif\nセリフ",
-                                    WidgetFont.CONDENSED to "Cond.\n細身",
-                                    WidgetFont.MONO      to "Mono\n等幅"
-                                ).forEach { (font, label) ->
-                                    SelectOption(
-                                        label      = label,
-                                        isSelected = draft.fontFamily == font,
-                                        modifier   = Modifier.weight(1f),
-                                        onSelect   = { draft = draft.copy(fontFamily = font) }
-                                    )
-                                }
+                            val fontDisplayName = when (draft.fontFamily) {
+                                WidgetFont.ROBOTO    -> "Roboto"
+                                WidgetFont.THIN      -> "Roboto Thin"
+                                WidgetFont.LIGHT     -> "Roboto Light"
+                                WidgetFont.MEDIUM    -> "Roboto Medium"
+                                WidgetFont.BLACK     -> "Roboto Black"
+                                WidgetFont.CONDENSED -> "Roboto Condensed"
+                                WidgetFont.SERIF     -> "Noto Serif"
+                                WidgetFont.MONO      -> "Droid Sans Mono"
+                            }
+                            OutlinedButton(
+                                onClick  = { showFontFamilyDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape    = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(fontDisplayName, fontSize = 14.sp)
                             }
                         }
 
@@ -1276,7 +1334,7 @@ fun SettingsScreen(
                                 modifier              = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    "表示が世界時計より早い場合はマイナス方向、遅い場合はプラス方向に調整してください",
+                                    "時間のズレが生じた場合は、インターネット上の正確な時刻（協定世界時：UTC）を基準にして修正してください。",
                                     fontSize = 10.sp,
                                     color    = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
@@ -2077,8 +2135,12 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         else                                                  -> android.graphics.Typeface.NORMAL
                     }
                     val typeface = when (draft.fontFamily) {
-                        WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
+                        WidgetFont.THIN      -> android.graphics.Typeface.create("sans-serif-thin", typefaceStyle)
+                        WidgetFont.LIGHT     -> android.graphics.Typeface.create("sans-serif-light", typefaceStyle)
+                        WidgetFont.MEDIUM    -> android.graphics.Typeface.create("sans-serif-medium", typefaceStyle)
+                        WidgetFont.BLACK     -> android.graphics.Typeface.create("sans-serif-black", typefaceStyle)
                         WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
+                        WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
                         WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
                         else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
                     }

@@ -17,6 +17,10 @@ class BootCompletedReceiver : BroadcastReceiver() {
 
         val pendingResult = goAsync()
 
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java)
+        )
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val db = AppDatabase.getInstance(context)

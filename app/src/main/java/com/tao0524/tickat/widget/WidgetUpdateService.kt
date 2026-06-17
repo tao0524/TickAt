@@ -213,8 +213,12 @@ class WidgetUpdateService : Service() {
                     else                                                              -> Typeface.NORMAL
                 }
                 cachedTypeface = when (newSettings.fontFamily) {
-                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+                    WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
+                    WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
+                    WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
+                    WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
                     WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
                     WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
                     else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
                 }
@@ -308,7 +312,7 @@ class WidgetUpdateService : Service() {
                 val nextAlarm = alarmManager.nextAlarmClock
                 if (nextAlarm?.showIntent != null) {
                     val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
-                        val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
+                    val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
                                 && cal.get(java.util.Calendar.MINUTE) == 0
                                 && cal.get(java.util.Calendar.SECOND) == 0
                                 && cal.get(java.util.Calendar.MILLISECOND) == 0
