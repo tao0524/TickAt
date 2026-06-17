@@ -8414,11 +8414,34 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                                 else          -> "${nextBlock.name}まで あと1分未満"
                             }
                         } else {
-                            when {
-                                draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                                draft.showCountdown -> "次のタスクまで あと30分"
-                                draft.showNextAlarm -> if (draft.use24Hour) "⏰ 6:30" else "⏰ 午前6:30"
-                                else -> ""
+                            if (draft.showNextAlarm) {
+                                val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
+                                val nextAlarm = alarmManager.nextAlarmClock
+                                if (nextAlarm?.showIntent != null) {
+                                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                                    val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
+                                            && cal.get(java.util.Calendar.MINUTE) == 0
+                                            && cal.get(java.util.Calendar.SECOND) == 0
+                                            && cal.get(java.util.Calendar.MILLISECOND) == 0
+                                    if (!isSystemAlarm) {
+                                        if (draft.use24Hour) {
+                                            val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                                            val m = cal.get(java.util.Calendar.MINUTE)
+                                            "⏰ %d:%02d".format(h, m)
+                                        } else {
+                                            val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                                            val m = cal.get(java.util.Calendar.MINUTE)
+                                            val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                                            "⏰ $amPm$h:%02d".format(m)
+                                        }
+                                    } else "⏰ アラーム未設定"
+                                } else "⏰ アラーム未設定"
+                            } else {
+                                when {
+                                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                                    draft.showCountdown -> "次のタスクまで あと30分"
+                                    else -> ""
+                                }
                             }
                         }
                     }
