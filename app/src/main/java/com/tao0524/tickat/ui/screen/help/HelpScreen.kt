@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -266,6 +267,43 @@ private val troubleshootItems = listOf(
     )
 )
 
+// ─── 端末固有の問題 ───
+
+private val deviceIssueItems = listOf(
+    HelpItem(
+        title = "アラーム時刻が正しく表示されない",
+        body  = """
+お使いの端末にプリインストールされている時計アプリが、アラーム情報を正しく提供しないことがあります。
+
+この場合、Google 時計アプリ（Google Play から無料でインストール可能）に切り替えてアラームを設定すると、正しく表示されるようになります。
+
+※ これはアプリの不具合ではなく、端末メーカーの時計アプリの仕様によるものです。
+        """.trimIndent()
+    ),
+    HelpItem(
+        title = "ウィジェットがバックグラウンドで停止する",
+        body  = """
+一部のメーカー（Xiaomi、Samsung、OPPO など）は、バッテリー節約のためにアプリのバックグラウンド動作を強制的に停止させることがあります。
+
+以下の設定を確認してください:
+
+① 設定 → アプリ → TickAt → バッテリー →「制限なし」に変更
+② 自動起動（オートスタート）の許可を有効にする
+③ タスク一覧で TickAt を「ロック」する（スワイプで消えないようにする）
+
+※ 設定の名称や場所は機種によって異なります。
+        """.trimIndent()
+    ),
+    HelpItem(
+        title = "OS アップデート後に設定がリセットされる",
+        body  = """
+一部の端末では、OS のアップデート後にバッテリー最適化の設定が初期状態に戻ることがあります。
+
+アップデート後にウィジェットの動作がおかしくなった場合は、バッテリーや自動起動の設定をもう一度確認してください。
+        """.trimIndent()
+    )
+)
+
 // ─── メイン画面 ───
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -298,7 +336,9 @@ fun HelpScreen(onBack: () -> Unit) {
     ) { padding ->
         val faqExpandedStates = remember { mutableStateListOf(*Array(faqItems.size) { false }) }
         val troubleExpandedStates = remember { mutableStateListOf(*Array(troubleshootItems.size) { false }) }
+        val deviceIssueExpandedStates = remember { mutableStateListOf(*Array(deviceIssueItems.size) { false }) }
         val guideExpandedStates = remember { mutableStateListOf(*Array(guideItems.size) { false }) }
+        val uriHandler = LocalUriHandler.current
 
         Column(
             modifier = Modifier
@@ -399,6 +439,68 @@ fun HelpScreen(onBack: () -> Unit) {
                     isExpanded = troubleExpandedStates[index],
                     onToggle   = { troubleExpandedStates[index] = !troubleExpandedStates[index] }
                 )
+            }
+
+            Spacer(Modifier.height(32.dp))
+
+            // ── セクション5：端末固有の問題について ──
+            Text(
+                text = "端末固有の問題について",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "一部のスマートフォンメーカーは、バッテリー節約のために独自の制限を設けています。TickAtの動作に影響が出る場合は、以下を参考にしてください。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 22.sp
+            )
+            Spacer(Modifier.height(8.dp))
+
+            deviceIssueItems.forEachIndexed { index, item ->
+                FaqSection(
+                    title      = item.title,
+                    body       = item.body,
+                    isExpanded = deviceIssueExpandedStates[index],
+                    onToggle   = { deviceIssueExpandedStates[index] = !deviceIssueExpandedStates[index] }
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── 外部リンクカード ──
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { uriHandler.openUri("https://dontkillmyapp.com") },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Text(
+                        text = "🔗  お使いの端末の詳しい設定方法",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "dontkillmyapp.com でメーカー名を選ぶと、機種ごとの具体的な設定手順が確認できます。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "※ 外部サイトです。TickAt開発元とは関係ありません。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
             }
 
             Spacer(Modifier.height(40.dp))
