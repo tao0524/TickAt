@@ -5175,14 +5175,18 @@ class WidgetUpdateService : Service() {
             } else if (settings.showNextAlarm) {
                 val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
                 val nextAlarm = alarmManager.nextAlarmClock
-                if (nextAlarm?.showIntent != null) {
+                val creatorPkg = nextAlarm?.showIntent?.creatorPackage
+                android.util.Log.d("TickAt_Alarm", "creatorPkg: $creatorPkg")
+                android.util.Log.d("TickAt_Alarm", "Raw triggerTime: ${nextAlarm?.triggerTime}")
+                val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
+                if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
                     val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
                     val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
-                                && cal.get(java.util.Calendar.MINUTE) == 0
-                                && cal.get(java.util.Calendar.SECOND) == 0
-                                && cal.get(java.util.Calendar.MILLISECOND) == 0
-                        if (!isSystemAlarm) {
-                            if (settings.use24Hour) {
+                            && cal.get(java.util.Calendar.MINUTE) == 0
+                            && cal.get(java.util.Calendar.SECOND) == 0
+                            && cal.get(java.util.Calendar.MILLISECOND) == 0
+                    if (!isSystemAlarm) {
+                        if (settings.use24Hour) {
                             val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
                             val m = cal.get(java.util.Calendar.MINUTE)
                             "⏰ %d:%02d".format(h, m)
@@ -5198,7 +5202,9 @@ class WidgetUpdateService : Service() {
         } else if (settings.showNextAlarm) {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             val nextAlarm = alarmManager.nextAlarmClock
-            if (nextAlarm?.showIntent != null) {
+            val creatorPkg = nextAlarm?.showIntent?.creatorPackage
+            val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
+            if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
                 val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
                 val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
                         && cal.get(java.util.Calendar.MINUTE) == 0
