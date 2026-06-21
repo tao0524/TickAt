@@ -26,8 +26,8 @@ fun TickAtTheme(
         val bg   = Color(settings.bgColor)
         val text = Color(settings.textColor)
         darkColorScheme(
-            primary          = Color(0xFFBB86FCL),
-            onPrimary        = Color(0xFF000000),
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
             background       = bg,
             onBackground     = text,
             surface          = blendToWhite(bg, 0.06f),
@@ -39,8 +39,8 @@ fun TickAtTheme(
         )
     } else {
         lightColorScheme(
-            primary          = Color(0xFFBB86FCL),
-            onPrimary        = Color(0xFF000000),
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
             background       = TickAtLightBackground,
             onBackground     = TickAtLightOnBackground,
             surface          = TickAtLightSurface,

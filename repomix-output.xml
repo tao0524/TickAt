@@ -565,8 +565,8 @@ val TickAtSurfaceVariant = Color(0xFF3A383F)
 val TickAtOnBackground   = Color(0xFFE6E1E5)
 val TickAtOnSurface      = Color(0xFFE6E1E5)
 val TickAtOnSurfaceVar   = Color(0xFF9E9E9E)
-val TickAtPrimary        = Color(0xFFBB86FC)
-val TickAtOnPrimary      = Color(0xFF000000)
+val TickAtPrimary        = Color(0xFF1976D2)
+val TickAtOnPrimary      = Color(0xFFFFFFFF)
 val TickAtError          = Color(0xFFCF6679)
 val TickAtOutline        = Color(0xFF49454F)
 
@@ -609,8 +609,8 @@ fun TickAtTheme(
         val bg   = Color(settings.bgColor)
         val text = Color(settings.textColor)
         darkColorScheme(
-            primary          = Color(0xFFBB86FCL),
-            onPrimary        = Color(0xFF000000),
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
             background       = bg,
             onBackground     = text,
             surface          = blendToWhite(bg, 0.06f),
@@ -622,8 +622,8 @@ fun TickAtTheme(
         )
     } else {
         lightColorScheme(
-            primary          = Color(0xFFBB86FCL),
-            onPrimary        = Color(0xFF000000),
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
             background       = TickAtLightBackground,
             onBackground     = TickAtLightOnBackground,
             surface          = TickAtLightSurface,
@@ -688,201 +688,60 @@ val Typography = Typography(
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#3DDC84"
+        android:fillColor="#1A237E"
         android:pathData="M0,0h108v108h-108z" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M9,0L9,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,0L19,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M29,0L29,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M39,0L39,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M49,0L49,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M59,0L59,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M69,0L69,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M79,0L79,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M89,0L89,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M99,0L99,108"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,9L108,9"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,19L108,19"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,29L108,29"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,39L108,39"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,49L108,49"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,59L108,59"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,69L108,69"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,79L108,79"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,89L108,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M0,99L108,99"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,29L89,29"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,39L89,39"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,49L89,49"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,59L89,59"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,69L89,69"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M19,79L89,79"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M29,19L29,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M39,19L39,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M49,19L49,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M59,19L59,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M69,19L69,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M79,19L79,89"
-        android:strokeWidth="0.8"
-        android:strokeColor="#33FFFFFF" />
 </vector>
 </file>
 
 <file path="app/src/main/res/drawable/ic_launcher_foreground.xml">
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- 装飾円: 半透明ブルー r=33.3dp center=(54, 46) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#525693"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.4"
+        android:pathData="M54,54m-33.3,0a33.3,33.3 0,1 1,66.6 0a33.3,33.3 0,1 1,-66.6 0" />
+
+    <!-- 時計円: 白枠 r=26.1dp -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-26.1,0a26.1,26.1 0,1 1,52.2 0a26.1,26.1 0,1 1,-52.2 0" />
+
+    <!-- 分針（12時方向）: 長い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L54,33.0" />
+
+    <!-- 時針（3時方向）: 短い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L70.5,54" />
+
+    <!-- 中心点: 白円 r=2dp -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:pathData="M54,54m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+
+    <!-- TickAt テキスト -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M45.19,57.35H48.55V58.07H47.34V61.0H46.4V58.07H45.19Z M49.0,58.27H49.87V61.0H49.0ZM49.0,57.2H49.87V57.91H49.0Z M52.92,58.35V59.06Q52.74,58.94 52.56,58.88Q52.38,58.82 52.19,58.82Q51.82,58.82 51.62,59.04Q51.41,59.25 51.41,59.64Q51.41,60.02 51.62,60.23Q51.82,60.45 52.19,60.45Q52.39,60.45 52.58,60.38Q52.76,60.32 52.92,60.2V60.92Q52.71,60.99 52.5,61.03Q52.29,61.07 52.08,61.07Q51.34,61.07 50.92,60.69Q50.5,60.31 50.5,59.64Q50.5,58.96 50.92,58.58Q51.34,58.2 52.08,58.2Q52.29,58.2 52.5,58.24Q52.71,58.28 52.92,58.35Z M53.67,57.2H54.55V59.27L55.55,58.27H56.57L55.23,59.52L56.67,61.0H55.61L54.55,59.86V61.0H53.67Z M59.25,60.34H57.78L57.55,61.0H56.6L57.95,57.35H59.07L60.42,61.0H59.48ZM58.01,59.66H59.01L58.51,58.21Z M61.82,57.49V58.27H62.72V58.89H61.82V60.05Q61.82,60.24 61.9,60.31Q61.97,60.38 62.2,60.38H62.65V61.0H61.9Q61.38,61.0 61.16,60.78Q60.95,60.57 60.95,60.05V58.89H60.51V58.27H60.95V57.49Z" />
+
 </vector>
 </file>
 
@@ -2769,6 +2628,617 @@ private fun ScheduleCard(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditScreen.kt">
+package com.tao0524.tickat.ui.screen.taskedit
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import com.tao0524.tickat.ui.component.FirstTimeHint
+
+private val AccentColor = Color(0xFFBB86FC)
+
+private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+
+@Composable
+private fun SectionHeader(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Canvas(modifier = Modifier.size(width = 3.dp, height = 14.dp)) {
+            drawRoundRect(
+                color = AccentColor,
+                size = Size(size.width, size.height),
+                cornerRadius = CornerRadius(size.width / 2)
+            )
+        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TimePickerDialog(
+    title: String,
+    initialTime: LocalTime,
+    onConfirm: (LocalTime) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val state = rememberTimePickerState(
+        initialHour = initialTime.hour,
+        initialMinute = initialTime.minute,
+        is24Hour = true
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimePicker(state = state)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("キャンセル") }
+        }
+    )
+}
+
+@Composable
+private fun TimePickerField(
+    label: String,
+    time: LocalTime,
+    onTimeSelected: (LocalTime) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    if (showDialog) {
+        TimePickerDialog(
+            title = label,
+            initialTime = time,
+            onConfirm = { selected -> onTimeSelected(selected); showDialog = false },
+            onDismiss = { showDialog = false }
+        )
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                .clickable { showDialog = true }
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = time.format(timeFormatter),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TaskEditScreen(
+    taskId: String?,
+    viewModel: TaskEditViewModel,
+    onDone: () -> Unit
+) {
+    LaunchedEffect(taskId) { taskId?.let { viewModel.load(it) } }
+    val state by viewModel.state.collectAsState()
+    val hintShown by viewModel.hintTaskEditShown.collectAsState()
+
+    val isSaveEnabled = state.name.isNotBlank() &&
+            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime))
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = if (taskId == null) "スケジュールを追加" else "スケジュールを編集",
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onDone) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Button(
+                    onClick = { viewModel.save(onDone) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = isSaveEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("保存", modifier = Modifier.padding(vertical = 4.dp))
+                }
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            if (!hintShown) {
+                FirstTimeHint(
+                    message = "「リマインダー」は時刻に通知、「タイムブロック」はウィジェットにも表示されます",
+                    onDismiss = { viewModel.dismissHintTaskEdit() }
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "タイプ")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.taskType == TaskType.REMINDER,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.REMINDER) },
+                        label = { Text("リマインダー") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.REMINDER,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = state.taskType == TaskType.TIMEBLOCK,
+                        onClick = { viewModel.onTaskTypeChange(TaskType.TIMEBLOCK) },
+                        label = { Text("タイムブロック") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.taskType == TaskType.TIMEBLOCK,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "件名")
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = viewModel::onNameChange,
+                    placeholder = { Text("例：朝のルーティン") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(
+                    text = if (state.taskType == TaskType.REMINDER) "時刻" else "時間帯"
+                )
+                if (state.taskType == TaskType.REMINDER) {
+                    TimePickerField("時刻", state.startTime, viewModel::onStartTimeChange)
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
+                        }
+                    }
+                    if (!state.endTime.isAfter(state.startTime)) {
+                        Text(
+                            text = "終了時刻は開始時刻より後に設定してください",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "繰り返し")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RepeatType.entries.forEach { repeat ->
+                        FilterChip(
+                            selected = state.repeat == repeat,
+                            onClick = { viewModel.onRepeatChange(repeat) },
+                            label = { Text(repeat.label()) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = state.repeat == repeat,
+                                borderColor = MaterialTheme.colorScheme.outline,
+                                selectedBorderColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "一言メモ")
+                OutlinedTextField(
+                    value = state.memoText,
+                    onValueChange = viewModel::onMemoChange,
+                    placeholder = { Text("通知に表示するメモ（任意）") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+private fun RepeatType.label() = when (this) {
+    RepeatType.DAILY   -> "毎日"
+    RepeatType.WEEKDAY -> "平日"
+    RepeatType.WEEKLY  -> "週1回"
+    RepeatType.ONCE    -> "1回のみ"
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditViewModel.kt">
+package com.tao0524.tickat.ui.screen.taskedit
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalTime
+import com.tao0524.tickat.domain.model.TaskType
+import android.content.Context
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+data class TaskEditState(
+    val id: String? = null,
+    val name: String = "",
+    val startTime: LocalTime = LocalTime.of(9, 0),
+    val endTime: LocalTime = LocalTime.of(10, 0),
+    val repeat: RepeatType = RepeatType.DAILY,
+    val memoText: String = "",
+    val taskType: TaskType = TaskType.TIMEBLOCK
+)
+
+private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
+
+class TaskEditViewModel(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(TaskEditState())
+    val state = _state.asStateFlow()
+
+    val hintTaskEditShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKEDIT] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskEdit() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKEDIT] = true
+            }
+        }
+    }
+
+    fun load(id: String) {
+        viewModelScope.launch {
+            repository.getById(id)?.let { task ->
+                _state.update {
+                    TaskEditState(
+                        id = task.id,
+                        name = task.name,
+                        startTime = task.startTime,
+                        endTime = task.endTime,
+                        repeat = task.repeat,
+                        memoText = task.memoText,
+                        taskType = task.taskType
+                    )
+                }
+            }
+        }
+    }
+
+    fun onNameChange(v: String)                   = _state.update { it.copy(name = v) }
+    fun onStartTimeChange(v: LocalTime)           = _state.update { it.copy(startTime = v) }
+    fun onEndTimeChange(v: LocalTime)             = _state.update { it.copy(endTime = v) }
+    fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
+    fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
+    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
+
+    fun save(onDone: () -> Unit) {
+        val s = _state.value
+        if (s.name.isBlank()) return
+        viewModelScope.launch {
+            val taskId = s.id ?: java.util.UUID.randomUUID().toString()
+            val savedTask = Task(
+                id = taskId,
+                name = s.name,
+                startTime = s.startTime,
+                endTime = s.endTime,
+                repeat = s.repeat,
+                memoText = s.memoText,
+                taskType = s.taskType
+            )
+            repository.save(savedTask)
+            TaskAlertScheduler.schedule(context, savedTask)
+            onDone()
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/res/layout/widget_tickat_base.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/widget_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="2dp">
+
+        <ImageView
+            android:id="@+id/widget_time_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true" />
+
+        <ImageView
+            android:id="@+id/widget_date_img"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/widget_task_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:adjustViewBounds="true"
+            android:visibility="gone" />
+
+    </LinearLayout>
+</FrameLayout>
+</file>
+
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/help/HelpScreen.kt">
 package com.tao0524.tickat.ui.screen.help
 
@@ -3568,617 +4038,6 @@ private fun FaqSection(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     }
 }
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditScreen.kt">
-package com.tao0524.tickat.ui.screen.taskedit
-
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import com.tao0524.tickat.ui.component.FirstTimeHint
-
-private val AccentColor = Color(0xFFBB86FC)
-
-private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-@Composable
-private fun SectionHeader(text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Canvas(modifier = Modifier.size(width = 3.dp, height = 14.dp)) {
-            drawRoundRect(
-                color = AccentColor,
-                size = Size(size.width, size.height),
-                cornerRadius = CornerRadius(size.width / 2)
-            )
-        }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TimePickerDialog(
-    title: String,
-    initialTime: LocalTime,
-    onConfirm: (LocalTime) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val state = rememberTimePickerState(
-        initialHour = initialTime.hour,
-        initialMinute = initialTime.minute,
-        is24Hour = true
-    )
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                TimePicker(state = state)
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(LocalTime.of(state.hour, state.minute)) }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("キャンセル") }
-        }
-    )
-}
-
-@Composable
-private fun TimePickerField(
-    label: String,
-    time: LocalTime,
-    onTimeSelected: (LocalTime) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    if (showDialog) {
-        TimePickerDialog(
-            title = label,
-            initialTime = time,
-            onConfirm = { selected -> onTimeSelected(selected); showDialog = false },
-            onDismiss = { showDialog = false }
-        )
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .clickable { showDialog = true }
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = time.format(timeFormatter),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TaskEditScreen(
-    taskId: String?,
-    viewModel: TaskEditViewModel,
-    onDone: () -> Unit
-) {
-    LaunchedEffect(taskId) { taskId?.let { viewModel.load(it) } }
-    val state by viewModel.state.collectAsState()
-    val hintShown by viewModel.hintTaskEditShown.collectAsState()
-
-    val isSaveEnabled = state.name.isNotBlank() &&
-            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime))
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (taskId == null) "スケジュールを追加" else "スケジュールを編集",
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "戻る",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-            ) {
-                Button(
-                    onClick = { viewModel.save(onDone) },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = isSaveEnabled,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("保存", modifier = Modifier.padding(vertical = 4.dp))
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            if (!hintShown) {
-                FirstTimeHint(
-                    message = "「リマインダー」は時刻に通知、「タイムブロック」はウィジェットにも表示されます",
-                    onDismiss = { viewModel.dismissHintTaskEdit() }
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "タイプ")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = state.taskType == TaskType.REMINDER,
-                        onClick = { viewModel.onTaskTypeChange(TaskType.REMINDER) },
-                        label = { Text("リマインダー") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = state.taskType == TaskType.REMINDER,
-                            borderColor = MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    FilterChip(
-                        selected = state.taskType == TaskType.TIMEBLOCK,
-                        onClick = { viewModel.onTaskTypeChange(TaskType.TIMEBLOCK) },
-                        label = { Text("タイムブロック") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = state.taskType == TaskType.TIMEBLOCK,
-                            borderColor = MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "件名")
-                OutlinedTextField(
-                    value = state.name,
-                    onValueChange = viewModel::onNameChange,
-                    placeholder = { Text("例：朝のルーティン") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(
-                    text = if (state.taskType == TaskType.REMINDER) "時刻" else "時間帯"
-                )
-                if (state.taskType == TaskType.REMINDER) {
-                    TimePickerField("時刻", state.startTime, viewModel::onStartTimeChange)
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            TimePickerField("開始", state.startTime, viewModel::onStartTimeChange)
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            TimePickerField("終了", state.endTime, viewModel::onEndTimeChange)
-                        }
-                    }
-                    if (!state.endTime.isAfter(state.startTime)) {
-                        Text(
-                            text = "終了時刻は開始時刻より後に設定してください",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "繰り返し")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    RepeatType.entries.forEach { repeat ->
-                        FilterChip(
-                            selected = state.repeat == repeat,
-                            onClick = { viewModel.onRepeatChange(repeat) },
-                            label = { Text(repeat.label()) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = state.repeat == repeat,
-                                borderColor = MaterialTheme.colorScheme.outline,
-                                selectedBorderColor = MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    }
-                }
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(text = "一言メモ")
-                OutlinedTextField(
-                    value = state.memoText,
-                    onValueChange = viewModel::onMemoChange,
-                    placeholder = { Text("通知に表示するメモ（任意）") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                        focusedLabelColor = MaterialTheme.colorScheme.primary,
-                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        cursorColor = MaterialTheme.colorScheme.primary,
-                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-private fun RepeatType.label() = when (this) {
-    RepeatType.DAILY   -> "毎日"
-    RepeatType.WEEKDAY -> "平日"
-    RepeatType.WEEKLY  -> "週1回"
-    RepeatType.ONCE    -> "1回のみ"
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditViewModel.kt">
-package com.tao0524.tickat.ui.screen.taskedit
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import java.time.LocalTime
-import com.tao0524.tickat.domain.model.TaskType
-import android.content.Context
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-
-data class TaskEditState(
-    val id: String? = null,
-    val name: String = "",
-    val startTime: LocalTime = LocalTime.of(9, 0),
-    val endTime: LocalTime = LocalTime.of(10, 0),
-    val repeat: RepeatType = RepeatType.DAILY,
-    val memoText: String = "",
-    val taskType: TaskType = TaskType.TIMEBLOCK
-)
-
-private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
-
-class TaskEditViewModel(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModel() {
-
-    private val _state = MutableStateFlow(TaskEditState())
-    val state = _state.asStateFlow()
-
-    val hintTaskEditShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_TASKEDIT] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    fun dismissHintTaskEdit() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_HINT_TASKEDIT] = true
-            }
-        }
-    }
-
-    fun load(id: String) {
-        viewModelScope.launch {
-            repository.getById(id)?.let { task ->
-                _state.update {
-                    TaskEditState(
-                        id = task.id,
-                        name = task.name,
-                        startTime = task.startTime,
-                        endTime = task.endTime,
-                        repeat = task.repeat,
-                        memoText = task.memoText,
-                        taskType = task.taskType
-                    )
-                }
-            }
-        }
-    }
-
-    fun onNameChange(v: String)                   = _state.update { it.copy(name = v) }
-    fun onStartTimeChange(v: LocalTime)           = _state.update { it.copy(startTime = v) }
-    fun onEndTimeChange(v: LocalTime)             = _state.update { it.copy(endTime = v) }
-    fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
-    fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
-    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
-
-    fun save(onDone: () -> Unit) {
-        val s = _state.value
-        if (s.name.isBlank()) return
-        viewModelScope.launch {
-            val taskId = s.id ?: java.util.UUID.randomUUID().toString()
-            val savedTask = Task(
-                id = taskId,
-                name = s.name,
-                startTime = s.startTime,
-                endTime = s.endTime,
-                repeat = s.repeat,
-                memoText = s.memoText,
-                taskType = s.taskType
-            )
-            repository.save(savedTask)
-            TaskAlertScheduler.schedule(context, savedTask)
-            onDone()
-        }
-    }
-}
-</file>
-
-<file path="app/src/main/res/layout/widget_tickat_base.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:forceDarkAllowed="false">
-
-    <ImageView
-        android:id="@+id/widget_bg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:padding="2dp">
-
-        <ImageView
-            android:id="@+id/widget_time_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true" />
-
-        <ImageView
-            android:id="@+id/widget_date_img"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:adjustViewBounds="true"
-            android:visibility="gone" />
-
-        <ImageView
-            android:id="@+id/widget_task_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:adjustViewBounds="true"
-            android:visibility="gone" />
-
-    </LinearLayout>
-</FrameLayout>
-</file>
-
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">

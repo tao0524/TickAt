@@ -1,30 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M31,63.928c0,0 6.4,-11 12.1,-13.1c7.2,-2.6 26,-1.4 26,-1.4l38.1,38.1L107,108.928l-32,-1L31,63.928z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:endX="85.84757"
-                android:endY="92.4963"
-                android:startX="42.9492"
-                android:startY="49.59793"
-                android:type="linear">
-                <item
-                    android:color="#44000000"
-                    android:offset="0.0" />
-                <item
-                    android:color="#00000000"
-                    android:offset="1.0" />
-            </gradient>
-        </aapt:attr>
-    </path>
+
+    <!-- 装飾円: 半透明ブルー r=33.3dp center=(54, 46) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#525693"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.4"
+        android:pathData="M54,54m-33.3,0a33.3,33.3 0,1 1,66.6 0a33.3,33.3 0,1 1,-66.6 0" />
+
+    <!-- 時計円: 白枠 r=26.1dp -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-26.1,0a26.1,26.1 0,1 1,52.2 0a26.1,26.1 0,1 1,-52.2 0" />
+
+    <!-- 分針（12時方向）: 長い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L54,33.0" />
+
+    <!-- 時針（3時方向）: 短い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L70.5,54" />
+
+    <!-- 中心点: 白円 r=2dp -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="nonZero"
-        android:pathData="M65.3,45.828l3.8,-6.6c0.2,-0.4 0.1,-0.9 -0.3,-1.1c-0.4,-0.2 -0.9,-0.1 -1.1,0.3l-3.9,6.7c-6.3,-2.8 -13.4,-2.8 -19.7,0l-3.9,-6.7c-0.2,-0.4 -0.7,-0.5 -1.1,-0.3C38.8,38.328 38.7,38.828 38.9,39.228l3.8,6.6C36.2,49.428 31.7,56.028 31,63.928h46C76.3,56.028 71.8,49.428 65.3,45.828zM43.4,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2c-0.3,-0.7 -0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C45.3,56.528 44.5,57.328 43.4,57.328L43.4,57.328zM64.6,57.328c-0.8,0 -1.5,-0.5 -1.8,-1.2s-0.1,-1.5 0.4,-2.1c0.5,-0.5 1.4,-0.7 2.1,-0.4c0.7,0.3 1.2,1 1.2,1.8C66.5,56.528 65.6,57.328 64.6,57.328L64.6,57.328z"
-        android:strokeWidth="1"
-        android:strokeColor="#00000000" />
+        android:pathData="M54,54m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+
+    <!-- TickAt テキスト -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M45.19,57.35H48.55V58.07H47.34V61.0H46.4V58.07H45.19Z M49.0,58.27H49.87V61.0H49.0ZM49.0,57.2H49.87V57.91H49.0Z M52.92,58.35V59.06Q52.74,58.94 52.56,58.88Q52.38,58.82 52.19,58.82Q51.82,58.82 51.62,59.04Q51.41,59.25 51.41,59.64Q51.41,60.02 51.62,60.23Q51.82,60.45 52.19,60.45Q52.39,60.45 52.58,60.38Q52.76,60.32 52.92,60.2V60.92Q52.71,60.99 52.5,61.03Q52.29,61.07 52.08,61.07Q51.34,61.07 50.92,60.69Q50.5,60.31 50.5,59.64Q50.5,58.96 50.92,58.58Q51.34,58.2 52.08,58.2Q52.29,58.2 52.5,58.24Q52.71,58.28 52.92,58.35Z M53.67,57.2H54.55V59.27L55.55,58.27H56.57L55.23,59.52L56.67,61.0H55.61L54.55,59.86V61.0H53.67Z M59.25,60.34H57.78L57.55,61.0H56.6L57.95,57.35H59.07L60.42,61.0H59.48ZM58.01,59.66H59.01L58.51,58.21Z M61.82,57.49V58.27H62.72V58.89H61.82V60.05Q61.82,60.24 61.9,60.31Q61.97,60.38 62.2,60.38H62.65V61.0H61.9Q61.38,61.0 61.16,60.78Q60.95,60.57 60.95,60.05V58.89H60.51V58.27H60.95V57.49Z" />
+
 </vector>
