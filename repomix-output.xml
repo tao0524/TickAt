@@ -46,6 +46,7 @@ app/build.gradle.kts
 app/proguard-rules.pro
 app/src/androidTest/java/com/tao0524/tickat/ExampleInstrumentedTest.kt
 app/src/main/AndroidManifest.xml
+app/src/main/ic_launcher-playstore.png
 app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt
 app/src/main/java/com/tao0524/tickat/data/local/Converters.kt
 app/src/main/java/com/tao0524/tickat/data/local/TaskDao.kt
@@ -86,17 +87,20 @@ app/src/main/res/drawable/widget_bg_square.xml
 app/src/main/res/drawable/widget_tickat.xml
 app/src/main/res/layout/tickat_widget_loading.xml
 app/src/main/res/layout/widget_tickat_base.xml
-app/src/main/res/mipmap-hdpi/ic_launcher_round.png
-app/src/main/res/mipmap-hdpi/ic_launcher.png
-app/src/main/res/mipmap-mdpi/ic_launcher_round.png
-app/src/main/res/mipmap-mdpi/ic_launcher.png
-app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
-app/src/main/res/mipmap-xhdpi/ic_launcher.png
-app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
-app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+app/src/main/res/mipmap-hdpi/ic_launcher_round.webp
+app/src/main/res/mipmap-hdpi/ic_launcher.webp
+app/src/main/res/mipmap-mdpi/ic_launcher_round.webp
+app/src/main/res/mipmap-mdpi/ic_launcher.webp
+app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp
+app/src/main/res/mipmap-xhdpi/ic_launcher.webp
+app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp
+app/src/main/res/mipmap-xxhdpi/ic_launcher.webp
+app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp
+app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp
 app/src/main/res/values/colors.xml
+app/src/main/res/values/ic_launcher_background.xml
 app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/xml/backup_rules.xml
@@ -287,6 +291,22 @@ private fun FullScreenAlertContent(
         }
     }
 }
+</file>
+
+<file path="app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <monochrome android:drawable="@drawable/ic_launcher_foreground"/>
+</adaptive-icon>
+</file>
+
+<file path="app/src/main/res/values/ic_launcher_background.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#1A237E</color>
+</resources>
 </file>
 
 <file path=".gitignore">
@@ -553,96 +573,6 @@ fun FirstTimeHint(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt">
-package com.tao0524.tickat.ui.theme
-
-import androidx.compose.ui.graphics.Color
-
-// ダークテーマ
-val TickAtBackground     = Color(0xFF1C1B1F)
-val TickAtSurface        = Color(0xFF2B2930)
-val TickAtSurfaceVariant = Color(0xFF3A383F)
-val TickAtOnBackground   = Color(0xFFE6E1E5)
-val TickAtOnSurface      = Color(0xFFE6E1E5)
-val TickAtOnSurfaceVar   = Color(0xFF9E9E9E)
-val TickAtPrimary        = Color(0xFF1976D2)
-val TickAtOnPrimary      = Color(0xFFFFFFFF)
-val TickAtError          = Color(0xFFCF6679)
-val TickAtOutline        = Color(0xFF49454F)
-
-// ライトテーマ
-val TickAtLightBackground     = Color(0xFFFAFAF9)
-val TickAtLightSurface        = Color(0xFFF3F0F4)
-val TickAtLightSurfaceVariant = Color(0xFFE7E0EC)
-val TickAtLightOnBackground   = Color(0xFF1C1B1F)
-val TickAtLightOnSurfaceVar   = Color(0xFF49454F)
-val TickAtLightError          = Color(0xFFB3261E)
-val TickAtLightOutline        = Color(0xFF79747E)
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt">
-package com.tao0524.tickat.ui.theme
-
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-
-private fun blendToWhite(base: Color, ratio: Float): Color = Color(
-    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
-    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
-    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
-    alpha = 1f
-)
-
-@Composable
-fun TickAtTheme(
-    settings: AppSettings = AppSettings(),
-    content: @Composable () -> Unit
-) {
-    val isDark = isSystemInDarkTheme()
-
-    val colorScheme = if (isDark) {
-        val bg   = Color(settings.bgColor)
-        val text = Color(settings.textColor)
-        darkColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = bg,
-            onBackground     = text,
-            surface          = blendToWhite(bg, 0.06f),
-            onSurface        = text,
-            surfaceVariant   = blendToWhite(bg, 0.12f),
-            onSurfaceVariant = Color(0xFF9E9E9E),
-            error            = Color(0xFFCF6679),
-            outline          = Color(0xFF49454F)
-        )
-    } else {
-        lightColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = TickAtLightBackground,
-            onBackground     = TickAtLightOnBackground,
-            surface          = TickAtLightSurface,
-            onSurface        = TickAtLightOnBackground,
-            surfaceVariant   = TickAtLightSurfaceVariant,
-            onSurfaceVariant = TickAtLightOnSurfaceVar,
-            error            = TickAtLightError,
-            outline          = TickAtLightOutline
-        )
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = Typography,
-        content     = content
-    )
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/theme/Type.kt">
 package com.tao0524.tickat.ui.theme
 
@@ -678,71 +608,6 @@ val Typography = Typography(
     )
     */
 )
-</file>
-
-<file path="app/src/main/res/drawable/ic_launcher_background.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#1A237E"
-        android:pathData="M0,0h108v108h-108z" />
-</vector>
-</file>
-
-<file path="app/src/main/res/drawable/ic_launcher_foreground.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-
-    <!-- 装飾円: 半透明ブルー r=33.3dp center=(54, 46) -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#525693"
-        android:strokeWidth="3"
-        android:strokeAlpha="0.4"
-        android:pathData="M54,54m-33.3,0a33.3,33.3 0,1 1,66.6 0a33.3,33.3 0,1 1,-66.6 0" />
-
-    <!-- 時計円: 白枠 r=26.1dp -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:pathData="M54,54m-26.1,0a26.1,26.1 0,1 1,52.2 0a26.1,26.1 0,1 1,-52.2 0" />
-
-    <!-- 分針（12時方向）: 長い針 -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:pathData="M54,54 L54,33.0" />
-
-    <!-- 時針（3時方向）: 短い針 -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:pathData="M54,54 L70.5,54" />
-
-    <!-- 中心点: 白円 r=2dp -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,54m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
-
-    <!-- TickAt テキスト -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M45.19,57.35H48.55V58.07H47.34V61.0H46.4V58.07H45.19Z M49.0,58.27H49.87V61.0H49.0ZM49.0,57.2H49.87V57.91H49.0Z M52.92,58.35V59.06Q52.74,58.94 52.56,58.88Q52.38,58.82 52.19,58.82Q51.82,58.82 51.62,59.04Q51.41,59.25 51.41,59.64Q51.41,60.02 51.62,60.23Q51.82,60.45 52.19,60.45Q52.39,60.45 52.58,60.38Q52.76,60.32 52.92,60.2V60.92Q52.71,60.99 52.5,61.03Q52.29,61.07 52.08,61.07Q51.34,61.07 50.92,60.69Q50.5,60.31 50.5,59.64Q50.5,58.96 50.92,58.58Q51.34,58.2 52.08,58.2Q52.29,58.2 52.5,58.24Q52.71,58.28 52.92,58.35Z M53.67,57.2H54.55V59.27L55.55,58.27H56.57L55.23,59.52L56.67,61.0H55.61L54.55,59.86V61.0H53.67Z M59.25,60.34H57.78L57.55,61.0H56.6L57.95,57.35H59.07L60.42,61.0H59.48ZM58.01,59.66H59.01L58.51,58.21Z M61.82,57.49V58.27H62.72V58.89H61.82V60.05Q61.82,60.24 61.9,60.31Q61.97,60.38 62.2,60.38H62.65V61.0H61.9Q61.38,61.0 61.16,60.78Q60.95,60.57 60.95,60.05V58.89H60.51V58.27H60.95V57.49Z" />
-
-</vector>
 </file>
 
 <file path="app/src/main/res/drawable/widget_bg_pill.xml">
@@ -841,6 +706,15 @@ val Typography = Typography(
         android:textColor="#FFFFFF"
         android:textSize="18sp" />
 </LinearLayout>
+</file>
+
+<file path="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <monochrome android:drawable="@drawable/ic_launcher_foreground"/>
+</adaptive-icon>
 </file>
 
 <file path="app/src/main/res/values/colors.xml">
@@ -1683,6 +1557,96 @@ fun AppNavigation(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt">
+package com.tao0524.tickat.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// ダークテーマ
+val TickAtBackground     = Color(0xFF1C1B1F)
+val TickAtSurface        = Color(0xFF2B2930)
+val TickAtSurfaceVariant = Color(0xFF3A383F)
+val TickAtOnBackground   = Color(0xFFE6E1E5)
+val TickAtOnSurface      = Color(0xFFE6E1E5)
+val TickAtOnSurfaceVar   = Color(0xFF9E9E9E)
+val TickAtPrimary        = Color(0xFF1976D2)
+val TickAtOnPrimary      = Color(0xFFFFFFFF)
+val TickAtError          = Color(0xFFCF6679)
+val TickAtOutline        = Color(0xFF49454F)
+
+// ライトテーマ
+val TickAtLightBackground     = Color(0xFFFAFAF9)
+val TickAtLightSurface        = Color(0xFFF3F0F4)
+val TickAtLightSurfaceVariant = Color(0xFFE7E0EC)
+val TickAtLightOnBackground   = Color(0xFF1C1B1F)
+val TickAtLightOnSurfaceVar   = Color(0xFF49454F)
+val TickAtLightError          = Color(0xFFB3261E)
+val TickAtLightOutline        = Color(0xFF79747E)
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt">
+package com.tao0524.tickat.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+
+private fun blendToWhite(base: Color, ratio: Float): Color = Color(
+    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
+    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
+    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
+    alpha = 1f
+)
+
+@Composable
+fun TickAtTheme(
+    settings: AppSettings = AppSettings(),
+    content: @Composable () -> Unit
+) {
+    val isDark = isSystemInDarkTheme()
+
+    val colorScheme = if (isDark) {
+        val bg   = Color(settings.bgColor)
+        val text = Color(settings.textColor)
+        darkColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = bg,
+            onBackground     = text,
+            surface          = blendToWhite(bg, 0.06f),
+            onSurface        = text,
+            surfaceVariant   = blendToWhite(bg, 0.12f),
+            onSurfaceVariant = Color(0xFF9E9E9E),
+            error            = Color(0xFFCF6679),
+            outline          = Color(0xFF49454F)
+        )
+    } else {
+        lightColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = TickAtLightBackground,
+            onBackground     = TickAtLightOnBackground,
+            surface          = TickAtLightSurface,
+            onSurface        = TickAtLightOnBackground,
+            surfaceVariant   = TickAtLightSurfaceVariant,
+            onSurfaceVariant = TickAtLightOnSurfaceVar,
+            error            = TickAtLightError,
+            outline          = TickAtLightOutline
+        )
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography  = Typography,
+        content     = content
+    )
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/widget/BootCompletedReceiver.kt">
 package com.tao0524.tickat.widget
 
@@ -1719,6 +1683,19 @@ class BootCompletedReceiver : BroadcastReceiver() {
         }
     }
 }
+</file>
+
+<file path="app/src/main/res/drawable/ic_launcher_background.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#1A237E"
+        android:pathData="M0,0h108v108h-108z" />
+</vector>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
@@ -2137,6 +2114,65 @@ object TaskAlertScheduler {
         }
     }
 }
+</file>
+
+<file path="app/src/main/res/drawable/ic_launcher_foreground.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 装飾円: 半透明ブルー r=33.3dp center=(54, 46) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#525693"
+        android:strokeWidth="3"
+        android:strokeAlpha="0.4"
+        android:pathData="M54,54m-33.3,0a33.3,33.3 0,1 1,66.6 0a33.3,33.3 0,1 1,-66.6 0" />
+
+    <!-- 時計円: 白枠 r=26.1dp -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:pathData="M54,54m-26.1,0a26.1,26.1 0,1 1,52.2 0a26.1,26.1 0,1 1,-52.2 0" />
+
+    <!-- 分針（12時方向）: 長い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L54,33.0" />
+
+    <!-- 時針（3時方向）: 短い針 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L70.5,54" />
+
+    <!-- 中心点: 白円 r=2dp -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,54m-2,0a2,2 0,1 1,4 0a2,2 0,1 1,-4 0" />
+
+    <!-- TickAt テキスト -->
+    <group
+        android:translateY="4"
+        android:pivotX="54"
+        android:pivotY="59"
+        android:scaleX="1.4"
+        android:scaleY="1.4">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M45.19,57.35H48.55V58.07H47.34V61.0H46.4V58.07H45.19Z M49.0,58.27H49.87V61.0H49.0ZM49.0,57.2H49.87V57.91H49.0Z M52.92,58.35V59.06Q52.74,58.94 52.56,58.88Q52.38,58.82 52.19,58.82Q51.82,58.82 51.62,59.04Q51.41,59.25 51.41,59.64Q51.41,60.02 51.62,60.23Q51.82,60.45 52.19,60.45Q52.39,60.45 52.58,60.38Q52.76,60.32 52.92,60.2V60.92Q52.71,60.99 52.5,61.03Q52.29,61.07 52.08,61.07Q51.34,61.07 50.92,60.69Q50.5,60.31 50.5,59.64Q50.5,58.96 50.92,58.58Q51.34,58.2 52.08,58.2Q52.29,58.2 52.5,58.24Q52.71,58.28 52.92,58.35Z M53.67,57.2H54.55V59.27L55.55,58.27H56.57L55.23,59.52L56.67,61.0H55.61L54.55,59.86V61.0H53.67Z M59.25,60.34H57.78L57.55,61.0H56.6L57.95,57.35H59.07L60.42,61.0H59.48ZM58.01,59.66H59.01L58.51,58.21Z M61.82,57.49V58.27H62.72V58.89H61.82V60.05Q61.82,60.24 61.9,60.31Q61.97,60.38 62.2,60.38H62.65V61.0H61.9Q61.38,61.0 61.16,60.78Q60.95,60.57 60.95,60.05V58.89H60.51V58.27H60.95V57.49Z" />
+    </group>
+
+</vector>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/onboarding/OnboardingScreen.kt">
