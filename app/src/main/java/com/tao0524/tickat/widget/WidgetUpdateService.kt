@@ -252,6 +252,7 @@ class WidgetUpdateService : Service() {
                 if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
                     startTicking()
                 }
+                updateWidgets()
             }
         }
     }

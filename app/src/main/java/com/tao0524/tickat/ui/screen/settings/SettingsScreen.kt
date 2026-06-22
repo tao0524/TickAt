@@ -270,7 +270,7 @@ fun SettingsScreen(
     val hintShown by viewModel.hintSettingsShown.collectAsState()
     val tasks by viewModel.timeblockTasks.collectAsState()
     val context = LocalContext.current
-    var draft   by remember(saved) { mutableStateOf(saved) }
+    var draft   by remember { mutableStateOf(saved) }
 
     var currentSoundUri by remember { mutableStateOf(saved.notificationSoundUri) }
     LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }
@@ -724,7 +724,8 @@ fun SettingsScreen(
                                                                 bgGradientEnd     = theme.bgGradientEnd,
                                                                 textColor         = theme.textColor,
                                                                 bgType            = newBgType,
-                                                                gradientDirection = newGradDir
+                                                                gradientDirection = newGradDir,
+                                                                bgImageUri        = ""
                                                             )
                                                         }
                                                     )
