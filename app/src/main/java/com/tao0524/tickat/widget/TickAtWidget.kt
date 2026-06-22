@@ -315,7 +315,7 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
     val r = when (settings.cornerStyle) {
         CornerStyle.PILL    -> h / 2f
         CornerStyle.ROUNDED -> h * 0.27f
-        CornerStyle.SOFT    -> h * 0.09f
+        CornerStyle.SOFT    -> h * 0.15f
         CornerStyle.SQUARE  -> 4f
     }
     val topPad = if (settings.compactBg) 20f else 0f

@@ -628,7 +628,7 @@ fun SettingsScreen(
                 // --- テーマ ---
                 AccordionHeader(
                     title = "テーマ",
-                    summary = listOf("ダーク", "ライト", "グラデーション", "画像").getOrElse(selectedThemeTab) { "" },
+                    summary = listOf("ダーク", "ライト", "グラデーション", "画像", "カスタム").getOrElse(selectedThemeTab) { "" },
                     expanded = expandedSections["theme"] == true,
                     onClick = { expandedSections["theme"] = expandedSections["theme"] != true }
                 )
@@ -651,7 +651,7 @@ fun SettingsScreen(
                                     containerColor   = MaterialTheme.colorScheme.surface,
                                     contentColor     = MaterialTheme.colorScheme.primary
                                 ) {
-                                    listOf("ダーク", "ライト", "グラデーション", "画像").forEachIndexed { index, title ->
+                                    listOf("ダーク", "ライト", "グラデーション", "画像", "カスタム").forEachIndexed { index, title ->
                                         Tab(
                                             selected = selectedThemeTab == index,
                                             onClick  = { selectedThemeTab = index },
@@ -659,7 +659,37 @@ fun SettingsScreen(
                                         )
                                     }
                                 }
-                                if (selectedThemeTab == 3) {
+                                if (selectedThemeTab == 4) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "白背景・黒テキストの白紙状態から自由にカスタマイズできます。",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Button(
+                                            onClick = {
+                                                draft = draft.copy(
+                                                    bgColor    = 0xFFFFFFFFL,
+                                                    bgAlpha    = 100,
+                                                    textColor  = 0xFF000000L,
+                                                    bgType     = BackgroundType.SOLID,
+                                                    bgImageUri = ""
+                                                )
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            )
+                                        ) {
+                                            Text("白紙にリセット", fontSize = 14.sp)
+                                        }
+                                    }
+                                } else if (selectedThemeTab == 3) {
                                     val imageLauncher = rememberLauncherForActivityResult(
                                         contract = ActivityResultContracts.GetContent()
                                     ) { uri ->
@@ -709,7 +739,8 @@ fun SettingsScreen(
                                                 rowThemes.forEach { theme ->
                                                     ThemeCard(
                                                         theme      = theme,
-                                                        isSelected = draft.bgColor == theme.bgColor &&
+                                                        isSelected = draft.bgAlpha != 0 &&
+                                                                draft.bgColor == theme.bgColor &&
                                                                 draft.bgGradientEnd == theme.bgGradientEnd &&
                                                                 draft.textColor == theme.textColor,
                                                         modifier   = Modifier.weight(1f),
@@ -725,7 +756,8 @@ fun SettingsScreen(
                                                                 textColor         = theme.textColor,
                                                                 bgType            = newBgType,
                                                                 gradientDirection = newGradDir,
-                                                                bgImageUri        = ""
+                                                                bgImageUri        = "",
+                                                                bgAlpha           = 100
                                                             )
                                                         }
                                                     )
@@ -2274,11 +2306,17 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
     val previewHeightDp = actualH * previewScale
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val previewCornerDp = when (draft.cornerStyle) {
+            CornerStyle.PILL    -> previewHeightDp / 2f
+            CornerStyle.ROUNDED -> previewHeightDp * 0.27f
+            CornerStyle.SOFT    -> previewHeightDp * 0.15f
+            CornerStyle.SQUARE  -> 2f
+        }
         Box(
             modifier = Modifier
                 .width(previewWidthDp.dp)
                 .height(previewHeightDp.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .clip(RoundedCornerShape(previewCornerDp.dp)),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(
