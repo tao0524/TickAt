@@ -708,15 +708,6 @@ val Typography = Typography(
 </LinearLayout>
 </file>
 
-<file path="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@color/ic_launcher_background"/>
-    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
-    <monochrome android:drawable="@drawable/ic_launcher_foreground"/>
-</adaptive-icon>
-</file>
-
 <file path="app/src/main/res/values/colors.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
@@ -1698,6 +1689,15 @@ class BootCompletedReceiver : BroadcastReceiver() {
 </vector>
 </file>
 
+<file path="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <monochrome android:drawable="@drawable/ic_launcher_foreground"/>
+</adaptive-icon>
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
 package com.tao0524.tickat.data.local
 
@@ -2137,7 +2137,7 @@ object TaskAlertScheduler {
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2.5"
-        android:pathData="M54,54m-26.1,0a26.1,26.1 0,1 1,52.2 0a26.1,26.1 0,1 1,-52.2 0" />
+        android:pathData="M54,54m-31.0,0a31.0,31.0 0,1 1,62.0 0a31.0,31.0 0,1 1,-62.0 0" />
 
     <!-- 分針（12時方向）: 長い針 -->
     <path
@@ -2145,7 +2145,7 @@ object TaskAlertScheduler {
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L54,33.0" />
+        android:pathData="M54,54 L54,28.0" />
 
     <!-- 時針（3時方向）: 短い針 -->
     <path
@@ -2153,7 +2153,7 @@ object TaskAlertScheduler {
         android:strokeColor="#FFFFFF"
         android:strokeWidth="2.5"
         android:strokeLineCap="round"
-        android:pathData="M54,54 L70.5,54" />
+        android:pathData="M54,54 L74.0,54" />
 
     <!-- 中心点: 白円 r=2dp -->
     <path
