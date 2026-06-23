@@ -12,6 +12,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
+import com.tao0524.tickat.ui.SettingsViewModelFactory
 import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
 import androidx.compose.ui.platform.LocalContext
 import com.tao0524.tickat.ui.screen.help.HelpScreen
@@ -22,12 +23,15 @@ import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
 import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
 
 sealed class Screen(val route: String) {
-    object Onboarding : Screen("onboarding")
-    object TaskList   : Screen("task_list")
-    object TaskEdit   : Screen("task_edit")
-    object Expanded   : Screen("expanded")
-    object Help       : Screen("help")
-    object Settings   : Screen("settings")
+    object Onboarding     : Screen("onboarding")
+    object TaskList       : Screen("task_list")
+    object TaskEdit       : Screen("task_edit")
+    object Expanded       : Screen("expanded")
+    object Help           : Screen("help")
+    object Settings       : Screen("settings")
+    object WidgetSettings : Screen("widget_settings/{widgetId}") {
+        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
+    }
 }
 
 @Composable
@@ -116,6 +120,17 @@ fun AppNavigation(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 viewModel = viewModel(factory = factory),
+                onBack    = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.WidgetSettings.route,
+            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val widgetId = backStackEntry.arguments?.getInt("widgetId") ?: 0
+            val widgetFactory = SettingsViewModelFactory(context, repository, widgetId)
+            SettingsScreen(
+                viewModel = viewModel(factory = widgetFactory),
                 onBack    = { navController.popBackStack() }
             )
         }

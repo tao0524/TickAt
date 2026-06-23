@@ -604,13 +604,11 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.SettingsViewModelFactory
+import com.tao0524.tickat.ui.screen.settings.SettingsScreen
 import com.tao0524.tickat.ui.theme.TickAtTheme
 
 class WidgetConfigActivity : ComponentActivity() {
@@ -620,37 +618,42 @@ class WidgetConfigActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // キャンセルをデフォルトに設定（戻るボタン対策）
         setResult(RESULT_CANCELED)
 
-        // appWidgetIdを取得
         appWidgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
-        // IDが無効なら終了
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
             return
         }
 
-        setContent {
-            TickAtTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("ウィジェット設定（準備中）")
-                    }
-                }
-            }
-        }
+        val repository = TaskRepository(
+            AppDatabase.getInstance(applicationContext).taskDao()
+        )
+        val factory = SettingsViewModelFactory(
+            context      = applicationContext,
+            repository   = repository,
+            appWidgetId  = appWidgetId
+        )
 
-        // 設定完了としてRESULT_OKを返す
         val resultValue = Intent().apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         }
-        setResult(RESULT_OK, resultValue)
-        finish()
+
+        setContent {
+            TickAtTheme {
+                SettingsScreen(
+                    viewModel = viewModel(factory = factory),
+                    onBack    = {
+                        setResult(RESULT_OK, resultValue)
+                        finish()
+                    }
+                )
+            }
+        }
     }
 }
 </file>
@@ -1516,6 +1519,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
+import com.tao0524.tickat.ui.SettingsViewModelFactory
 import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
 import androidx.compose.ui.platform.LocalContext
 import com.tao0524.tickat.ui.screen.help.HelpScreen
@@ -1526,12 +1530,15 @@ import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
 import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
 
 sealed class Screen(val route: String) {
-    object Onboarding : Screen("onboarding")
-    object TaskList   : Screen("task_list")
-    object TaskEdit   : Screen("task_edit")
-    object Expanded   : Screen("expanded")
-    object Help       : Screen("help")
-    object Settings   : Screen("settings")
+    object Onboarding     : Screen("onboarding")
+    object TaskList       : Screen("task_list")
+    object TaskEdit       : Screen("task_edit")
+    object Expanded       : Screen("expanded")
+    object Help           : Screen("help")
+    object Settings       : Screen("settings")
+    object WidgetSettings : Screen("widget_settings/{widgetId}") {
+        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
+    }
 }
 
 @Composable
@@ -1620,6 +1627,17 @@ fun AppNavigation(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 viewModel = viewModel(factory = factory),
+                onBack    = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = Screen.WidgetSettings.route,
+            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val widgetId = backStackEntry.arguments?.getInt("widgetId") ?: 0
+            val widgetFactory = SettingsViewModelFactory(context, repository, widgetId)
+            SettingsScreen(
+                viewModel = viewModel(factory = widgetFactory),
                 onBack    = { navController.popBackStack() }
             )
         }
@@ -2022,7 +2040,20 @@ class ViewModelFactory(
         modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
             ExpandedViewModel(repository, context) as T
         modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(context.applicationContext, repository) as T
+            SettingsViewModel(context.applicationContext, repository, appWidgetId = 0) as T
+        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
+    }
+}
+
+class SettingsViewModelFactory(
+    private val context: Context,
+    private val repository: TaskRepository?,
+    private val appWidgetId: Int
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(context.applicationContext, repository, appWidgetId) as T
         else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }
@@ -5859,6 +5890,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tao0524.tickat.widget.TickAtWidgetReceiver
+import com.tao0524.tickat.widget.WidgetDataStoreManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -5945,7 +5977,7 @@ data class AppSettings(
     val cornerRadiusRatio:   Float       = 0.5f,
     val dateTextColor:            Long   = 0x99E6E1E5L,
     val notificationSoundUri:     String = "",
-    val notificationDuration:     Int    = 5,  // 秒
+    val notificationDuration:     Int    = 5,
     val bgImageUri:               String  = "",
     val gradientColorCount:       Int     = 2,
     val bgColor2:                 Long    = 0L,
@@ -5977,8 +6009,11 @@ data class AppSettings(
 
 class SettingsViewModel(
     private val context: Context,
-    private val taskRepository: TaskRepository? = null
+    private val taskRepository: TaskRepository? = null,
+    private val appWidgetId: Int = 0
 ) : ViewModel() {
+
+    private val widgetDataStore = WidgetDataStoreManager.getStore(context, appWidgetId)
 
     val timeblockTasks: StateFlow<List<Task>> = if (taskRepository != null) {
         taskRepository.allTasks
@@ -5988,7 +6023,7 @@ class SettingsViewModel(
         kotlinx.coroutines.flow.MutableStateFlow(emptyList())
     }
 
-    val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
+    val settings: StateFlow<AppSettings> = widgetDataStore.data
         .map { prefs ->
             AppSettings(
                 bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
@@ -6070,6 +6105,7 @@ class SettingsViewModel(
             initialValue = AppSettings()
         )
 
+    // hintSettingsShown / previewVisible / previewSizePercent はUI共通のため displaySettingsDataStore を維持
     val hintSettingsShown = context.displaySettingsDataStore.data
         .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
@@ -6108,7 +6144,7 @@ class SettingsViewModel(
 
     fun save(s: AppSettings) {
         viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
+            widgetDataStore.edit { prefs ->
                 prefs[KEY_BG_COLOR]           = s.bgColor
                 prefs[KEY_BG_ALPHA]           = s.bgAlpha
                 prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd

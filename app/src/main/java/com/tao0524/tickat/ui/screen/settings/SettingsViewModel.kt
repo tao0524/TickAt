@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tao0524.tickat.widget.TickAtWidgetReceiver
+import com.tao0524.tickat.widget.WidgetDataStoreManager
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -97,7 +98,7 @@ data class AppSettings(
     val cornerRadiusRatio:   Float       = 0.5f,
     val dateTextColor:            Long   = 0x99E6E1E5L,
     val notificationSoundUri:     String = "",
-    val notificationDuration:     Int    = 5,  // 秒
+    val notificationDuration:     Int    = 5,
     val bgImageUri:               String  = "",
     val gradientColorCount:       Int     = 2,
     val bgColor2:                 Long    = 0L,
@@ -129,8 +130,11 @@ data class AppSettings(
 
 class SettingsViewModel(
     private val context: Context,
-    private val taskRepository: TaskRepository? = null
+    private val taskRepository: TaskRepository? = null,
+    private val appWidgetId: Int = 0
 ) : ViewModel() {
+
+    private val widgetDataStore = WidgetDataStoreManager.getStore(context, appWidgetId)
 
     val timeblockTasks: StateFlow<List<Task>> = if (taskRepository != null) {
         taskRepository.allTasks
@@ -140,7 +144,7 @@ class SettingsViewModel(
         kotlinx.coroutines.flow.MutableStateFlow(emptyList())
     }
 
-    val settings: StateFlow<AppSettings> = context.displaySettingsDataStore.data
+    val settings: StateFlow<AppSettings> = widgetDataStore.data
         .map { prefs ->
             AppSettings(
                 bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
@@ -222,6 +226,7 @@ class SettingsViewModel(
             initialValue = AppSettings()
         )
 
+    // hintSettingsShown / previewVisible / previewSizePercent はUI共通のため displaySettingsDataStore を維持
     val hintSettingsShown = context.displaySettingsDataStore.data
         .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
@@ -260,7 +265,7 @@ class SettingsViewModel(
 
     fun save(s: AppSettings) {
         viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
+            widgetDataStore.edit { prefs ->
                 prefs[KEY_BG_COLOR]           = s.bgColor
                 prefs[KEY_BG_ALPHA]           = s.bgAlpha
                 prefs[KEY_BG_GRADIENT_END]    = s.bgGradientEnd

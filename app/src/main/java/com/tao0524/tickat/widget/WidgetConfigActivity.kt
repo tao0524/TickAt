@@ -5,13 +5,11 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.SettingsViewModelFactory
+import com.tao0524.tickat.ui.screen.settings.SettingsScreen
 import com.tao0524.tickat.ui.theme.TickAtTheme
 
 class WidgetConfigActivity : ComponentActivity() {
@@ -21,37 +19,41 @@ class WidgetConfigActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // キャンセルをデフォルトに設定（戻るボタン対策）
         setResult(RESULT_CANCELED)
 
-        // appWidgetIdを取得
         appWidgetId = intent?.extras?.getInt(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
-        // IDが無効なら終了
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
             return
         }
 
-        setContent {
-            TickAtTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("ウィジェット設定（準備中）")
-                    }
-                }
-            }
-        }
+        val repository = TaskRepository(
+            AppDatabase.getInstance(applicationContext).taskDao()
+        )
+        val factory = SettingsViewModelFactory(
+            context      = applicationContext,
+            repository   = repository,
+            appWidgetId  = appWidgetId
+        )
 
-        // 設定完了としてRESULT_OKを返す
         val resultValue = Intent().apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         }
-        setResult(RESULT_OK, resultValue)
-        finish()
+
+        setContent {
+            TickAtTheme {
+                SettingsScreen(
+                    viewModel = viewModel(factory = factory),
+                    onBack    = {
+                        setResult(RESULT_OK, resultValue)
+                        finish()
+                    }
+                )
+            }
+        }
     }
 }
-
