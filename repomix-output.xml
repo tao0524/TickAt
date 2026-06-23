@@ -77,6 +77,7 @@ app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt
 app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt
 app/src/main/java/com/tao0524/tickat/widget/TickAtWidgetReceiver.kt
+app/src/main/java/com/tao0524/tickat/widget/WidgetDataStoreManager.kt
 app/src/main/java/com/tao0524/tickat/widget/WidgetUpdateService.kt
 app/src/main/res/drawable/ic_launcher_background.xml
 app/src/main/res/drawable/ic_launcher_foreground.xml
@@ -286,6 +287,37 @@ private fun FullScreenAlertContent(
                     text = "閉じる",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetDataStoreManager.kt">
+package com.tao0524.tickat.widget
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStoreFile
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+
+object WidgetDataStoreManager {
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val stores = mutableMapOf<Int, DataStore<Preferences>>()
+
+    fun getStore(context: Context, appWidgetId: Int): DataStore<Preferences> {
+        return stores.getOrPut(appWidgetId) {
+            PreferenceDataStoreFactory.create(
+                scope = scope
+            ) {
+                context.applicationContext.preferencesDataStoreFile(
+                    "tickat_widget_settings_$appWidgetId"
                 )
             }
         }
