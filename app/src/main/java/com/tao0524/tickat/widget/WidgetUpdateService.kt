@@ -19,7 +19,6 @@ import com.tao0524.tickat.ui.screen.settings.AppSettings
 import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import com.tao0524.tickat.ui.screen.settings.AmPmPosition
 import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.GradientDirection
 import com.tao0524.tickat.ui.screen.settings.KEY_AM_PM_COLOR
@@ -38,7 +37,7 @@ import com.tao0524.tickat.ui.screen.settings.KEY_BG_IMAGE_URI
 import com.tao0524.tickat.ui.screen.settings.KEY_BG_TYPE
 import com.tao0524.tickat.ui.screen.settings.KEY_CLOCK_DATE_BALANCE
 import com.tao0524.tickat.ui.screen.settings.KEY_COMPACT_BG
-import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_STYLE
+import com.tao0524.tickat.ui.screen.settings.KEY_CORNER_RADIUS_RATIO
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_FORMAT
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_PATTERN
 import com.tao0524.tickat.ui.screen.settings.KEY_DATE_TEXT_COLOR
@@ -163,9 +162,7 @@ class WidgetUpdateService : Service() {
                     fontWeight           = prefs[KEY_FONT_WEIGHT]
                         ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                         ?: TextWeight.BOLD,
-                    cornerStyle          = prefs[KEY_CORNER_STYLE]
-                        ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                        ?: CornerStyle.PILL,
+                    cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.5f,
                     dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
                     notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
                     notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,

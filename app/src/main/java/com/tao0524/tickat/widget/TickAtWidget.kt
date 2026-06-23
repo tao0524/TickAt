@@ -24,7 +24,6 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.ui.screen.settings.AppSettings
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
-import com.tao0524.tickat.ui.screen.settings.CornerStyle
 import com.tao0524.tickat.ui.screen.settings.GradientCenter
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
@@ -312,12 +311,7 @@ internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bit
     val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
     if (settings.bgType == BackgroundType.TRANSPARENT) return bitmap
     val canvas = android.graphics.Canvas(bitmap)
-    val r = when (settings.cornerStyle) {
-        CornerStyle.PILL    -> h / 2f
-        CornerStyle.ROUNDED -> h * 0.27f
-        CornerStyle.SOFT    -> h * 0.15f
-        CornerStyle.SQUARE  -> 4f
-    }
+    val r = (h * settings.cornerRadiusRatio).coerceIn(0f, h / 2f)
     val topPad = if (settings.compactBg) 20f else 0f
     val botPad = if (settings.compactBg) 20f else 0f
     val rect = RectF(0f, topPad, w.toFloat(), h.toFloat() - botPad)

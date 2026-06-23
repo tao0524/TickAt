@@ -34,7 +34,7 @@ val KEY_WEEKDAY_FORMAT       = stringPreferencesKey("weekday_format")
 val KEY_DATE_WEEKDAY_ORDER   = stringPreferencesKey("date_weekday_order")
 val KEY_DATE_PATTERN         = stringPreferencesKey("date_pattern")
 val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
-val KEY_CORNER_STYLE         = stringPreferencesKey("corner_style")
+val KEY_CORNER_RADIUS_RATIO  = floatPreferencesKey("corner_radius_ratio")
 val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
 val KEY_NOTIFICATION_SOUND    = stringPreferencesKey("notification_sound")
 val KEY_NOTIFICATION_DURATION = intPreferencesKey("notification_duration")
@@ -94,7 +94,7 @@ data class AppSettings(
     val dateWeekdayOrder:    String      = "WEEKDAY_FIRST",
     val datePattern:         String      = "",
     val fontWeight:          TextWeight  = TextWeight.BOLD,
-    val cornerStyle:         CornerStyle = CornerStyle.PILL,
+    val cornerRadiusRatio:   Float       = 0.5f,
     val dateTextColor:            Long   = 0x99E6E1E5L,
     val notificationSoundUri:     String = "",
     val notificationDuration:     Int    = 5,  // 秒
@@ -157,9 +157,7 @@ class SettingsViewModel(
                 fontWeight   = prefs[KEY_FONT_WEIGHT]
                     ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                     ?: TextWeight.BOLD,
-                cornerStyle  = prefs[KEY_CORNER_STYLE]
-                    ?.let { runCatching { CornerStyle.valueOf(it) }.getOrNull() }
-                    ?: CornerStyle.PILL,
+                cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.5f,
                 dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
                 notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
                 notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
@@ -275,7 +273,7 @@ class SettingsViewModel(
                 prefs[KEY_DATE_WEEKDAY_ORDER] = s.dateWeekdayOrder
                 prefs[KEY_DATE_PATTERN]       = s.datePattern
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
-                prefs[KEY_CORNER_STYLE]       = s.cornerStyle.name
+                prefs[KEY_CORNER_RADIUS_RATIO] = s.cornerRadiusRatio
                 prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
                 prefs[KEY_NOTIFICATION_SOUND]    = s.notificationSoundUri
                 prefs[KEY_NOTIFICATION_DURATION] = s.notificationDuration

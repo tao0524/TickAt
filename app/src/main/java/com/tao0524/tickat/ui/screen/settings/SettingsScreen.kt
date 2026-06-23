@@ -1627,7 +1627,7 @@ fun SettingsScreen(
                 // --- レイアウト ---
                 AccordionHeader(
                     title = "レイアウト",
-                    summary = "${draft.cornerStyle.name} / タスク名" + if (draft.showTaskName) "ON" else "OFF",
+                    summary = "${(draft.cornerRadiusRatio * 100).toInt()}% / タスク名" + if (draft.showTaskName) "ON" else "OFF",
                     expanded = expandedSections["layout"] == true,
                     onClick = { expandedSections["layout"] = expandedSections["layout"] != true }
                 )
@@ -1638,22 +1638,30 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                            Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                            Text("角丸スタイル", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+                            Text("4つの設定から選択後、スライダーで微調整できます", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = 12.sp, modifier = Modifier.padding(bottom = 10.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf(
-                                    CornerStyle.PILL    to "Pill\n全丸",
-                                    CornerStyle.ROUNDED to "Rounded\n丸め",
-                                    CornerStyle.SOFT    to "Soft\n角小",
-                                    CornerStyle.SQUARE  to "Square\n四角"
-                                ).forEach { (style, label) ->
+                                    "Pill\n全丸"    to 0.5f,
+                                    "Rounded\n丸め" to 0.27f,
+                                    "Soft\n角小"   to 0.15f,
+                                    "Square\n四角"  to 0f
+                                ).forEach { (label, ratio) ->
                                     SelectOption(
                                         label      = label,
-                                        isSelected = draft.cornerStyle == style,
+                                        isSelected = draft.cornerRadiusRatio == ratio,
                                         modifier   = Modifier.weight(1f),
-                                        onSelect   = { draft = draft.copy(cornerStyle = style) }
+                                        onSelect   = { draft = draft.copy(cornerRadiusRatio = ratio) }
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Slider(
+                                value         = draft.cornerRadiusRatio,
+                                onValueChange = { draft = draft.copy(cornerRadiusRatio = it) },
+                                valueRange    = 0f..0.5f,
+                                modifier      = Modifier.fillMaxWidth()
+                            )
                         }
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
@@ -2272,7 +2280,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
     LaunchedEffect(
         draft.bgColor, draft.bgAlpha, draft.bgType, draft.bgGradientEnd,
         draft.bgColor2, draft.gradientColorCount, draft.gradientDirection,
-        draft.cornerStyle, draft.compactBg, draft.bgImageUri,
+        draft.cornerRadiusRatio, draft.compactBg, draft.bgImageUri,
         draft.linearStartPoint, draft.gradientCenter,
         draft.bgColor2Alpha, draft.bgGradientEndAlpha
     ) {
@@ -2306,12 +2314,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
     val previewHeightDp = actualH * previewScale
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val previewCornerDp = when (draft.cornerStyle) {
-            CornerStyle.PILL    -> previewHeightDp / 2f
-            CornerStyle.ROUNDED -> previewHeightDp * 0.27f
-            CornerStyle.SOFT    -> previewHeightDp * 0.15f
-            CornerStyle.SQUARE  -> 2f
-        }
+        val previewCornerDp = (previewHeightDp * draft.cornerRadiusRatio).coerceIn(0f, previewHeightDp / 2f)
         Box(
             modifier = Modifier
                 .width(previewWidthDp.dp)
