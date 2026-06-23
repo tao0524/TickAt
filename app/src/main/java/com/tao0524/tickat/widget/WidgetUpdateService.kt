@@ -60,7 +60,6 @@ import com.tao0524.tickat.ui.screen.settings.KEY_USE_24_HOUR
 import com.tao0524.tickat.ui.screen.settings.KEY_WEEKDAY_FORMAT
 import com.tao0524.tickat.ui.screen.settings.TextWeight
 import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -83,13 +82,13 @@ class WidgetUpdateService : Service() {
     private var settingsJob: Job? = null
     private var isScreenOn = true
 
-    @Volatile private var cachedSettings: AppSettings = AppSettings()
-    @Volatile private var cachedTypeface: Typeface = Typeface.DEFAULT
-    @Volatile private var cachedClockPx: Float = 0f
-    @Volatile private var cachedDatePx: Float = 0f
-    @Volatile private var cachedMessagePx: Float = 0f
-    @Volatile private var cachedBgBitmap: android.graphics.Bitmap? = null
-    @Volatile private var isFullRedrawNeeded: Boolean = true
+    private val cachedSettingsMap = mutableMapOf<Int, AppSettings>()
+    private val cachedTypefaceMap = mutableMapOf<Int, Typeface>()
+    private val cachedClockPxMap  = mutableMapOf<Int, Float>()
+    private val cachedDatePxMap   = mutableMapOf<Int, Float>()
+    private val cachedMessagePxMap= mutableMapOf<Int, Float>()
+    private val cachedBgBitmapMap = mutableMapOf<Int, android.graphics.Bitmap?>()
+    private val fullRedrawNeededMap = mutableMapOf<Int, Boolean>()
     @Volatile private var cachedTasks: List<Task> = emptyList()
 
     private val taskRepository by lazy {
@@ -101,7 +100,7 @@ class WidgetUpdateService : Service() {
             when (intent.action) {
                 Intent.ACTION_SCREEN_ON -> {
                     isScreenOn = true
-                    isFullRedrawNeeded = true
+                    fullRedrawNeededMap.keys.forEach { fullRedrawNeededMap[it] = true }
                     startTicking()
                 }
                 Intent.ACTION_SCREEN_OFF -> {
@@ -145,8 +144,18 @@ class WidgetUpdateService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startSettingsObserver() {
-        settingsJob = serviceScope.launch {
-            displaySettingsDataStore.data.collect { prefs ->
+        val manager = AppWidgetManager.getInstance(this)
+        val ids = manager.getAppWidgetIds(
+            ComponentName(this, TickAtWidgetReceiver::class.java)
+        )
+        for (id in ids) {
+            startSettingsObserverForWidget(id)
+        }
+    }
+
+    private fun startSettingsObserverForWidget(appWidgetId: Int) {
+        serviceScope.launch {
+            WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId).data.collect { prefs ->
                 val newSettings = AppSettings(
                     bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
                     bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
@@ -211,7 +220,7 @@ class WidgetUpdateService : Service() {
                     newSettings.isItalic                                              -> Typeface.ITALIC
                     else                                                              -> Typeface.NORMAL
                 }
-                cachedTypeface = when (newSettings.fontFamily) {
+                val newTypeface = when (newSettings.fontFamily) {
                     WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
                     WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
                     WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
@@ -223,8 +232,8 @@ class WidgetUpdateService : Service() {
                 }
                 val scaledDensity = resources.displayMetrics.scaledDensity
                 val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
-                val ids = manager.getAppWidgetIds(ComponentName(this@WidgetUpdateService, TickAtWidgetReceiver::class.java))
-                val h = if (ids.isNotEmpty()) manager.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44) else 44
+                val h = manager.getAppWidgetOptions(appWidgetId)
+                    .getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
                 val hasDate = newSettings.datePattern.isNotEmpty() || !newSettings.showTime
                 val hasMessage = newSettings.showTaskName || newSettings.showCountdown || newSettings.showNextAlarm
                 val (clockSp, dateSp, messageSp) = calcFontSizes(
@@ -238,14 +247,15 @@ class WidgetUpdateService : Service() {
                     use24Hour = newSettings.use24Hour,
                     amPmScale = newSettings.amPmScale
                 )
-                val isFirstLoad = cachedClockPx == 0f
-                cachedClockPx   = clockSp * scaledDensity
-                cachedDatePx    = dateSp  * scaledDensity
-                cachedMessagePx = messageSp * scaledDensity
-                cachedBgBitmap = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
-                val prevShowSeconds = cachedSettings.showSeconds
-                cachedSettings = newSettings
-                isFullRedrawNeeded = true
+                val prevShowSeconds = cachedSettingsMap[appWidgetId]?.showSeconds ?: false
+                val isFirstLoad = !cachedClockPxMap.containsKey(appWidgetId)
+                cachedTypefaceMap[appWidgetId]  = newTypeface
+                cachedClockPxMap[appWidgetId]   = clockSp * scaledDensity
+                cachedDatePxMap[appWidgetId]    = dateSp  * scaledDensity
+                cachedMessagePxMap[appWidgetId] = messageSp * scaledDensity
+                cachedBgBitmapMap[appWidgetId]  = buildBackgroundBitmap(this@WidgetUpdateService, newSettings)
+                cachedSettingsMap[appWidgetId]  = newSettings
+                fullRedrawNeededMap[appWidgetId] = true
                 if (isFirstLoad || (newSettings.showSeconds && !prevShowSeconds)) {
                     startTicking()
                 }
@@ -264,14 +274,15 @@ class WidgetUpdateService : Service() {
 
     private fun startTicking() {
         tickJob?.cancel()
-        isFullRedrawNeeded = true
+        fullRedrawNeededMap.keys.forEach { fullRedrawNeededMap[it] = true }
         tickJob = serviceScope.launch {
             val initialDelay = 1000L - (System.currentTimeMillis() % 1000L)
             delay(initialDelay.coerceAtLeast(0L))
             while (isActive) {
                 updateWidgets()
                 val nextDelay = 1000L - (System.currentTimeMillis() % 1000L)
-                delay(if (cachedSettings.showSeconds) nextDelay.coerceAtLeast(1L) else 60_000L)
+                val showSeconds = cachedSettingsMap.values.any { it.showSeconds }
+                delay(if (showSeconds) nextDelay.coerceAtLeast(1L) else 60_000L)
             }
         }
     }
@@ -290,23 +301,57 @@ class WidgetUpdateService : Service() {
             stopSelf()
             return
         }
-        val settings = cachedSettings
         val now = java.time.LocalTime.now()
         val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
         val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
-        val displayText: String = if (activeBlock != null && settings.showTaskName) {
-            val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
-            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
-            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-        } else if (activeBlock == null && settings.showCountdown) {
-            val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
-            if (nextBlock != null) {
-                val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
-                when {
-                    minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                    minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                    else          -> "${nextBlock.name}まで あと1分未満"
-                }
+
+        for (id in ids) {
+            val settings = cachedSettingsMap[id] ?: AppSettings()
+            val typeface  = cachedTypefaceMap[id]  ?: Typeface.DEFAULT
+            val clockPx   = cachedClockPxMap[id]   ?: 0f
+            val datePx    = cachedDatePxMap[id]     ?: 0f
+            val messagePx = cachedMessagePxMap[id]  ?: 0f
+            val bgBitmap  = cachedBgBitmapMap[id]
+            val needFullRedraw = fullRedrawNeededMap[id] ?: true
+
+            val displayText: String = if (activeBlock != null && settings.showTaskName) {
+                val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
+                val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+                "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
+            } else if (activeBlock == null && settings.showCountdown) {
+                val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
+                if (nextBlock != null) {
+                    val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
+                    when {
+                        minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                        minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                        else          -> "${nextBlock.name}まで あと1分未満"
+                    }
+                } else if (settings.showNextAlarm) {
+                    val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                    val nextAlarm = alarmManager.nextAlarmClock
+                    val creatorPkg = nextAlarm?.showIntent?.creatorPackage
+                    val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
+                    if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
+                        val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
+                        val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
+                                && cal.get(java.util.Calendar.MINUTE) == 0
+                                && cal.get(java.util.Calendar.SECOND) == 0
+                                && cal.get(java.util.Calendar.MILLISECOND) == 0
+                        if (!isSystemAlarm) {
+                            if (settings.use24Hour) {
+                                val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                                val m = cal.get(java.util.Calendar.MINUTE)
+                                "⏰ %d:%02d".format(h, m)
+                            } else {
+                                val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
+                                val m = cal.get(java.util.Calendar.MINUTE)
+                                val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
+                                "⏰ $amPm$h:%02d".format(m)
+                            }
+                        } else ""
+                    } else ""
+                } else ""
             } else if (settings.showNextAlarm) {
                 val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
                 val nextAlarm = alarmManager.nextAlarmClock
@@ -332,49 +377,24 @@ class WidgetUpdateService : Service() {
                     } else ""
                 } else ""
             } else ""
-        } else if (settings.showNextAlarm) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-            val nextAlarm = alarmManager.nextAlarmClock
-            val creatorPkg = nextAlarm?.showIntent?.creatorPackage
-            val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
-            if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
-                val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
-                val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
-                        && cal.get(java.util.Calendar.MINUTE) == 0
-                        && cal.get(java.util.Calendar.SECOND) == 0
-                        && cal.get(java.util.Calendar.MILLISECOND) == 0
-                if (!isSystemAlarm) {
-                    if (settings.use24Hour) {
-                        val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
-                        val m = cal.get(java.util.Calendar.MINUTE)
-                        "⏰ %d:%02d".format(h, m)
-                    } else {
-                        val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
-                        val m = cal.get(java.util.Calendar.MINUTE)
-                        val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
-                        "⏰ $amPm$h:%02d".format(m)
-                    }
-                } else ""
-            } else ""
-        } else ""
-        for (id in ids) {
+
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
-            val views = if (isFullRedrawNeeded) {
+            val views = if (needFullRedraw) {
                 TickAtWidget.buildViews(this, settings, h)
             } else {
-                buildTimeOnlyViews(this, settings, cachedTypeface, cachedClockPx, cachedDatePx, cachedBgBitmap)
+                buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
             if (displayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(displayText, cachedMessagePx, settings.messageTextColor.toInt(), cachedTypeface, settings.showTextShadow)
+                val msgBitmap = buildTextBitmap(displayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {
                 views.setViewVisibility(R.id.widget_task_name, View.GONE)
             }
             manager.updateAppWidget(id, views)
+            fullRedrawNeededMap[id] = false
         }
-        isFullRedrawNeeded = false
     }
 
     private fun startForegroundWithNotification() {
