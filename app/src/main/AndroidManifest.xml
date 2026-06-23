@@ -61,6 +61,15 @@
             android:turnScreenOn="true"
             android:theme="@style/Theme.TickAt" />
 
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".widget.WidgetUpdateService"
             android:exported="false"
