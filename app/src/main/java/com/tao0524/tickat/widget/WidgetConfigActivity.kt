@@ -8,7 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.SettingsViewModelFactory
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
 import com.tao0524.tickat.ui.screen.settings.SettingsScreen
 import com.tao0524.tickat.ui.theme.TickAtTheme
 
@@ -34,11 +35,11 @@ class WidgetConfigActivity : ComponentActivity() {
         val repository = TaskRepository(
             AppDatabase.getInstance(applicationContext).taskDao()
         )
-        val factory = SettingsViewModelFactory(
-            context      = applicationContext,
-            repository   = repository,
-            appWidgetId  = appWidgetId
-        )
+        val extras = MutableCreationExtras().apply {
+            set(SettingsViewModel.CONTEXT_KEY,    applicationContext)
+            set(SettingsViewModel.REPOSITORY_KEY, repository)
+            set(SettingsViewModel.WIDGET_ID_KEY,  appWidgetId)
+        }
 
         val resultValue = Intent().apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
@@ -47,7 +48,10 @@ class WidgetConfigActivity : ComponentActivity() {
         setContent {
             TickAtTheme {
                 SettingsScreen(
-                    viewModel = viewModel(factory = factory),
+                    viewModel = viewModel(
+                        factory = SettingsViewModel.Factory,
+                        extras  = extras
+                    ),
                     onBack    = {
                         setResult(RESULT_OK, resultValue)
                         finish()

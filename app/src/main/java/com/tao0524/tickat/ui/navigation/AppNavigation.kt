@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.MutableCreationExtras
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,7 +13,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
-import com.tao0524.tickat.ui.SettingsViewModelFactory
 import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
 import androidx.compose.ui.platform.LocalContext
 import com.tao0524.tickat.ui.screen.help.HelpScreen
@@ -133,11 +133,18 @@ fun AppNavigation(
             route = Screen.WidgetSettings.route,
             arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
         ) { backStackEntry ->
-            val widgetId = backStackEntry.arguments?.getInt("widgetId") ?: 0
-            val widgetFactory = SettingsViewModelFactory(context, repository, widgetId)
+            val extras = androidx.lifecycle.viewmodel.MutableCreationExtras(
+                backStackEntry.defaultViewModelCreationExtras
+            ).apply {
+                set(SettingsViewModel.CONTEXT_KEY,    context)
+                set(SettingsViewModel.REPOSITORY_KEY, repository)
+            }
             SettingsScreen(
-                viewModel = viewModel(factory = widgetFactory),
-                onBack    = { navController.popBackStack() }
+                viewModel = viewModel(
+                    factory = SettingsViewModel.Factory,
+                    extras  = extras
+                ),
+                onBack = { navController.popBackStack() }
             )
         }
     }

@@ -9,11 +9,19 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.tao0524.tickat.widget.TickAtWidgetReceiver
 import com.tao0524.tickat.widget.WidgetDataStoreManager
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -95,7 +103,7 @@ data class AppSettings(
     val dateWeekdayOrder:    String      = "WEEKDAY_FIRST",
     val datePattern:         String      = "M月d日",
     val fontWeight:          TextWeight  = TextWeight.BOLD,
-    val cornerRadiusRatio:   Float       = 0.5f,
+    val cornerRadiusRatio:   Float       = 0.1f,
     val dateTextColor:            Long   = 0x99E6E1E5L,
     val notificationSoundUri:     String = "",
     val notificationDuration:     Int    = 5,
@@ -131,10 +139,137 @@ data class AppSettings(
 class SettingsViewModel(
     private val context: Context,
     private val taskRepository: TaskRepository? = null,
-    private val appWidgetId: Int = 0
+    private val appWidgetId: Int
 ) : ViewModel() {
 
     private val widgetDataStore = WidgetDataStoreManager.getStore(context, appWidgetId)
+
+    companion object {
+        val CONTEXT_KEY: CreationExtras.Key<Context> =
+            object : CreationExtras.Key<Context> {}
+        val REPOSITORY_KEY: CreationExtras.Key<TaskRepository?> =
+            object : CreationExtras.Key<TaskRepository?> {}
+        val WIDGET_ID_KEY: CreationExtras.Key<Int> =
+            object : CreationExtras.Key<Int> {}
+
+        val Factory = viewModelFactory {
+            initializer {
+                val ctx      = this[CONTEXT_KEY]    ?: error("Context not provided")
+                val repo     = this[REPOSITORY_KEY]
+                val widgetId = this[WIDGET_ID_KEY]
+                    ?: createSavedStateHandle().get<Int>("widgetId")
+                    ?: 0
+                SettingsViewModel(ctx.applicationContext, repo, widgetId)
+            }
+        }
+    }
+
+    private val _settings = MutableStateFlow(AppSettings())
+    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+
+    private val _previewVisible = MutableStateFlow(true)
+    val previewVisible: StateFlow<Boolean> = _previewVisible.asStateFlow()
+
+    private val _previewSizePercent = MutableStateFlow(90)
+    val previewSizePercent: StateFlow<Int> = _previewSizePercent.asStateFlow()
+
+    private val _hintSettingsShown = MutableStateFlow(true)
+    val hintSettingsShown: StateFlow<Boolean> = _hintSettingsShown.asStateFlow()
+
+    private val _isLoaded = MutableStateFlow(false)
+    val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            combine(
+                widgetDataStore.data
+                    .map { prefs ->
+                        AppSettings(
+                            bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1A237EL,
+                            bgAlpha       = prefs[KEY_BG_ALPHA]          ?: 95,
+                            bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
+                            textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFFFFFFFL,
+                            use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
+                            showTime     = prefs[KEY_SHOW_TIME]    ?: true,
+                            showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
+                            dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
+                            weekdayFormat    = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
+                            dateWeekdayOrder = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
+                            datePattern      = prefs[KEY_DATE_PATTERN]       ?: "",
+                            fontWeight   = prefs[KEY_FONT_WEIGHT]
+                                ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
+                                ?: TextWeight.BOLD,
+                            cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.1f,
+                            dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
+                            notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                            notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
+                            bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
+                            gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
+                            bgColor2                 = prefs[KEY_BG_COLOR2]             ?: 0L,
+                            compactBg                = prefs[KEY_COMPACT_BG]            ?: false,
+                            bgType                   = prefs[KEY_BG_TYPE]
+                                ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
+                                ?: BackgroundType.SOLID,
+                            gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
+                                ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
+                                ?: GradientDirection.DIAGONAL,
+                            clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
+                            fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
+                            gradientCenter           = prefs[KEY_GRADIENT_CENTER]
+                                ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                                ?: GradientCenter.CENTER,
+                            linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
+                                ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
+                                ?: GradientCenter.TOP_LEFT,
+                            isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
+                            fontFamily               = prefs[KEY_FONT_FAMILY]
+                                ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
+                                ?: WidgetFont.ROBOTO,
+                            showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
+                            amPmPosition             = prefs[KEY_AM_PM_POSITION]
+                                ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
+                                ?: AmPmPosition.AFTER,
+                            amPmLabel                = prefs[KEY_AM_PM_LABEL]
+                                ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
+                                ?: AmPmLabel.JAPANESE,
+                            amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
+                            bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
+                            bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
+                            amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L,
+                            timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
+                            showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
+                            showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                            showNextAlarm            = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
+                            showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
+                            alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
+                            messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
+                            messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
+                        ).let { raw ->
+                            if (raw.datePattern.isNotEmpty()) return@let raw
+                            val datePart    = raw.dateFormat
+                            val weekdayPart = raw.weekdayFormat
+                            val merged = when {
+                                datePart.isEmpty() && weekdayPart.isEmpty() -> ""
+                                datePart.isEmpty()  -> weekdayPart
+                                weekdayPart.isEmpty() -> datePart
+                                raw.dateWeekdayOrder == "DATE_FIRST" -> "$datePart, $weekdayPart"
+                                else -> "$weekdayPart, $datePart"
+                            }
+                            raw.copy(datePattern = merged)
+                        }
+                    },
+                context.displaySettingsDataStore.data
+            ) { appSettings, displayPrefs ->
+                appSettings to displayPrefs
+            }.collect { (appSettings, displayPrefs) ->
+                _settings.value = appSettings
+                _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
+                _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
+                _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
+                _isLoaded.value = true
+            }
+        }
+    }
 
     val timeblockTasks: StateFlow<List<Task>> = if (taskRepository != null) {
         taskRepository.allTasks
@@ -143,101 +278,6 @@ class SettingsViewModel(
     } else {
         kotlinx.coroutines.flow.MutableStateFlow(emptyList())
     }
-
-    val settings: StateFlow<AppSettings> = widgetDataStore.data
-        .map { prefs ->
-            AppSettings(
-                bgColor       = prefs[KEY_BG_COLOR]         ?: 0xFF1C1B1FL,
-                bgAlpha       = prefs[KEY_BG_ALPHA]          ?: 100,
-                bgGradientEnd = prefs[KEY_BG_GRADIENT_END]   ?: 0L,
-                textColor     = prefs[KEY_TEXT_COLOR]        ?: 0xFFE6E1E5L,
-                use24Hour    = prefs[KEY_USE_24_HOUR]  ?: true,
-                showTime     = prefs[KEY_SHOW_TIME]    ?: true,
-                showSeconds  = prefs[KEY_SHOW_SECONDS] ?: false,
-                dateFormat       = prefs[KEY_DATE_FORMAT]        ?: "",
-                weekdayFormat    = prefs[KEY_WEEKDAY_FORMAT]     ?: "",
-                dateWeekdayOrder = prefs[KEY_DATE_WEEKDAY_ORDER] ?: "WEEKDAY_FIRST",
-                datePattern      = prefs[KEY_DATE_PATTERN]       ?: "",
-                fontWeight   = prefs[KEY_FONT_WEIGHT]
-                    ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
-                    ?: TextWeight.BOLD,
-                cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.5f,
-                dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
-                notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
-                notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
-                bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
-                gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
-                bgColor2                 = prefs[KEY_BG_COLOR2]             ?: 0L,
-                compactBg                = prefs[KEY_COMPACT_BG]            ?: false,
-                bgType                   = prefs[KEY_BG_TYPE]
-                    ?.let { runCatching { BackgroundType.valueOf(it) }.getOrNull() }
-                    ?: BackgroundType.SOLID,
-                gradientDirection        = prefs[KEY_GRADIENT_DIRECTION]
-                    ?.let { runCatching { GradientDirection.valueOf(it) }.getOrNull() }
-                    ?: GradientDirection.DIAGONAL,
-                clockDateBalance         = prefs[KEY_CLOCK_DATE_BALANCE]        ?: 0,
-                fontScale                = prefs[KEY_FONT_SCALE]               ?: 1.0f,
-                gradientCenter           = prefs[KEY_GRADIENT_CENTER]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.CENTER,
-                linearStartPoint         = prefs[KEY_LINEAR_START_POINT]
-                    ?.let { runCatching { GradientCenter.valueOf(it) }.getOrNull() }
-                    ?: GradientCenter.TOP_LEFT,
-                isItalic                 = prefs[KEY_IS_ITALIC]            ?: false,
-                fontFamily               = prefs[KEY_FONT_FAMILY]
-                    ?.let { runCatching { WidgetFont.valueOf(it) }.getOrNull() }
-                    ?: WidgetFont.ROBOTO,
-                showTextShadow           = prefs[KEY_SHOW_TEXT_SHADOW] ?: false,
-                amPmPosition             = prefs[KEY_AM_PM_POSITION]
-                    ?.let { runCatching { AmPmPosition.valueOf(it) }.getOrNull() }
-                    ?: AmPmPosition.AFTER,
-                amPmLabel                = prefs[KEY_AM_PM_LABEL]
-                    ?.let { runCatching { AmPmLabel.valueOf(it) }.getOrNull() }
-                    ?: AmPmLabel.JAPANESE,
-                amPmScale                = prefs[KEY_AM_PM_SCALE] ?: 0.55f,
-                bgColor2Alpha            = prefs[KEY_BG_COLOR2_ALPHA]       ?: 100,
-                bgGradientEndAlpha       = prefs[KEY_BG_GRADIENT_END_ALPHA] ?: 100,
-                amPmColor                = prefs[KEY_AM_PM_COLOR]           ?: 0L,
-                timeOffset               = prefs[KEY_TIME_OFFSET]           ?: 0,
-                showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
-                showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
-                showNextAlarm            = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
-                showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
-                alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
-                messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
-                messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
-            ).let { raw ->
-                if (raw.datePattern.isNotEmpty()) return@let raw
-                val datePart    = raw.dateFormat
-                val weekdayPart = raw.weekdayFormat
-                val merged = when {
-                    datePart.isEmpty() && weekdayPart.isEmpty() -> ""
-                    datePart.isEmpty()  -> weekdayPart
-                    weekdayPart.isEmpty() -> datePart
-                    raw.dateWeekdayOrder == "DATE_FIRST" -> "$datePart, $weekdayPart"
-                    else -> "$weekdayPart, $datePart"
-                }
-                raw.copy(datePattern = merged)
-            }
-        }
-        .stateIn(
-            scope        = viewModelScope,
-            started      = SharingStarted.WhileSubscribed(5_000),
-            initialValue = AppSettings()
-        )
-
-    // hintSettingsShown / previewVisible / previewSizePercent はUI共通のため displaySettingsDataStore を維持
-    val hintSettingsShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_SETTINGS] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    val previewVisible: StateFlow<Boolean> = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_PREVIEW_VISIBLE] ?: true }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    val previewSizePercent: StateFlow<Int> = context.displaySettingsDataStore.data
-        .map { prefs -> (prefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 90)
 
     fun savePreviewVisible(visible: Boolean) {
         viewModelScope.launch {

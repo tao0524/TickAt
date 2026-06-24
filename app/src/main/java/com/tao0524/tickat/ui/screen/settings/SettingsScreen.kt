@@ -266,11 +266,18 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit
 ) {
+    val isLoaded by viewModel.isLoaded.collectAsState()
     val saved   by viewModel.settings.collectAsState()
     val hintShown by viewModel.hintSettingsShown.collectAsState()
     val tasks by viewModel.timeblockTasks.collectAsState()
     val context = LocalContext.current
+
+    if (!isLoaded) return
+
     var draft   by remember { mutableStateOf(saved) }
+    LaunchedEffect(saved) {
+        draft = saved
+    }
 
     var currentSoundUri by remember { mutableStateOf(saved.notificationSoundUri) }
     LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }

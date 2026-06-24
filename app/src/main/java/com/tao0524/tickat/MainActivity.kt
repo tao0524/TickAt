@@ -39,7 +39,7 @@ class MainActivity : ComponentActivity() {
     private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
 
     private val settingsViewModel: SettingsViewModel by lazy {
-        SettingsViewModel(applicationContext)
+        SettingsViewModel(applicationContext, appWidgetId = 0)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
