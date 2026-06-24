@@ -21,6 +21,7 @@ import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
 import com.tao0524.tickat.ui.screen.onboarding.OnboardingScreen
 import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
 import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
+import com.tao0524.tickat.ui.screen.widgetlist.WidgetListScreen
 
 sealed class Screen(val route: String) {
     object Onboarding     : Screen("onboarding")
@@ -32,6 +33,7 @@ sealed class Screen(val route: String) {
     object WidgetSettings : Screen("widget_settings/{widgetId}") {
         fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
     }
+    object WidgetList : Screen("widget_list")
 }
 
 @Composable
@@ -83,7 +85,8 @@ fun AppNavigation(
                     navController.navigate(Screen.TaskEdit.route)
                 },
                 onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenSettings = { navController.navigate(Screen.Settings.route) }
+                onOpenSettings = { navController.navigate(Screen.Settings.route) },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }
         composable(Screen.TaskEdit.route) {
@@ -111,7 +114,8 @@ fun AppNavigation(
             ExpandedScreen(
                 viewModel = viewModel(factory = factory),
                 targetTaskId = taskId,
-                onDismiss = { navController.popBackStack() }
+                onDismiss = { navController.popBackStack() },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }
         composable(Screen.Help.route) {
@@ -121,6 +125,14 @@ fun AppNavigation(
             SettingsScreen(
                 viewModel = viewModel(factory = factory),
                 onBack    = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.WidgetList.route) {
+            WidgetListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWidgetSettings = { widgetId ->
+                    navController.navigate(Screen.WidgetSettings.createRoute(widgetId))
+                }
             )
         }
         composable(

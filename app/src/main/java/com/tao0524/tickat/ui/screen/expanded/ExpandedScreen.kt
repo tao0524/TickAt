@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -43,7 +44,8 @@ import java.time.format.DateTimeFormatter
 fun ExpandedScreen(
     viewModel: ExpandedViewModel,
     targetTaskId: String? = null,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenWidgetList: () -> Unit = {}
 ) {
     LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
 
@@ -63,6 +65,15 @@ fun ExpandedScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "戻る",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenWidgetList) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "ウィジェット設定",
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }

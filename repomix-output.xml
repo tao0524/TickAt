@@ -68,6 +68,7 @@ app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditScreen.kt
 app/src/main/java/com/tao0524/tickat/ui/screen/taskedit/TaskEditViewModel.kt
 app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListScreen.kt
 app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt
+app/src/main/java/com/tao0524/tickat/ui/screen/widgetlist/WidgetListScreen.kt
 app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt
 app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt
 app/src/main/java/com/tao0524/tickat/ui/theme/Type.kt
@@ -122,6 +123,177 @@ settings.gradle.kts
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/widgetlist/WidgetListScreen.kt">
+package com.tao0524.tickat.ui.screen.widgetlist
+
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.tao0524.tickat.widget.TickAtWidgetReceiver
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WidgetListScreen(
+    onBack: () -> Unit,
+    onOpenWidgetSettings: (Int) -> Unit
+) {
+    val context = LocalContext.current
+    val widgetIds = remember { getActiveWidgetIds(context) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "ウィジェット設定",
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        if (widgetIds.isEmpty()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "ウィジェットが配置されていません",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 16.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "ホーム画面にウィジェットを追加してください",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 13.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item { Spacer(Modifier.height(8.dp)) }
+                items(widgetIds) { widgetId ->
+                    WidgetListItem(
+                        widgetId = widgetId,
+                        onClick  = { onOpenWidgetSettings(widgetId) }
+                    )
+                }
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetListItem(
+    widgetId: Int,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "ウィジェット #$widgetId",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "ID: $widgetId",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "設定",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+}
+
+private fun getActiveWidgetIds(context: Context): List<Int> {
+    return TickAtWidgetReceiver.loadWidgetIds(context)
+}
+</file>
 
 <file path=".gitignore">
 *.iml
@@ -594,68 +766,6 @@ val Typography = Typography(
     )
     */
 )
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetConfigActivity.kt">
-package com.tao0524.tickat.widget
-
-import android.appwidget.AppWidgetManager
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.tao0524.tickat.data.local.AppDatabase
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.SettingsViewModelFactory
-import com.tao0524.tickat.ui.screen.settings.SettingsScreen
-import com.tao0524.tickat.ui.theme.TickAtTheme
-
-class WidgetConfigActivity : ComponentActivity() {
-
-    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        setResult(RESULT_CANCELED)
-
-        appWidgetId = intent?.extras?.getInt(
-            AppWidgetManager.EXTRA_APPWIDGET_ID,
-            AppWidgetManager.INVALID_APPWIDGET_ID
-        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
-
-        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
-            finish()
-            return
-        }
-
-        val repository = TaskRepository(
-            AppDatabase.getInstance(applicationContext).taskDao()
-        )
-        val factory = SettingsViewModelFactory(
-            context      = applicationContext,
-            repository   = repository,
-            appWidgetId  = appWidgetId
-        )
-
-        val resultValue = Intent().apply {
-            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-        }
-
-        setContent {
-            TickAtTheme {
-                SettingsScreen(
-                    viewModel = viewModel(factory = factory),
-                    onBack    = {
-                        setResult(RESULT_OK, resultValue)
-                        finish()
-                    }
-                )
-            }
-        }
-    }
-}
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/widget/WidgetDataStoreManager.kt">
@@ -1504,147 +1614,6 @@ class MainActivity : ComponentActivity() {
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt">
-package com.tao0524.tickat.ui.navigation
-
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.NavType
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.ViewModelFactory
-import com.tao0524.tickat.ui.SettingsViewModelFactory
-import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
-import androidx.compose.ui.platform.LocalContext
-import com.tao0524.tickat.ui.screen.help.HelpScreen
-import com.tao0524.tickat.ui.screen.settings.SettingsScreen
-import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-import com.tao0524.tickat.ui.screen.onboarding.OnboardingScreen
-import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
-import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
-
-sealed class Screen(val route: String) {
-    object Onboarding     : Screen("onboarding")
-    object TaskList       : Screen("task_list")
-    object TaskEdit       : Screen("task_edit")
-    object Expanded       : Screen("expanded")
-    object Help           : Screen("help")
-    object Settings       : Screen("settings")
-    object WidgetSettings : Screen("widget_settings/{widgetId}") {
-        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
-    }
-}
-
-@Composable
-fun AppNavigation(
-    repository: TaskRepository,
-    startWithOnboarding: Boolean = false,
-    onOnboardingComplete: () -> Unit = {},
-    openExpandedOnStart: Boolean = false,
-    expandedTaskId: String? = null,
-    onExpandedConsumed: () -> Unit = {},
-    navController: NavHostController = rememberNavController()
-) {
-    val context = LocalContext.current
-    val factory = ViewModelFactory(repository, context)
-    val startDestination = if (startWithOnboarding) Screen.Onboarding.route
-    else Screen.TaskList.route
-
-    LaunchedEffect(openExpandedOnStart) {
-        if (openExpandedOnStart) {
-            val route = if (expandedTaskId != null) {
-                "${Screen.Expanded.route}?taskId=$expandedTaskId"
-            } else {
-                Screen.Expanded.route
-            }
-            navController.navigate(route)
-            onExpandedConsumed()
-        }
-    }
-
-    NavHost(navController = navController, startDestination = startDestination) {
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
-                onComplete = {
-                    onOnboardingComplete()
-                    navController.navigate(Screen.TaskList.route) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-        composable(Screen.TaskList.route) {
-            TaskListScreen(
-                viewModel      = viewModel(factory = factory),
-                onAddTask      = { navController.navigate(Screen.TaskEdit.route) },
-                onEditTask     = { taskId ->
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("taskId", taskId)
-                    navController.navigate(Screen.TaskEdit.route)
-                },
-                onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenSettings = { navController.navigate(Screen.Settings.route) }
-            )
-        }
-        composable(Screen.TaskEdit.route) {
-            val taskId: String? = rememberSaveable {
-                navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.get<String>("taskId") ?: ""
-            }.ifEmpty { null }
-            TaskEditScreen(
-                taskId    = taskId,
-                viewModel = viewModel(factory = factory),
-                onDone    = {
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<String>("taskId")
-                    navController.popBackStack()
-                }
-            )
-        }
-        composable(
-            route = "${Screen.Expanded.route}?taskId={taskId}",
-            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
-        ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
-            ExpandedScreen(
-                viewModel = viewModel(factory = factory),
-                targetTaskId = taskId,
-                onDismiss = { navController.popBackStack() }
-            )
-        }
-        composable(Screen.Help.route) {
-            HelpScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(
-                viewModel = viewModel(factory = factory),
-                onBack    = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route = Screen.WidgetSettings.route,
-            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val widgetId = backStackEntry.arguments?.getInt("widgetId") ?: 0
-            val widgetFactory = SettingsViewModelFactory(context, repository, widgetId)
-            SettingsScreen(
-                viewModel = viewModel(factory = widgetFactory),
-                onBack    = { navController.popBackStack() }
-            )
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt">
 package com.tao0524.tickat.ui.theme
 
@@ -1773,6 +1742,68 @@ class BootCompletedReceiver : BroadcastReceiver() {
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/widget/WidgetConfigActivity.kt">
+package com.tao0524.tickat.widget
+
+import android.appwidget.AppWidgetManager
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.SettingsViewModelFactory
+import com.tao0524.tickat.ui.screen.settings.SettingsScreen
+import com.tao0524.tickat.ui.theme.TickAtTheme
+
+class WidgetConfigActivity : ComponentActivity() {
+
+    private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        setResult(RESULT_CANCELED)
+
+        appWidgetId = intent?.extras?.getInt(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+
+        if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
+            finish()
+            return
+        }
+
+        val repository = TaskRepository(
+            AppDatabase.getInstance(applicationContext).taskDao()
+        )
+        val factory = SettingsViewModelFactory(
+            context      = applicationContext,
+            repository   = repository,
+            appWidgetId  = appWidgetId
+        )
+
+        val resultValue = Intent().apply {
+            putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+        }
+
+        setContent {
+            TickAtTheme {
+                SettingsScreen(
+                    viewModel = viewModel(factory = factory),
+                    onBack    = {
+                        setResult(RESULT_OK, resultValue)
+                        finish()
+                    }
+                )
+            }
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/res/drawable/ic_launcher_background.xml">
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -1805,8 +1836,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/tickat_widget_loading"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen"
-    android:configure="com.tao0524.tickat.widget.WidgetConfigActivity" />
+    android:widgetCategory="home_screen" />
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
@@ -1917,6 +1947,159 @@ data class Task(
 )
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt">
+package com.tao0524.tickat.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.ViewModelFactory
+import com.tao0524.tickat.ui.SettingsViewModelFactory
+import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
+import androidx.compose.ui.platform.LocalContext
+import com.tao0524.tickat.ui.screen.help.HelpScreen
+import com.tao0524.tickat.ui.screen.settings.SettingsScreen
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+import com.tao0524.tickat.ui.screen.onboarding.OnboardingScreen
+import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
+import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
+import com.tao0524.tickat.ui.screen.widgetlist.WidgetListScreen
+
+sealed class Screen(val route: String) {
+    object Onboarding     : Screen("onboarding")
+    object TaskList       : Screen("task_list")
+    object TaskEdit       : Screen("task_edit")
+    object Expanded       : Screen("expanded")
+    object Help           : Screen("help")
+    object Settings       : Screen("settings")
+    object WidgetSettings : Screen("widget_settings/{widgetId}") {
+        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
+    }
+    object WidgetList : Screen("widget_list")
+}
+
+@Composable
+fun AppNavigation(
+    repository: TaskRepository,
+    startWithOnboarding: Boolean = false,
+    onOnboardingComplete: () -> Unit = {},
+    openExpandedOnStart: Boolean = false,
+    expandedTaskId: String? = null,
+    onExpandedConsumed: () -> Unit = {},
+    navController: NavHostController = rememberNavController()
+) {
+    val context = LocalContext.current
+    val factory = ViewModelFactory(repository, context)
+    val startDestination = if (startWithOnboarding) Screen.Onboarding.route
+    else Screen.TaskList.route
+
+    LaunchedEffect(openExpandedOnStart) {
+        if (openExpandedOnStart) {
+            val route = if (expandedTaskId != null) {
+                "${Screen.Expanded.route}?taskId=$expandedTaskId"
+            } else {
+                Screen.Expanded.route
+            }
+            navController.navigate(route)
+            onExpandedConsumed()
+        }
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onComplete = {
+                    onOnboardingComplete()
+                    navController.navigate(Screen.TaskList.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.TaskList.route) {
+            TaskListScreen(
+                viewModel      = viewModel(factory = factory),
+                onAddTask      = { navController.navigate(Screen.TaskEdit.route) },
+                onEditTask     = { taskId ->
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("taskId", taskId)
+                    navController.navigate(Screen.TaskEdit.route)
+                },
+                onOpenHelp     = { navController.navigate(Screen.Help.route) },
+                onOpenSettings = { navController.navigate(Screen.Settings.route) },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+            )
+        }
+        composable(Screen.TaskEdit.route) {
+            val taskId: String? = rememberSaveable {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("taskId") ?: ""
+            }.ifEmpty { null }
+            TaskEditScreen(
+                taskId    = taskId,
+                viewModel = viewModel(factory = factory),
+                onDone    = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("taskId")
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(
+            route = "${Screen.Expanded.route}?taskId={taskId}",
+            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
+            ExpandedScreen(
+                viewModel = viewModel(factory = factory),
+                targetTaskId = taskId,
+                onDismiss = { navController.popBackStack() },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+            )
+        }
+        composable(Screen.Help.route) {
+            HelpScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                viewModel = viewModel(factory = factory),
+                onBack    = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.WidgetList.route) {
+            WidgetListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWidgetSettings = { widgetId ->
+                    navController.navigate(Screen.WidgetSettings.createRoute(widgetId))
+                }
+            )
+        }
+        composable(
+            route = Screen.WidgetSettings.route,
+            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val widgetId = backStackEntry.arguments?.getInt("widgetId") ?: 0
+            val widgetFactory = SettingsViewModelFactory(context, repository, widgetId)
+            SettingsScreen(
+                viewModel = viewModel(factory = widgetFactory),
+                onBack    = { navController.popBackStack() }
+            )
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedViewModel.kt">
 package com.tao0524.tickat.ui.screen.expanded
 
@@ -2010,51 +2193,6 @@ class ExpandedViewModel(
                 }
             }
         }
-    }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt">
-package com.tao0524.tickat.ui
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.screen.expanded.ExpandedViewModel
-import com.tao0524.tickat.ui.screen.taskedit.TaskEditViewModel
-import com.tao0524.tickat.ui.screen.tasklist.TaskListViewModel
-
-import android.content.Context
-import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-
-class ViewModelFactory(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
-        modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
-            TaskListViewModel(repository, context) as T
-        modelClass.isAssignableFrom(TaskEditViewModel::class.java) ->
-            TaskEditViewModel(repository, context) as T
-        modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
-            ExpandedViewModel(repository, context) as T
-        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(context.applicationContext, repository, appWidgetId = 0) as T
-        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
-    }
-}
-
-class SettingsViewModelFactory(
-    private val context: Context,
-    private val repository: TaskRepository?,
-    private val appWidgetId: Int
-) : ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
-        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-            SettingsViewModel(context.applicationContext, repository, appWidgetId) as T
-        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
     }
 }
 </file>
@@ -2540,6 +2678,51 @@ private fun FeatureChip(label: String, color: Color) {
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/ViewModelFactory.kt">
+package com.tao0524.tickat.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.screen.expanded.ExpandedViewModel
+import com.tao0524.tickat.ui.screen.taskedit.TaskEditViewModel
+import com.tao0524.tickat.ui.screen.tasklist.TaskListViewModel
+
+import android.content.Context
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+
+class ViewModelFactory(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(TaskListViewModel::class.java) ->
+            TaskListViewModel(repository, context) as T
+        modelClass.isAssignableFrom(TaskEditViewModel::class.java) ->
+            TaskEditViewModel(repository, context) as T
+        modelClass.isAssignableFrom(ExpandedViewModel::class.java) ->
+            ExpandedViewModel(repository, context) as T
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(context.applicationContext, repository, appWidgetId = 0) as T
+        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
+    }
+}
+
+class SettingsViewModelFactory(
+    private val context: Context,
+    private val repository: TaskRepository?,
+    private val appWidgetId: Int
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
+            SettingsViewModel(context.applicationContext, repository, appWidgetId) as T
+        else -> throw IllegalArgumentException("Unknown ViewModel: ${modelClass.name}")
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
 package com.tao0524.tickat.ui.screen.expanded
 
@@ -2557,6 +2740,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -2586,7 +2770,8 @@ import java.time.format.DateTimeFormatter
 fun ExpandedScreen(
     viewModel: ExpandedViewModel,
     targetTaskId: String? = null,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onOpenWidgetList: () -> Unit = {}
 ) {
     LaunchedEffect(targetTaskId) { viewModel.setTargetTaskId(targetTaskId) }
 
@@ -2606,6 +2791,15 @@ fun ExpandedScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "戻る",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onOpenWidgetList) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "ウィジェット設定",
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -4305,12 +4499,8 @@ class TaskListViewModel(
 
         <activity
             android:name=".widget.WidgetConfigActivity"
-            android:exported="true"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:theme="@style/Theme.TickAt" />
 
         <service
             android:name=".widget.WidgetUpdateService"
@@ -4526,6 +4716,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -4578,7 +4769,8 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (String) -> Unit,
     onOpenHelp: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenWidgetList: () -> Unit = {}
 ) {
     val tasks by viewModel.tasks.collectAsState()
     val guideStep by viewModel.guideStep.collectAsState()
@@ -4595,6 +4787,13 @@ fun TaskListScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onOpenWidgetList) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "ウィジェット設定",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Text(
                             text = "設定",
@@ -5030,11 +5229,59 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
         )
     }
 
+    override fun onAppWidgetOptionsChanged(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetId: Int,
+        newOptions: android.os.Bundle
+    ) {
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+        saveWidgetIds(context, listOf(appWidgetId))
+        context.startForegroundService(
+            Intent(context, WidgetUpdateService::class.java).apply {
+                putExtra(WidgetUpdateService.EXTRA_WIDGET_IDS, intArrayOf(appWidgetId))
+            }
+        )
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        removeWidgetIds(context, appWidgetIds.toList())
+        val host = android.appwidget.AppWidgetHost(context, 1)
+        for (id in appWidgetIds) {
+            host.deleteAppWidgetId(id)
+        }
+    }
+
     companion object {
+        private const val PREFS_NAME = "tickat_widget_ids"
+        private const val KEY_IDS = "active_widget_ids"
+
         fun updateAllWidgets(context: Context) {
             context.startForegroundService(
                 Intent(context, WidgetUpdateService::class.java)
             )
+        }
+
+        fun saveWidgetIds(context: Context, newIds: List<Int>) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val existing = loadWidgetIds(context).toMutableSet()
+            existing.addAll(newIds)
+            prefs.edit().putString(KEY_IDS, existing.joinToString(",")).apply()
+        }
+
+        fun removeWidgetIds(context: Context, removedIds: List<Int>) {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val existing = loadWidgetIds(context).toMutableSet()
+            existing.removeAll(removedIds.toSet())
+            prefs.edit().putString(KEY_IDS, existing.joinToString(",")).apply()
+        }
+
+        fun loadWidgetIds(context: Context): List<Int> {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val raw = prefs.getString(KEY_IDS, "") ?: ""
+            if (raw.isEmpty()) return emptyList()
+            return raw.split(",").mapNotNull { it.trim().toIntOrNull() }
         }
     }
 }
@@ -5117,9 +5364,17 @@ import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 
 class WidgetUpdateService : Service() {
 
+    companion object {
+        const val EXTRA_WIDGET_IDS = "extra_widget_ids"
+    }
+
+    private val observerStartedIds = mutableSetOf<Int>()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private var tickJob: Job? = null
     private var settingsJob: Job? = null
@@ -5173,6 +5428,11 @@ class WidgetUpdateService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val ids = intent?.getIntArrayExtra(EXTRA_WIDGET_IDS)
+        android.util.Log.d("TickAtGhost", "onStartCommand newIds=${ids?.toList()} knownIds=${TickAtWidgetReceiver.loadWidgetIds(this)} observerStarted=$observerStartedIds")
+        ids?.forEach { id ->
+            startSettingsObserverForWidget(id)
+        }
         return START_STICKY
     }
 
@@ -5187,17 +5447,37 @@ class WidgetUpdateService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startSettingsObserver() {
-        val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
-            ComponentName(this, TickAtWidgetReceiver::class.java)
-        )
+        val prefs = getSharedPreferences("tickat_ghost_cleanup", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("cleaned", false)) {
+            val widgetPrefs = getSharedPreferences("tickat_widget_ids", Context.MODE_PRIVATE)
+            widgetPrefs.edit().clear().apply()
+            prefs.edit().putBoolean("cleaned", true).apply()
+            android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
+        }
+        val ids = TickAtWidgetReceiver.loadWidgetIds(this)
+        android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
         for (id in ids) {
             startSettingsObserverForWidget(id)
         }
     }
 
     private fun startSettingsObserverForWidget(appWidgetId: Int) {
+        if (appWidgetId in observerStartedIds) return
+        observerStartedIds.add(appWidgetId)
         serviceScope.launch {
+            // 初回（ID別DataStoreが空）の場合はdisplaySettingsDataStoreから設定を移行する
+            val widgetStore = WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId)
+            val currentPrefs = widgetStore.data.first()
+            if (currentPrefs[KEY_BG_COLOR] == null) {
+                val legacyPrefs = displaySettingsDataStore.data.first()
+                widgetStore.edit { mutablePrefs ->
+                    legacyPrefs.asMap().forEach { (key, value) ->
+                        @Suppress("UNCHECKED_CAST")
+                        val typedKey = key as androidx.datastore.preferences.core.Preferences.Key<Any>
+                        mutablePrefs[typedKey] = value
+                    }
+                }
+            }
             WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId).data.collect { prefs ->
                 val newSettings = AppSettings(
                     bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
@@ -5337,9 +5617,7 @@ class WidgetUpdateService : Service() {
 
     private fun updateWidgets() {
         val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
-            ComponentName(this, TickAtWidgetReceiver::class.java)
-        )
+        val ids = TickAtWidgetReceiver.loadWidgetIds(this)
         if (ids.isEmpty()) {
             stopSelf()
             return

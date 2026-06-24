@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -72,7 +73,8 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (String) -> Unit,
     onOpenHelp: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenWidgetList: () -> Unit = {}
 ) {
     val tasks by viewModel.tasks.collectAsState()
     val guideStep by viewModel.guideStep.collectAsState()
@@ -89,6 +91,13 @@ fun TaskListScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = onOpenWidgetList) {
+                        Icon(
+                            Icons.Default.Settings,
+                            contentDescription = "ウィジェット設定",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Text(
                             text = "設定",

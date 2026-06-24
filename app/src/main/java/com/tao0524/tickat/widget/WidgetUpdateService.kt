@@ -74,9 +74,17 @@ import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import androidx.datastore.preferences.core.edit
+import kotlinx.coroutines.flow.first
 
 class WidgetUpdateService : Service() {
 
+    companion object {
+        const val EXTRA_WIDGET_IDS = "extra_widget_ids"
+    }
+
+    private val observerStartedIds = mutableSetOf<Int>()
     private val serviceScope = CoroutineScope(Dispatchers.IO)
     private var tickJob: Job? = null
     private var settingsJob: Job? = null
@@ -130,6 +138,11 @@ class WidgetUpdateService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val ids = intent?.getIntArrayExtra(EXTRA_WIDGET_IDS)
+        android.util.Log.d("TickAtGhost", "onStartCommand newIds=${ids?.toList()} knownIds=${TickAtWidgetReceiver.loadWidgetIds(this)} observerStarted=$observerStartedIds")
+        ids?.forEach { id ->
+            startSettingsObserverForWidget(id)
+        }
         return START_STICKY
     }
 
@@ -144,17 +157,37 @@ class WidgetUpdateService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun startSettingsObserver() {
-        val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
-            ComponentName(this, TickAtWidgetReceiver::class.java)
-        )
+        val prefs = getSharedPreferences("tickat_ghost_cleanup", Context.MODE_PRIVATE)
+        if (!prefs.getBoolean("cleaned", false)) {
+            val widgetPrefs = getSharedPreferences("tickat_widget_ids", Context.MODE_PRIVATE)
+            widgetPrefs.edit().clear().apply()
+            prefs.edit().putBoolean("cleaned", true).apply()
+            android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
+        }
+        val ids = TickAtWidgetReceiver.loadWidgetIds(this)
+        android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
         for (id in ids) {
             startSettingsObserverForWidget(id)
         }
     }
 
     private fun startSettingsObserverForWidget(appWidgetId: Int) {
+        if (appWidgetId in observerStartedIds) return
+        observerStartedIds.add(appWidgetId)
         serviceScope.launch {
+            // 初回（ID別DataStoreが空）の場合はdisplaySettingsDataStoreから設定を移行する
+            val widgetStore = WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId)
+            val currentPrefs = widgetStore.data.first()
+            if (currentPrefs[KEY_BG_COLOR] == null) {
+                val legacyPrefs = displaySettingsDataStore.data.first()
+                widgetStore.edit { mutablePrefs ->
+                    legacyPrefs.asMap().forEach { (key, value) ->
+                        @Suppress("UNCHECKED_CAST")
+                        val typedKey = key as androidx.datastore.preferences.core.Preferences.Key<Any>
+                        mutablePrefs[typedKey] = value
+                    }
+                }
+            }
             WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId).data.collect { prefs ->
                 val newSettings = AppSettings(
                     bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
@@ -294,9 +327,7 @@ class WidgetUpdateService : Service() {
 
     private fun updateWidgets() {
         val manager = AppWidgetManager.getInstance(this)
-        val ids = manager.getAppWidgetIds(
-            ComponentName(this, TickAtWidgetReceiver::class.java)
-        )
+        val ids = TickAtWidgetReceiver.loadWidgetIds(this)
         if (ids.isEmpty()) {
             stopSelf()
             return
