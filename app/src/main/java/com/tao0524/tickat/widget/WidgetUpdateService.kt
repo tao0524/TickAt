@@ -139,7 +139,7 @@ class WidgetUpdateService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val ids = intent?.getIntArrayExtra(EXTRA_WIDGET_IDS)
-        android.util.Log.d("TickAtGhost", "onStartCommand newIds=${ids?.toList()} knownIds=${TickAtWidgetReceiver.loadWidgetIds(this)} observerStarted=$observerStartedIds")
+        // android.util.Log.d("TickAtGhost", "onStartCommand newIds=${ids?.toList()} knownIds=${TickAtWidgetReceiver.loadWidgetIds(this)} observerStarted=$observerStartedIds")
         ids?.forEach { id ->
             startSettingsObserverForWidget(id)
         }
@@ -162,10 +162,10 @@ class WidgetUpdateService : Service() {
             val widgetPrefs = getSharedPreferences("tickat_widget_ids", Context.MODE_PRIVATE)
             widgetPrefs.edit().clear().apply()
             prefs.edit().putBoolean("cleaned", true).apply()
-            android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
+            // android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
         }
         val ids = TickAtWidgetReceiver.loadWidgetIds(this)
-        android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
+        // android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
         for (id in ids) {
             startSettingsObserverForWidget(id)
         }
@@ -191,7 +191,7 @@ class WidgetUpdateService : Service() {
                     fontWeight           = prefs[KEY_FONT_WEIGHT]
                         ?.let { runCatching { TextWeight.valueOf(it) }.getOrNull() }
                         ?: TextWeight.BOLD,
-                    cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.5f,
+                    cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.1f,
                     dateTextColor        = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
                     notificationSoundUri = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
                     notificationDuration = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
