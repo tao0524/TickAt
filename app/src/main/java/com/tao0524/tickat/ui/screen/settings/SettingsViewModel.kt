@@ -83,17 +83,17 @@ enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
 
 data class AppSettings(
-    val bgColor:             Long        = 0xFF1C1B1FL,
-    val bgAlpha:             Int         = 100,
+    val bgColor:             Long        = 0xFF1A237EL,
+    val bgAlpha:             Int         = 95,
     val bgGradientEnd:       Long        = 0L,
-    val textColor:           Long        = 0xFFE6E1E5L,
+    val textColor:           Long        = 0xFFFFFFFFL,
     val use24Hour:           Boolean     = true,
     val showTime:            Boolean     = true,
     val showSeconds:         Boolean     = false,
     val dateFormat:          String      = "",
     val weekdayFormat:       String      = "",
     val dateWeekdayOrder:    String      = "WEEKDAY_FIRST",
-    val datePattern:         String      = "",
+    val datePattern:         String      = "M月d日",
     val fontWeight:          TextWeight  = TextWeight.BOLD,
     val cornerRadiusRatio:   Float       = 0.5f,
     val dateTextColor:            Long   = 0x99E6E1E5L,

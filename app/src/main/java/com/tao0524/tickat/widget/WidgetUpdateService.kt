@@ -175,25 +175,12 @@ class WidgetUpdateService : Service() {
         if (appWidgetId in observerStartedIds) return
         observerStartedIds.add(appWidgetId)
         serviceScope.launch {
-            // 初回（ID別DataStoreが空）の場合はdisplaySettingsDataStoreから設定を移行する
-            val widgetStore = WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId)
-            val currentPrefs = widgetStore.data.first()
-            if (currentPrefs[KEY_BG_COLOR] == null) {
-                val legacyPrefs = displaySettingsDataStore.data.first()
-                widgetStore.edit { mutablePrefs ->
-                    legacyPrefs.asMap().forEach { (key, value) ->
-                        @Suppress("UNCHECKED_CAST")
-                        val typedKey = key as androidx.datastore.preferences.core.Preferences.Key<Any>
-                        mutablePrefs[typedKey] = value
-                    }
-                }
-            }
             WidgetDataStoreManager.getStore(this@WidgetUpdateService, appWidgetId).data.collect { prefs ->
                 val newSettings = AppSettings(
-                    bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1C1B1FL,
-                    bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 100,
+                    bgColor              = prefs[KEY_BG_COLOR]          ?: 0xFF1A237EL,
+                    bgAlpha              = prefs[KEY_BG_ALPHA]           ?: 95,
                     bgGradientEnd        = prefs[KEY_BG_GRADIENT_END]    ?: 0L,
-                    textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFE6E1E5L,
+                    textColor            = prefs[KEY_TEXT_COLOR]         ?: 0xFFFFFFFFL,
                     use24Hour            = prefs[KEY_USE_24_HOUR]        ?: true,
                     showTime             = prefs[KEY_SHOW_TIME]          ?: true,
                     showSeconds          = prefs[KEY_SHOW_SECONDS]       ?: false,

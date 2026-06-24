@@ -68,6 +68,10 @@ class MainActivity : ComponentActivity() {
             _onboardingChecked.value = complete
         }
 
+        startForegroundService(
+            Intent(this, com.tao0524.tickat.widget.WidgetUpdateService::class.java)
+        )
+
         val db         = AppDatabase.getInstance(applicationContext)
         val repository = TaskRepository(db.taskDao())
 

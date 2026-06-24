@@ -18,16 +18,24 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        context.startForegroundService(
-            Intent(context, WidgetUpdateService::class.java)
-        )
+        try {
+            context.startForegroundService(
+                Intent(context, WidgetUpdateService::class.java)
+            )
+        } catch (e: Exception) {
+            // HyperOS: バックグラウンドからの起動を無視（onAppWidgetOptionsChangedで再起動される）
+        }
     }
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)
-        context.startForegroundService(
-            Intent(context, WidgetUpdateService::class.java)
-        )
+        try {
+            context.startForegroundService(
+                Intent(context, WidgetUpdateService::class.java)
+            )
+        } catch (e: Exception) {
+            // HyperOS: バックグラウンドからの起動を無視
+        }
     }
 
     override fun onDisabled(context: Context) {
