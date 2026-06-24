@@ -85,7 +85,7 @@ fun AppNavigation(
                     navController.navigate(Screen.TaskEdit.route)
                 },
                 onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenSettings = { navController.navigate(Screen.Settings.route) },
+                onOpenSettings = { navController.navigate(Screen.WidgetList.route) },
                 onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }
@@ -120,12 +120,6 @@ fun AppNavigation(
         }
         composable(Screen.Help.route) {
             HelpScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen(
-                viewModel = viewModel(factory = factory),
-                onBack    = { navController.popBackStack() }
-            )
         }
         composable(Screen.WidgetList.route) {
             WidgetListScreen(
