@@ -60,6 +60,7 @@ import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.component.FirstTimeHint
+import androidx.compose.ui.text.style.TextAlign
 
 private fun TaskType.accentColor() = when (this) {
     TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
@@ -268,10 +269,18 @@ private fun EmptyState(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "サンプルではじめる",
+                "サンプルを試してみる",
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "※上のグラフのイラストは使いかたのイメージです\n※サンプルはあとから自由に編集・削除できます",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            lineHeight = 18.sp
+        )
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onAddTask) {
             Text(

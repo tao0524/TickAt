@@ -77,29 +77,27 @@ class TaskListViewModel(
             val templates = listOf(
                 Task(
                     name = "朝のルーティン",
-                    startTime = LocalTime.of(7, 0),
-                    endTime = LocalTime.of(9, 0),
+                    startTime = LocalTime.of(6, 0),
+                    endTime = LocalTime.of(6, 30),
                     repeat = RepeatType.DAILY,
                     sortOrder = 0,
                     taskType = TaskType.TIMEBLOCK
                 ),
                 Task(
-                    name = "お昼のリマインダー",
+                    name = "昼休み",
                     startTime = LocalTime.of(12, 0),
-                    endTime = LocalTime.of(12, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "お昼ごはん忘れずに",
+                    endTime = LocalTime.of(13, 0),
+                    repeat = RepeatType.WEEKDAY,
                     sortOrder = 1,
-                    taskType = TaskType.REMINDER
+                    taskType = TaskType.TIMEBLOCK
                 ),
                 Task(
-                    name = "おつかれさま",
-                    startTime = LocalTime.of(18, 0),
-                    endTime = LocalTime.of(23, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "今日もおつかれさま",
+                    name = "食事会",
+                    startTime = LocalTime.of(19, 0),
+                    endTime = LocalTime.of(19, 0),
+                    repeat = RepeatType.ONCE,
                     sortOrder = 2,
-                    taskType = TaskType.TIMEBLOCK
+                    taskType = TaskType.REMINDER
                 )
             )
             templates.forEach {

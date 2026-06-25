@@ -3154,159 +3154,6 @@ class ViewModelFactory(
 </FrameLayout>
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt">
-package com.tao0524.tickat.ui.navigation
-
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.MutableCreationExtras
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.NavType
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.ViewModelFactory
-import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
-import androidx.compose.ui.platform.LocalContext
-import com.tao0524.tickat.ui.screen.help.HelpScreen
-import com.tao0524.tickat.ui.screen.settings.SettingsScreen
-import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-import com.tao0524.tickat.ui.screen.onboarding.OnboardingScreen
-import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
-import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
-import com.tao0524.tickat.ui.screen.widgetlist.WidgetListScreen
-
-sealed class Screen(val route: String) {
-    object Onboarding     : Screen("onboarding")
-    object TaskList       : Screen("task_list")
-    object TaskEdit       : Screen("task_edit")
-    object Expanded       : Screen("expanded")
-    object Help           : Screen("help")
-    object Settings       : Screen("settings")
-    object WidgetSettings : Screen("widget_settings/{widgetId}") {
-        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
-    }
-    object WidgetList : Screen("widget_list")
-}
-
-@Composable
-fun AppNavigation(
-    repository: TaskRepository,
-    startWithOnboarding: Boolean = false,
-    onOnboardingComplete: () -> Unit = {},
-    openExpandedOnStart: Boolean = false,
-    expandedTaskId: String? = null,
-    onExpandedConsumed: () -> Unit = {},
-    navController: NavHostController = rememberNavController()
-) {
-    val context = LocalContext.current
-    val factory = ViewModelFactory(repository, context)
-    val startDestination = if (startWithOnboarding) Screen.Onboarding.route
-    else Screen.TaskList.route
-
-    LaunchedEffect(openExpandedOnStart) {
-        if (openExpandedOnStart) {
-            val route = if (expandedTaskId != null) {
-                "${Screen.Expanded.route}?taskId=$expandedTaskId"
-            } else {
-                Screen.Expanded.route
-            }
-            navController.navigate(route)
-            onExpandedConsumed()
-        }
-    }
-
-    NavHost(navController = navController, startDestination = startDestination) {
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
-                onComplete = {
-                    onOnboardingComplete()
-                    navController.navigate(Screen.TaskList.route) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
-                    }
-                }
-            )
-        }
-        composable(Screen.TaskList.route) {
-            TaskListScreen(
-                viewModel      = viewModel(factory = factory),
-                onAddTask      = { navController.navigate(Screen.TaskEdit.route) },
-                onEditTask     = { taskId ->
-                    navController.currentBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("taskId", taskId)
-                    navController.navigate(Screen.TaskEdit.route)
-                },
-                onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
-            )
-        }
-        composable(Screen.TaskEdit.route) {
-            val taskId: String? = rememberSaveable {
-                navController.previousBackStackEntry
-                    ?.savedStateHandle
-                    ?.get<String>("taskId") ?: ""
-            }.ifEmpty { null }
-            TaskEditScreen(
-                taskId    = taskId,
-                viewModel = viewModel(factory = factory),
-                onDone    = {
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.remove<String>("taskId")
-                    navController.popBackStack()
-                }
-            )
-        }
-        composable(
-            route = "${Screen.Expanded.route}?taskId={taskId}",
-            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
-        ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
-            ExpandedScreen(
-                viewModel = viewModel(factory = factory),
-                targetTaskId = taskId,
-                onDismiss = { navController.popBackStack() },
-                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
-            )
-        }
-        composable(Screen.Help.route) {
-            HelpScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Screen.WidgetList.route) {
-            WidgetListScreen(
-                onBack = { navController.popBackStack() },
-                onOpenWidgetSettings = { widgetId ->
-                    navController.navigate(Screen.WidgetSettings.createRoute(widgetId))
-                }
-            )
-        }
-        composable(
-            route = Screen.WidgetSettings.route,
-            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val extras = androidx.lifecycle.viewmodel.MutableCreationExtras(
-                backStackEntry.defaultViewModelCreationExtras
-            ).apply {
-                set(SettingsViewModel.CONTEXT_KEY,    context)
-                set(SettingsViewModel.REPOSITORY_KEY, repository)
-            }
-            SettingsScreen(
-                viewModel = viewModel(
-                    factory = SettingsViewModel.Factory,
-                    extras  = extras
-                ),
-                onBack = { navController.popBackStack() }
-            )
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedScreen.kt">
 package com.tao0524.tickat.ui.screen.expanded
 
@@ -3507,6 +3354,274 @@ private fun ScheduleCard(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
+package com.tao0524.tickat.ui.screen.tasklist
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalTime
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import android.content.Context
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.map
+
+private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
+private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
+
+class TaskListViewModel(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModel() {
+
+    val tasks = repository.allTasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
+
+    val guideStep = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun advanceGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                val current = prefs[KEY_GUIDE_STEP] ?: 0
+                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
+            }
+        }
+    }
+
+    fun completeGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 4
+            }
+        }
+    }
+
+    val hintTaskListShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskList() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKLIST] = true
+            }
+        }
+    }
+
+    fun delete(task: Task) {
+        viewModelScope.launch {
+            TaskAlertScheduler.cancel(context, task.id)
+            repository.delete(task)
+        }
+    }
+
+    fun applyTemplate() {
+        viewModelScope.launch {
+            val templates = listOf(
+                Task(
+                    name = "朝のルーティン",
+                    startTime = LocalTime.of(6, 0),
+                    endTime = LocalTime.of(6, 30),
+                    repeat = RepeatType.DAILY,
+                    sortOrder = 0,
+                    taskType = TaskType.TIMEBLOCK
+                ),
+                Task(
+                    name = "昼休み",
+                    startTime = LocalTime.of(12, 0),
+                    endTime = LocalTime.of(13, 0),
+                    repeat = RepeatType.WEEKDAY,
+                    sortOrder = 1,
+                    taskType = TaskType.TIMEBLOCK
+                ),
+                Task(
+                    name = "食事会",
+                    startTime = LocalTime.of(19, 0),
+                    endTime = LocalTime.of(19, 0),
+                    repeat = RepeatType.ONCE,
+                    sortOrder = 2,
+                    taskType = TaskType.REMINDER
+                )
+            )
+            templates.forEach {
+                repository.save(it)
+                TaskAlertScheduler.schedule(context, it)
+            }
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 1
+            }
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt">
+package com.tao0524.tickat.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.ViewModelFactory
+import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
+import androidx.compose.ui.platform.LocalContext
+import com.tao0524.tickat.ui.screen.help.HelpScreen
+import com.tao0524.tickat.ui.screen.settings.SettingsScreen
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+import com.tao0524.tickat.ui.screen.onboarding.OnboardingScreen
+import com.tao0524.tickat.ui.screen.taskedit.TaskEditScreen
+import com.tao0524.tickat.ui.screen.tasklist.TaskListScreen
+import com.tao0524.tickat.ui.screen.widgetlist.WidgetListScreen
+
+sealed class Screen(val route: String) {
+    object Onboarding     : Screen("onboarding")
+    object TaskList       : Screen("task_list")
+    object TaskEdit       : Screen("task_edit")
+    object Expanded       : Screen("expanded")
+    object Help           : Screen("help")
+    object Settings       : Screen("settings")
+    object WidgetSettings : Screen("widget_settings/{widgetId}") {
+        fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
+    }
+    object WidgetList : Screen("widget_list")
+}
+
+@Composable
+fun AppNavigation(
+    repository: TaskRepository,
+    startWithOnboarding: Boolean = false,
+    onOnboardingComplete: () -> Unit = {},
+    openExpandedOnStart: Boolean = false,
+    expandedTaskId: String? = null,
+    onExpandedConsumed: () -> Unit = {},
+    navController: NavHostController = rememberNavController()
+) {
+    val context = LocalContext.current
+    val factory = ViewModelFactory(repository, context)
+    val startDestination = if (startWithOnboarding) Screen.Onboarding.route
+    else Screen.TaskList.route
+
+    LaunchedEffect(openExpandedOnStart) {
+        if (openExpandedOnStart) {
+            val route = if (expandedTaskId != null) {
+                "${Screen.Expanded.route}?taskId=$expandedTaskId"
+            } else {
+                Screen.Expanded.route
+            }
+            navController.navigate(route)
+            onExpandedConsumed()
+        }
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onComplete = {
+                    onOnboardingComplete()
+                    navController.navigate(Screen.TaskList.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.TaskList.route) {
+            TaskListScreen(
+                viewModel      = viewModel(factory = factory),
+                onAddTask      = { navController.navigate(Screen.TaskEdit.route) },
+                onEditTask     = { taskId ->
+                    navController.currentBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("taskId", taskId)
+                    navController.navigate(Screen.TaskEdit.route)
+                },
+                onOpenHelp     = { navController.navigate(Screen.Help.route) },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+            )
+        }
+        composable(Screen.TaskEdit.route) {
+            val taskId: String? = rememberSaveable {
+                navController.previousBackStackEntry
+                    ?.savedStateHandle
+                    ?.get<String>("taskId") ?: ""
+            }.ifEmpty { null }
+            TaskEditScreen(
+                taskId    = taskId,
+                viewModel = viewModel(factory = factory),
+                onDone    = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.remove<String>("taskId")
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable(
+            route = "${Screen.Expanded.route}?taskId={taskId}",
+            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
+            ExpandedScreen(
+                viewModel = viewModel(factory = factory),
+                targetTaskId = taskId,
+                onDismiss = { navController.popBackStack() },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+            )
+        }
+        composable(Screen.Help.route) {
+            HelpScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.WidgetList.route) {
+            WidgetListScreen(
+                onBack = { navController.popBackStack() },
+                onOpenWidgetSettings = { widgetId ->
+                    navController.navigate(Screen.WidgetSettings.createRoute(widgetId))
+                }
+            )
+        }
+        composable(
+            route = Screen.WidgetSettings.route,
+            arguments = listOf(navArgument("widgetId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val extras = androidx.lifecycle.viewmodel.MutableCreationExtras(
+                backStackEntry.defaultViewModelCreationExtras
+            ).apply {
+                set(SettingsViewModel.CONTEXT_KEY,    context)
+                set(SettingsViewModel.REPOSITORY_KEY, repository)
+            }
+            SettingsScreen(
+                viewModel = viewModel(
+                    factory = SettingsViewModel.Factory,
+                    extras  = extras
+                ),
+                onBack = { navController.popBackStack() }
+            )
+        }
+    }
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/help/HelpScreen.kt">
 package com.tao0524.tickat.ui.screen.help
 
@@ -3621,6 +3736,7 @@ private val guideItems = listOf(
         steps = listOf(
             "「表示設定」→「背景の種類」を開く",
             "透明・単色・線形/放射状グラデーション・画像から選択",
+            "「画像」を選ぶと、端末の写真やギャラリーから好きな画像を背景に設定できます",
             "「カラー」セクションで背景色や透明度を調整"
         )
     ),
@@ -4343,123 +4459,6 @@ private fun FaqSection(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
-package com.tao0524.tickat.ui.screen.tasklist
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalTime
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import android.content.Context
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.map
-
-private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
-private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
-
-class TaskListViewModel(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModel() {
-
-    val tasks = repository.allTasks.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
-
-    val guideStep = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
-
-    fun advanceGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                val current = prefs[KEY_GUIDE_STEP] ?: 0
-                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
-            }
-        }
-    }
-
-    fun completeGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 4
-            }
-        }
-    }
-
-    val hintTaskListShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    fun dismissHintTaskList() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_HINT_TASKLIST] = true
-            }
-        }
-    }
-
-    fun delete(task: Task) {
-        viewModelScope.launch {
-            TaskAlertScheduler.cancel(context, task.id)
-            repository.delete(task)
-        }
-    }
-
-    fun applyTemplate() {
-        viewModelScope.launch {
-            val templates = listOf(
-                Task(
-                    name = "朝のルーティン",
-                    startTime = LocalTime.of(7, 0),
-                    endTime = LocalTime.of(9, 0),
-                    repeat = RepeatType.DAILY,
-                    sortOrder = 0,
-                    taskType = TaskType.TIMEBLOCK
-                ),
-                Task(
-                    name = "お昼のリマインダー",
-                    startTime = LocalTime.of(12, 0),
-                    endTime = LocalTime.of(12, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "お昼ごはん忘れずに",
-                    sortOrder = 1,
-                    taskType = TaskType.REMINDER
-                ),
-                Task(
-                    name = "おつかれさま",
-                    startTime = LocalTime.of(18, 0),
-                    endTime = LocalTime.of(23, 0),
-                    repeat = RepeatType.DAILY,
-                    memoText = "今日もおつかれさま",
-                    sortOrder = 2,
-                    taskType = TaskType.TIMEBLOCK
-                )
-            )
-            templates.forEach {
-                repository.save(it)
-                TaskAlertScheduler.schedule(context, it)
-            }
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 1
-            }
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
 package com.tao0524.tickat.widget
 
@@ -4783,6 +4782,7 @@ import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.component.FirstTimeHint
+import androidx.compose.ui.text.style.TextAlign
 
 private fun TaskType.accentColor() = when (this) {
     TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
@@ -4991,10 +4991,18 @@ private fun EmptyState(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "サンプルではじめる",
+                "サンプルを試してみる",
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "※上のグラフのイラストは使いかたのイメージです\n※サンプルはあとから自由に編集・削除できます",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            lineHeight = 18.sp
+        )
         Spacer(Modifier.height(8.dp))
         TextButton(onClick = onAddTask) {
             Text(
