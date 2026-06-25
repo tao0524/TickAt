@@ -6544,6 +6544,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -7015,6 +7018,29 @@ fun SettingsScreen(
                         )
                     }
                 },
+                actions = {
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = "メニュー",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("デフォルトに戻す") },
+                            onClick = {
+                                menuExpanded = false
+                                viewModel.reset()
+                                draft = AppSettings()
+                            }
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
@@ -7031,27 +7057,31 @@ fun SettingsScreen(
                     color    = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
-                Button(
-                    onClick  = {
-                        viewModel.save(draft)
-                        Toast.makeText(context, "保存しました", Toast.LENGTH_SHORT).show()
-                    },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor   = Color.Black
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("保存", modifier = Modifier.padding(vertical = 4.dp), fontWeight = FontWeight.Medium)
-                }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick  = { viewModel.reset(); draft = AppSettings() },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape    = RoundedCornerShape(12.dp)
-                ) {
-                    Text("デフォルトに戻す", modifier = Modifier.padding(vertical = 4.dp))
+                    OutlinedButton(
+                        onClick  = { draft = saved },
+                        modifier = Modifier.weight(1f),
+                        shape    = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("編集前に戻す", fontSize = 13.sp)
+                    }
+                    Button(
+                        onClick  = {
+                            viewModel.save(draft)
+                            Toast.makeText(context, "保存しました", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor   = Color.Black
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("保存", fontWeight = FontWeight.Medium)
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
             }
@@ -7529,7 +7559,7 @@ fun SettingsScreen(
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         ColorRow(
-                            label   = "テキスト色",
+                            label   = "時刻のテキスト色",
                             sub     = "時刻の表示色",
                             color   = draft.textColor,
                             onClick = { pickerTarget.value = "text" }
