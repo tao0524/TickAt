@@ -73,7 +73,6 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (String) -> Unit,
     onOpenHelp: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenWidgetList: () -> Unit = {}
 ) {
     val tasks by viewModel.tasks.collectAsState()
@@ -96,13 +95,6 @@ fun TaskListScreen(
                             Icons.Default.Settings,
                             contentDescription = "ウィジェット設定",
                             tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Text(
-                            text = "設定",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 12.sp
                         )
                     }
                     IconButton(onClick = onOpenHelp) {
@@ -195,7 +187,7 @@ private fun EmptyState(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "時間割を作りましょう",
+            text = "予定を管理しましょう",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -276,7 +268,7 @@ private fun EmptyState(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "おすすめを使ってみる",
+                "サンプルではじめる",
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }

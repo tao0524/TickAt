@@ -77,6 +77,7 @@ val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
+private val KEY_FONT_TIP_VISIBLE = booleanPreferencesKey("font_tip_visible")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
@@ -176,6 +177,9 @@ class SettingsViewModel(
     private val _hintSettingsShown = MutableStateFlow(true)
     val hintSettingsShown: StateFlow<Boolean> = _hintSettingsShown.asStateFlow()
 
+    private val _fontTipVisible = MutableStateFlow(true)
+    val fontTipVisible: StateFlow<Boolean> = _fontTipVisible.asStateFlow()
+
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
@@ -266,6 +270,7 @@ class SettingsViewModel(
                 _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
+                _fontTipVisible.value = displayPrefs[KEY_FONT_TIP_VISIBLE] ?: true
                 _isLoaded.value = true
             }
         }
@@ -299,6 +304,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             context.displaySettingsDataStore.edit { prefs ->
                 prefs[KEY_HINT_SETTINGS] = true
+            }
+        }
+    }
+
+    fun saveFontTipVisible(visible: Boolean) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_FONT_TIP_VISIBLE] = visible
             }
         }
     }

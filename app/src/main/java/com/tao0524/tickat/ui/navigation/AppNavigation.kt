@@ -85,7 +85,6 @@ fun AppNavigation(
                     navController.navigate(Screen.TaskEdit.route)
                 },
                 onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenSettings = { navController.navigate(Screen.WidgetList.route) },
                 onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }

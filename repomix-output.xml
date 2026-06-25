@@ -3242,7 +3242,6 @@ fun AppNavigation(
                     navController.navigate(Screen.TaskEdit.route)
                 },
                 onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenSettings = { navController.navigate(Screen.WidgetList.route) },
                 onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }
@@ -3611,8 +3610,9 @@ private val guideItems = listOf(
         emoji = "🎨",
         steps = listOf(
             "「表示設定」→「テーマ」を開く",
-            "上部のタブでダーク・ライト・グラデーション・画像を切り替え",
-            "好みのテーマカードをタップして選択"
+            "上部のタブでダーク・ライト・グラデーション・画像・カスタムを切り替え",
+            "好みのテーマカードをタップして選択",
+            "「カスタム」タブでは自分だけのオリジナルテーマを作成できます"
         )
     ),
     GuideItem(
@@ -3630,8 +3630,11 @@ private val guideItems = listOf(
         steps = listOf(
             "「表示設定」→「フォント」を開く",
             "フォントファミリー（Roboto, Thin, Condensedなど8種）を選択",
-            "フォントウェイト（標準/太字/斜体/太字斜体）を選択",
-            "サイズは時刻・日付・メッセージ・AM/PMをそれぞれ＋−で調整"
+            "フォントウェイト（標準/太め）・斜体・テキストシャドウを設定",
+            "「全体の大きさ」スライダーでウィジェット全体のサイズ感を調整",
+            "時刻・日付・メッセージのサイズを個別に変えると、配置のバランスが変わり印象が大きく変化します",
+            "12時間制ではAM/PMのサイズも調整可能。時刻との大きさの比率で左右のバランスが変わります",
+            "ここはウィジェットの「顔」になる部分です。プレビューを見ながらいろいろ試してみてください！"
         )
     ),
     GuideItem(
@@ -3639,7 +3642,7 @@ private val guideItems = listOf(
         emoji = "🌈",
         steps = listOf(
             "「表示設定」→「カラー」を開く",
-            "テキスト色（時刻）・日付テキスト色・メッセージテキスト色を個別に設定",
+            "時刻のテキスト色・日付テキスト色・メッセージテキスト色を個別に設定",
             "12時間制の場合はAM/PMの色も設定可能"
         )
     ),
@@ -3663,13 +3666,14 @@ private val guideItems = listOf(
         )
     ),
     GuideItem(
-        title = "メッセージ行の設定",
-        emoji = "💬",
+        title = "レイアウトを調整",
+        emoji = "📐",
         steps = listOf(
-            "「表示設定」の下部にあるスイッチで制御",
-            "「スケジュール名を表示」→ 進行中のタイムブロック名を表示",
-            "「カウントダウンを表示」→ 次の予定までの残り時間を表示",
-            "「次のアラームを表示」→ 端末のアラーム時刻を表示"
+            "「表示設定」→「レイアウト」を開く",
+            "角丸スタイル：Pill（全丸）・Rounded・Soft・Square（四角）の4種から選択",
+            "スライダーで角の丸みを細かく微調整できます",
+            "「スケジュール名を表示」「カウントダウンを表示」「次のアラームを表示」で表示項目を制御",
+            "「コンパクトな背景」でウィジェットの縦幅を詰めることもできます"
         )
     ),
     GuideItem(
@@ -3679,7 +3683,19 @@ private val guideItems = listOf(
             "「表示設定」→「通知」を開く",
             "フルスクリーン：開始時に全画面表示",
             "通知：開始時にバナー通知のみ",
-            "OFF：通知を表示しない"
+            "OFF：通知を表示しない",
+            "カウントダウン通知音を端末の着信音・通知音から選択可能",
+            "再生時間は3秒・5秒・10秒・15秒・30秒から選べます"
+        )
+    ),
+    GuideItem(
+        title = "複数ウィジェットの管理",
+        emoji = "🔧",
+        steps = listOf(
+            "ホーム画面にTickAtウィジェットを複数配置できます",
+            "トップ画面の⚙アイコン → ウィジェット一覧を表示",
+            "各ウィジェットをタップすると個別の表示設定画面が開きます",
+            "ウィジェットごとに異なるテーマ・色・フォントを設定可能"
         )
     )
 )
@@ -3695,6 +3711,16 @@ private val faqItems = listOf(
 →「TickAt」を選んで配置する
 
 一部の機種では「Android ウィジェット」の中に表示される場合があります。
+        """.trimIndent()
+    ),
+    HelpItem(
+        title = "複数ウィジェットを配置したい",
+        body  = """
+ホーム画面にTickAtウィジェットを何個でも配置できます。
+
+それぞれのウィジェットに異なるテーマや色、フォントを設定できるので、用途や気分に合わせてカスタマイズを楽しめます。
+
+設定はトップ画面の⚙アイコンからウィジェット一覧を開き、変更したいウィジェットをタップしてください。
         """.trimIndent()
     ),
     HelpItem(
@@ -3723,6 +3749,14 @@ private val faqItems = listOf(
 「表示設定」→「フォント」セクションの下部にサイズ調整があります。
 
 時刻・日付・メッセージ・AM/PMのサイズをそれぞれ個別に＋−ボタンで調整できます。プレビューで変更を確認してから「保存」してください。
+        """.trimIndent()
+    ),
+    HelpItem(
+        title = "「編集前に戻す」と「デフォルトに戻す」の違い",
+        body  = """
+「編集前に戻す」は、今の編集内容を取り消して、最後に保存した状態に戻します。
+
+「デフォルトに戻す」は、右上の︙メニューから選べます。すべての設定を工場出荷時の初期状態にリセットします。
         """.trimIndent()
     ),
     HelpItem(
@@ -4762,7 +4796,6 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (String) -> Unit,
     onOpenHelp: () -> Unit,
-    onOpenSettings: () -> Unit,
     onOpenWidgetList: () -> Unit = {}
 ) {
     val tasks by viewModel.tasks.collectAsState()
@@ -4785,13 +4818,6 @@ fun TaskListScreen(
                             Icons.Default.Settings,
                             contentDescription = "ウィジェット設定",
                             tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Text(
-                            text = "設定",
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = 12.sp
                         )
                     }
                     IconButton(onClick = onOpenHelp) {
@@ -4884,7 +4910,7 @@ private fun EmptyState(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "時間割を作りましょう",
+            text = "予定を管理しましょう",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -4965,7 +4991,7 @@ private fun EmptyState(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                "おすすめを使ってみる",
+                "サンプルではじめる",
                 modifier = Modifier.padding(vertical = 4.dp)
             )
         }
@@ -6222,6 +6248,7 @@ val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
+private val KEY_FONT_TIP_VISIBLE = booleanPreferencesKey("font_tip_visible")
 enum class BackgroundType { TRANSPARENT, SOLID, LINEAR, RADIAL, IMAGE }
 enum class TextWeight { REGULAR, BOLD }
 enum class CornerStyle { PILL, ROUNDED, SOFT, SQUARE }
@@ -6321,6 +6348,9 @@ class SettingsViewModel(
     private val _hintSettingsShown = MutableStateFlow(true)
     val hintSettingsShown: StateFlow<Boolean> = _hintSettingsShown.asStateFlow()
 
+    private val _fontTipVisible = MutableStateFlow(true)
+    val fontTipVisible: StateFlow<Boolean> = _fontTipVisible.asStateFlow()
+
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
@@ -6411,6 +6441,7 @@ class SettingsViewModel(
                 _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
+                _fontTipVisible.value = displayPrefs[KEY_FONT_TIP_VISIBLE] ?: true
                 _isLoaded.value = true
             }
         }
@@ -6444,6 +6475,14 @@ class SettingsViewModel(
         viewModelScope.launch {
             context.displaySettingsDataStore.edit { prefs ->
                 prefs[KEY_HINT_SETTINGS] = true
+            }
+        }
+    }
+
+    fun saveFontTipVisible(visible: Boolean) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_FONT_TIP_VISIBLE] = visible
             }
         }
     }
@@ -6777,6 +6816,7 @@ fun SettingsScreen(
     val isLoaded by viewModel.isLoaded.collectAsState()
     val saved   by viewModel.settings.collectAsState()
     val hintShown by viewModel.hintSettingsShown.collectAsState()
+    val fontTipVisible by viewModel.fontTipVisible.collectAsState()
     val tasks by viewModel.timeblockTasks.collectAsState()
     val context = LocalContext.current
 
@@ -7605,6 +7645,49 @@ fun SettingsScreen(
                         colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        if (fontTipVisible) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    "💡 サイズ調整のコツ",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    "「全体の大きさ」と、時刻・日付・メッセージの各サイズのバランスで、ウィジェットの印象が大きく変わります。\n\n12時間制ではAM/PMのサイズが時刻との左右バランスに影響します。\n\nプレビューを見ながら、あなただけのベストなレイアウトを見つけてください。",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { viewModel.saveFontTipVisible(false) }) {
+                                        Text("非表示にする", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.saveFontTipVisible(true) }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "💡 サイズ調整のヒントを表示",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                             val fontDisplayName = when (draft.fontFamily) {

@@ -272,6 +272,7 @@ fun SettingsScreen(
     val isLoaded by viewModel.isLoaded.collectAsState()
     val saved   by viewModel.settings.collectAsState()
     val hintShown by viewModel.hintSettingsShown.collectAsState()
+    val fontTipVisible by viewModel.fontTipVisible.collectAsState()
     val tasks by viewModel.timeblockTasks.collectAsState()
     val context = LocalContext.current
 
@@ -1100,6 +1101,49 @@ fun SettingsScreen(
                         colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        if (fontTipVisible) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    "💡 サイズ調整のコツ",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    "「全体の大きさ」と、時刻・日付・メッセージの各サイズのバランスで、ウィジェットの印象が大きく変わります。\n\n12時間制ではAM/PMのサイズが時刻との左右バランスに影響します。\n\nプレビューを見ながら、あなただけのベストなレイアウトを見つけてください。",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp,
+                                    lineHeight = 18.sp
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { viewModel.saveFontTipVisible(false) }) {
+                                        Text("非表示にする", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.saveFontTipVisible(true) }
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "💡 サイズ調整のヒントを表示",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
                             val fontDisplayName = when (draft.fontFamily) {
