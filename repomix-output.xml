@@ -3354,121 +3354,6 @@ private fun ScheduleCard(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
-package com.tao0524.tickat.ui.screen.tasklist
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalTime
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import android.content.Context
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.map
-
-private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
-private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
-
-class TaskListViewModel(
-    private val repository: TaskRepository,
-    private val context: Context
-) : ViewModel() {
-
-    val tasks = repository.allTasks.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
-
-    val guideStep = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
-
-    fun advanceGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                val current = prefs[KEY_GUIDE_STEP] ?: 0
-                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
-            }
-        }
-    }
-
-    fun completeGuide() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 4
-            }
-        }
-    }
-
-    val hintTaskListShown = context.displaySettingsDataStore.data
-        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
-
-    fun dismissHintTaskList() {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_HINT_TASKLIST] = true
-            }
-        }
-    }
-
-    fun delete(task: Task) {
-        viewModelScope.launch {
-            TaskAlertScheduler.cancel(context, task.id)
-            repository.delete(task)
-        }
-    }
-
-    fun applyTemplate() {
-        viewModelScope.launch {
-            val templates = listOf(
-                Task(
-                    name = "朝のルーティン",
-                    startTime = LocalTime.of(6, 0),
-                    endTime = LocalTime.of(6, 30),
-                    repeat = RepeatType.DAILY,
-                    sortOrder = 0,
-                    taskType = TaskType.TIMEBLOCK
-                ),
-                Task(
-                    name = "昼休み",
-                    startTime = LocalTime.of(12, 0),
-                    endTime = LocalTime.of(13, 0),
-                    repeat = RepeatType.WEEKDAY,
-                    sortOrder = 1,
-                    taskType = TaskType.TIMEBLOCK
-                ),
-                Task(
-                    name = "食事会",
-                    startTime = LocalTime.of(19, 0),
-                    endTime = LocalTime.of(19, 0),
-                    repeat = RepeatType.ONCE,
-                    sortOrder = 2,
-                    taskType = TaskType.REMINDER
-                )
-            )
-            templates.forEach {
-                repository.save(it)
-                TaskAlertScheduler.schedule(context, it)
-            }
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_GUIDE_STEP] = 1
-            }
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/ui/navigation/AppNavigation.kt">
 package com.tao0524.tickat.ui.navigation
 
@@ -3622,6 +3507,381 @@ fun AppNavigation(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListViewModel.kt">
+package com.tao0524.tickat.ui.screen.tasklist
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalTime
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import android.content.Context
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.map
+
+private val KEY_GUIDE_STEP = intPreferencesKey("guide_step")
+private val KEY_HINT_TASKLIST = booleanPreferencesKey("hint_tasklist")
+
+class TaskListViewModel(
+    private val repository: TaskRepository,
+    private val context: Context
+) : ViewModel() {
+
+    val tasks = repository.allTasks.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = emptyList()
+    )
+
+    val guideStep = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_GUIDE_STEP] ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+
+    fun advanceGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                val current = prefs[KEY_GUIDE_STEP] ?: 0
+                if (current in 1..2) prefs[KEY_GUIDE_STEP] = current + 1
+            }
+        }
+    }
+
+    fun completeGuide() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 4
+            }
+        }
+    }
+
+    val hintTaskListShown = context.displaySettingsDataStore.data
+        .map { prefs -> prefs[KEY_HINT_TASKLIST] ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun dismissHintTaskList() {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_HINT_TASKLIST] = true
+            }
+        }
+    }
+
+    fun delete(task: Task) {
+        viewModelScope.launch {
+            TaskAlertScheduler.cancel(context, task.id)
+            repository.delete(task)
+        }
+    }
+
+    fun applyTemplate() {
+        viewModelScope.launch {
+            val templates = listOf(
+                Task(
+                    name = "朝のルーティン",
+                    startTime = LocalTime.of(6, 0),
+                    endTime = LocalTime.of(6, 30),
+                    repeat = RepeatType.DAILY,
+                    sortOrder = 0,
+                    taskType = TaskType.TIMEBLOCK
+                ),
+                Task(
+                    name = "昼休み",
+                    startTime = LocalTime.of(12, 0),
+                    endTime = LocalTime.of(13, 0),
+                    repeat = RepeatType.WEEKDAY,
+                    sortOrder = 1,
+                    taskType = TaskType.TIMEBLOCK
+                ),
+                Task(
+                    name = "食事会",
+                    startTime = LocalTime.of(19, 0),
+                    endTime = LocalTime.of(19, 0),
+                    repeat = RepeatType.ONCE,
+                    sortOrder = 2,
+                    taskType = TaskType.REMINDER
+                )
+            )
+            templates.forEach {
+                repository.save(it)
+                TaskAlertScheduler.schedule(context, it)
+            }
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_GUIDE_STEP] = 1
+            }
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
+package com.tao0524.tickat.widget
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import com.tao0524.tickat.FullScreenAlertActivity
+import com.tao0524.tickat.MainActivity
+import com.tao0524.tickat.R
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
+import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import java.time.LocalTime
+
+class TaskStartAlertReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val taskId    = intent.getStringExtra("task_id")    ?: return
+        val taskName  = intent.getStringExtra("task_name")  ?: return
+        val start     = intent.getStringExtra("task_start") ?: ""
+        val end       = intent.getStringExtra("task_end")   ?: ""
+        val memo      = intent.getStringExtra("task_memo")  ?: ""
+        val repeat    = intent.getStringExtra("task_repeat") ?: ""
+        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
+        val alertType = intent.getStringExtra("alert_type") ?: "START"
+
+        val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
+
+        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
+        if (alertType == "END") {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            createChannelIfNeeded(manager)
+
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("show_expanded", true)
+                putExtra("expanded_task_id", taskId)
+            }
+            val pendingOpen = PendingIntent.getActivity(
+                context, taskId.hashCode(), openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("$taskName 終了")
+                .setContentText("$start〜$end")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingOpen)
+                .setAutoCancel(true)
+                .build()
+            manager.notify(("end_$taskId").hashCode(), notification)
+            return
+        }
+
+        // DataStoreからアラートモードを読み込む
+        val alertMode = runBlocking {
+            try {
+                context.displaySettingsDataStore.data.first()[KEY_ALERT_MODE] ?: "NOTIFICATION"
+            } catch (_: Exception) {
+                "NOTIFICATION"
+            }
+        }
+
+        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
+        rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
+
+        // OFFの場合は通知を出さない
+        if (alertMode == "OFF") return
+
+        // 通知を表示
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        createChannelIfNeeded(manager)
+
+        val contentText = when (taskType) {
+            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
+            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
+            else        -> "$start〜$end"
+        }
+
+        // ExpandedScreen用PendingIntent（通知タップ時）
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("show_expanded", true)
+            putExtra("expanded_task_id", taskId)
+        }
+        val pendingOpen = PendingIntent.getActivity(
+            context,
+            taskId.hashCode(),
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(taskName)
+            .setContentText(contentText)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingOpen)
+            .setAutoCancel(true)
+
+        // メモがある場合はBigTextStyleで展開表示
+        if (memo.isNotEmpty()) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+        }
+
+        // フルスクリーンモードの場合、setFullScreenIntentを追加
+        if (alertMode == "FULLSCREEN") {
+            val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("task_name", taskName)
+                putExtra("task_type_label", featureLabel)
+                putExtra("time_range", "$start〜$end")
+            }
+            val fullScreenPending = PendingIntent.getActivity(
+                context,
+                taskId.hashCode() + 1,
+                fullScreenIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.setFullScreenIntent(fullScreenPending, true)
+            builder.setContentIntent(fullScreenPending)
+        }
+
+        manager.notify(("start_$taskId").hashCode(), builder.build())
+    }
+
+    private fun rescheduleIfNeeded(
+        context: Context,
+        taskId: String, taskName: String,
+        start: String, end: String, memo: String, repeat: String,
+        taskType: String
+    ) {
+        if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
+        try {
+            val task = Task(
+                id        = taskId,
+                name      = taskName,
+                startTime = LocalTime.parse(start),
+                endTime   = LocalTime.parse(end),
+                repeat    = RepeatType.valueOf(repeat),
+                memoText  = memo,
+                taskType  = TaskType.valueOf(taskType)
+            )
+            TaskAlertScheduler.schedule(context, task)
+        } catch (_: Exception) {
+            // パース失敗時は再スケジュールしない
+        }
+    }
+
+    companion object {
+        const val CHANNEL_ID = "tickat_task_start"
+
+        fun createChannelIfNeeded(manager: NotificationManager) {
+            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "スケジュール開始通知",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "スケジュールの開始時刻に通知します"
+                enableVibration(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/help/HelpScreen.kt">
 package com.tao0524.tickat.ui.screen.help
 
@@ -3669,7 +3929,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -3911,11 +4174,18 @@ private val troubleshootItems = listOf(
         """.trimIndent()
     ),
     HelpItem(
-        title = "再起動後にウィジェットが消える",
+        title = "再起動後にウィジェットが真っ黒になる",
         body  = """
-再起動後、ウィジェットの表示が復帰するまで2〜3分かかる場合があります。
+端末のバッテリーセーバー（省エネ設定）が有効になっていると、再起動後にウィジェットが表示されないことがあります。
 
-これは端末がアプリの起動を段階的に行うためです。しばらくお待ちください。
+特に Xiaomi / POCO / Redmi 端末（HyperOS / MIUI）では、再起動のたびにバッテリー制限が自動的にオンに戻る場合があります。
+
+以下の設定を確認してください:
+
+① 設定 → アプリ → TickAt → バッテリー →「制限なし」に変更
+② 下の「バッテリー最適化の設定を開く」ボタンから直接設定できます
+
+※ アプリを一度タップして開くだけでも復帰します。
         """.trimIndent()
     ),
     HelpItem(
@@ -4000,6 +4270,7 @@ fun HelpScreen(onBack: () -> Unit) {
         val deviceIssueExpandedStates = remember { mutableStateListOf(*Array(deviceIssueItems.size) { false }) }
         val guideExpandedStates = remember { mutableStateListOf(*Array(guideItems.size) { false }) }
         val uriHandler = LocalUriHandler.current
+        val context = LocalContext.current
 
         Column(
             modifier = Modifier
@@ -4130,6 +4401,39 @@ fun HelpScreen(onBack: () -> Unit) {
             }
 
             Spacer(Modifier.height(16.dp))
+
+            // ── バッテリー最適化設定ボタン ──
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        context.startActivity(
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        )
+                    },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Text(
+                        text = "⚡  バッテリー最適化の設定を開く",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "一覧から TickAt を探し、「最適化しない」に変更してください。再起動後もウィジェットが正常に表示されるようになります。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
 
             // ── 外部リンクカード ──
             Card(
@@ -4457,266 +4761,6 @@ private fun FaqSection(
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
     }
 }
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
-package com.tao0524.tickat.widget
-
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import androidx.core.app.NotificationCompat
-import com.tao0524.tickat.FullScreenAlertActivity
-import com.tao0524.tickat.MainActivity
-import com.tao0524.tickat.R
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskType
-import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
-import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import java.time.LocalTime
-
-class TaskStartAlertReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
-        val taskId    = intent.getStringExtra("task_id")    ?: return
-        val taskName  = intent.getStringExtra("task_name")  ?: return
-        val start     = intent.getStringExtra("task_start") ?: ""
-        val end       = intent.getStringExtra("task_end")   ?: ""
-        val memo      = intent.getStringExtra("task_memo")  ?: ""
-        val repeat    = intent.getStringExtra("task_repeat") ?: ""
-        val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
-        val alertType = intent.getStringExtra("alert_type") ?: "START"
-
-        val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
-
-        // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
-        if (alertType == "END") {
-            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            createChannelIfNeeded(manager)
-
-            val openIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("show_expanded", true)
-                putExtra("expanded_task_id", taskId)
-            }
-            val pendingOpen = PendingIntent.getActivity(
-                context, taskId.hashCode(), openIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("$taskName 終了")
-                .setContentText("$start〜$end")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(pendingOpen)
-                .setAutoCancel(true)
-                .build()
-            manager.notify(("end_$taskId").hashCode(), notification)
-            return
-        }
-
-        // DataStoreからアラートモードを読み込む
-        val alertMode = runBlocking {
-            try {
-                context.displaySettingsDataStore.data.first()[KEY_ALERT_MODE] ?: "NOTIFICATION"
-            } catch (_: Exception) {
-                "NOTIFICATION"
-            }
-        }
-
-        // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
-        rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
-
-        // OFFの場合は通知を出さない
-        if (alertMode == "OFF") return
-
-        // 通知を表示
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        createChannelIfNeeded(manager)
-
-        val contentText = when (taskType) {
-            "TIMEBLOCK" -> if (memo.isNotEmpty()) "$start〜$end\n💬 $memo" else "$start〜$end"
-            "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
-            else        -> "$start〜$end"
-        }
-
-        // ExpandedScreen用PendingIntent（通知タップ時）
-        val openIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("show_expanded", true)
-            putExtra("expanded_task_id", taskId)
-        }
-        val pendingOpen = PendingIntent.getActivity(
-            context,
-            taskId.hashCode(),
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(taskName)
-            .setContentText(contentText)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingOpen)
-            .setAutoCancel(true)
-
-        // メモがある場合はBigTextStyleで展開表示
-        if (memo.isNotEmpty()) {
-            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-        }
-
-        // フルスクリーンモードの場合、setFullScreenIntentを追加
-        if (alertMode == "FULLSCREEN") {
-            val fullScreenIntent = Intent(context, FullScreenAlertActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("task_name", taskName)
-                putExtra("task_type_label", featureLabel)
-                putExtra("time_range", "$start〜$end")
-            }
-            val fullScreenPending = PendingIntent.getActivity(
-                context,
-                taskId.hashCode() + 1,
-                fullScreenIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            builder.setFullScreenIntent(fullScreenPending, true)
-            builder.setContentIntent(fullScreenPending)
-        }
-
-        manager.notify(("start_$taskId").hashCode(), builder.build())
-    }
-
-    private fun rescheduleIfNeeded(
-        context: Context,
-        taskId: String, taskName: String,
-        start: String, end: String, memo: String, repeat: String,
-        taskType: String
-    ) {
-        if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
-        try {
-            val task = Task(
-                id        = taskId,
-                name      = taskName,
-                startTime = LocalTime.parse(start),
-                endTime   = LocalTime.parse(end),
-                repeat    = RepeatType.valueOf(repeat),
-                memoText  = memo,
-                taskType  = TaskType.valueOf(taskType)
-            )
-            TaskAlertScheduler.schedule(context, task)
-        } catch (_: Exception) {
-            // パース失敗時は再スケジュールしない
-        }
-    }
-
-    companion object {
-        const val CHANNEL_ID = "tickat_task_start"
-
-        fun createChannelIfNeeded(manager: NotificationManager) {
-            if (manager.getNotificationChannel(CHANNEL_ID) != null) return
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "スケジュール開始通知",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "スケジュールの開始時刻に通知します"
-                enableVibration(true)
-            }
-            manager.createNotificationChannel(channel)
-        }
-    }
-}
-</file>
-
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <activity
-            android:name=".widget.WidgetConfigActivity"
-            android:exported="false"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/tasklist/TaskListScreen.kt">
@@ -5487,10 +5531,8 @@ class WidgetUpdateService : Service() {
             val widgetPrefs = getSharedPreferences("tickat_widget_ids", Context.MODE_PRIVATE)
             widgetPrefs.edit().clear().apply()
             prefs.edit().putBoolean("cleaned", true).apply()
-            // android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
         }
         val ids = TickAtWidgetReceiver.loadWidgetIds(this)
-        // android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
         for (id in ids) {
             startSettingsObserverForWidget(id)
         }

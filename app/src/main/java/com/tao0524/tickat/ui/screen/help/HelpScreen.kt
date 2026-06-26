@@ -44,7 +44,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -286,11 +289,18 @@ private val troubleshootItems = listOf(
         """.trimIndent()
     ),
     HelpItem(
-        title = "再起動後にウィジェットが消える",
+        title = "再起動後にウィジェットが真っ黒になる",
         body  = """
-再起動後、ウィジェットの表示が復帰するまで2〜3分かかる場合があります。
+端末のバッテリーセーバー（省エネ設定）が有効になっていると、再起動後にウィジェットが表示されないことがあります。
 
-これは端末がアプリの起動を段階的に行うためです。しばらくお待ちください。
+特に Xiaomi / POCO / Redmi 端末（HyperOS / MIUI）では、再起動のたびにバッテリー制限が自動的にオンに戻る場合があります。
+
+以下の設定を確認してください:
+
+① 設定 → アプリ → TickAt → バッテリー →「制限なし」に変更
+② 下の「バッテリー最適化の設定を開く」ボタンから直接設定できます
+
+※ アプリを一度タップして開くだけでも復帰します。
         """.trimIndent()
     ),
     HelpItem(
@@ -375,6 +385,7 @@ fun HelpScreen(onBack: () -> Unit) {
         val deviceIssueExpandedStates = remember { mutableStateListOf(*Array(deviceIssueItems.size) { false }) }
         val guideExpandedStates = remember { mutableStateListOf(*Array(guideItems.size) { false }) }
         val uriHandler = LocalUriHandler.current
+        val context = LocalContext.current
 
         Column(
             modifier = Modifier
@@ -505,6 +516,39 @@ fun HelpScreen(onBack: () -> Unit) {
             }
 
             Spacer(Modifier.height(16.dp))
+
+            // ── バッテリー最適化設定ボタン ──
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        context.startActivity(
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        )
+                    },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    Text(
+                        text = "⚡  バッテリー最適化の設定を開く",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "一覧から TickAt を探し、「最適化しない」に変更してください。再起動後もウィジェットが正常に表示されるようになります。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
 
             // ── 外部リンクカード ──
             Card(

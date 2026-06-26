@@ -162,10 +162,8 @@ class WidgetUpdateService : Service() {
             val widgetPrefs = getSharedPreferences("tickat_widget_ids", Context.MODE_PRIVATE)
             widgetPrefs.edit().clear().apply()
             prefs.edit().putBoolean("cleaned", true).apply()
-            // android.util.Log.d("TickAtGhost", "Ghost IDs cleaned. Waiting for onAppWidgetOptionsChanged to re-register.")
         }
         val ids = TickAtWidgetReceiver.loadWidgetIds(this)
-        // android.util.Log.d("TickAtGhost", "startSettingsObserver ids=$ids")
         for (id in ids) {
             startSettingsObserverForWidget(id)
         }
