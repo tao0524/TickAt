@@ -14,6 +14,7 @@ import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
+import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -71,6 +72,17 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
         // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
         rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
+
+        // ONCEタスクの自動オフ（アラーム発火後にタスクを無効化）
+        if (repeat == RepeatType.ONCE.name) {
+            runBlocking {
+                try {
+                    AppDatabase.getInstance(context).taskDao().updateTaskEnabled(taskId, false)
+                } catch (_: Exception) {
+                    // DB更新失敗時はタスクが有効のまま残る（安全側に倒す）
+                }
+            }
+        }
 
         // OFFの場合は通知を出さない
         if (alertMode == "OFF") return

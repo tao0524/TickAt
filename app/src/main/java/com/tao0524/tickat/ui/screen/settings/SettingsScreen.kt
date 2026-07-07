@@ -307,9 +307,16 @@ fun SettingsScreen(
     }
 
     val bgImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
+        uri?.let {
+            // 画像の読み取り権限を永続化
+            val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(it, flag)
+
+            // bgTypeも自動的にIMAGEに切り替える
+            draft = draft.copy(bgImageUri = it.toString(), bgType = BackgroundType.IMAGE)
+        }
     }
 
     var formatExpanded by remember { mutableStateOf(false) }
@@ -769,9 +776,16 @@ fun SettingsScreen(
                                     }
                                 } else if (selectedThemeTab == 3) {
                                     val imageLauncher = rememberLauncherForActivityResult(
-                                        contract = ActivityResultContracts.GetContent()
+                                        contract = ActivityResultContracts.OpenDocument()
                                     ) { uri ->
-                                        uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
+                                        uri?.let {
+                                            // 画像の読み取り権限を永続化
+                                            val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            context.contentResolver.takePersistableUriPermission(it, flag)
+
+                                            // bgTypeも自動的にIMAGEに切り替える
+                                            draft = draft.copy(bgImageUri = it.toString(), bgType = BackgroundType.IMAGE)
+                                        }
                                     }
                                     Column(
                                         modifier = Modifier
@@ -795,7 +809,8 @@ fun SettingsScreen(
                                             }
                                         }
                                         Button(
-                                            onClick = { imageLauncher.launch("image/*") },
+                                            // OpenDocumentの引数はStringの配列にする必要があります
+                                            onClick = { imageLauncher.launch(arrayOf("image/*")) },
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary
@@ -955,7 +970,8 @@ fun SettingsScreen(
                                     }
                                 }
                                 Button(
-                                    onClick  = { bgImageLauncher.launch("image/*") },
+                                    // OpenDocumentの引数はStringの配列にする必要があります
+                                    onClick  = { bgImageLauncher.launch(arrayOf("image/*")) },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors   = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {

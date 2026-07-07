@@ -11,5 +11,6 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: Task) = dao.deleteTask(task)
     suspend fun deleteById(id: String) = dao.deleteTaskById(id)
     suspend fun getById(id: String): Task? = dao.getTaskById(id)
+    suspend fun setEnabled(id: String, isEnabled: Boolean) = dao.updateTaskEnabled(id, isEnabled)
 }
 

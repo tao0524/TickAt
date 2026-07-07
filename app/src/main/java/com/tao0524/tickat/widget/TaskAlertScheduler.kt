@@ -19,6 +19,8 @@ object TaskAlertScheduler {
     }
 
     fun schedule(context: Context, task: Task) {
+        if (!task.isEnabled) return
+
         val now = LocalDateTime.now()
         var nextStart = LocalDate.now().atTime(task.startTime)
 
@@ -54,7 +56,7 @@ object TaskAlertScheduler {
                     }
                 }
                 RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
-                RepeatType.ONCE -> return // 1回限りで既に過ぎた
+                RepeatType.ONCE -> nextStart = nextStart.plusDays(1) // 翌日にスケジュール（発火後に自動オフ）
             }
         }
 

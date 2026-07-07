@@ -288,6 +288,9 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteTaskById(id: String)
+
+    @Query("UPDATE tasks SET isEnabled = :isEnabled WHERE id = :id")
+    suspend fun updateTaskEnabled(id: String, isEnabled: Boolean)
 }
 </file>
 
@@ -305,6 +308,7 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: Task) = dao.deleteTask(task)
     suspend fun deleteById(id: String) = dao.deleteTaskById(id)
     suspend fun getById(id: String): Task? = dao.getTaskById(id)
+    suspend fun setEnabled(id: String, isEnabled: Boolean) = dao.updateTaskEnabled(id, isEnabled)
 }
 </file>
 
@@ -1517,69 +1521,6 @@ val TickAtLightError          = Color(0xFFB3261E)
 val TickAtLightOutline        = Color(0xFF79747E)
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt">
-package com.tao0524.tickat.ui.theme
-
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-
-private fun blendToWhite(base: Color, ratio: Float): Color = Color(
-    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
-    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
-    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
-    alpha = 1f
-)
-
-@Composable
-fun TickAtTheme(
-    settings: AppSettings = AppSettings(),
-    content: @Composable () -> Unit
-) {
-    val isDark = isSystemInDarkTheme()
-
-    val colorScheme = if (isDark) {
-        val bg   = Color(settings.bgColor)
-        val text = Color(settings.textColor)
-        darkColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = bg,
-            onBackground     = text,
-            surface          = blendToWhite(bg, 0.06f),
-            onSurface        = text,
-            surfaceVariant   = blendToWhite(bg, 0.12f),
-            onSurfaceVariant = Color(0xFF9E9E9E),
-            error            = Color(0xFFCF6679),
-            outline          = Color(0xFF49454F)
-        )
-    } else {
-        lightColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = TickAtLightBackground,
-            onBackground     = TickAtLightOnBackground,
-            surface          = TickAtLightSurface,
-            onSurface        = TickAtLightOnBackground,
-            surfaceVariant   = TickAtLightSurfaceVariant,
-            onSurfaceVariant = TickAtLightOnSurfaceVar,
-            error            = TickAtLightError,
-            outline          = TickAtLightOutline
-        )
-    }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = Typography,
-        content     = content
-    )
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/widget/BootCompletedReceiver.kt">
 package com.tao0524.tickat.widget
 
@@ -1652,7 +1593,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.TypeConverters
 import com.tao0524.tickat.domain.model.Task
 
-@Database(entities = [Task::class], version = 3, exportSchema = false)
+@Database(entities = [Task::class], version = 4, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
@@ -1689,13 +1630,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "tickat_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
             }
     }
 }
@@ -1744,7 +1691,8 @@ data class Task(
     val repeat: RepeatType,
     val memoText: String = "",
     val sortOrder: Int = 0,
-    val taskType: TaskType = TaskType.TIMEBLOCK
+    val taskType: TaskType = TaskType.TIMEBLOCK,
+    val isEnabled: Boolean = true
 )
 </file>
 
@@ -1845,6 +1793,75 @@ class ExpandedViewModel(
 }
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt">
+package com.tao0524.tickat.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.ThemeMode
+
+private fun blendToWhite(base: Color, ratio: Float): Color = Color(
+    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
+    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
+    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
+    alpha = 1f
+)
+
+@Composable
+fun TickAtTheme(
+    settings: AppSettings = AppSettings(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit
+) {
+    val isDark = when (themeMode) {
+        ThemeMode.DARK  -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val colorScheme = if (isDark) {
+        val bg   = Color(settings.bgColor)
+        val text = Color(settings.textColor)
+        darkColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = bg,
+            onBackground     = text,
+            surface          = blendToWhite(bg, 0.06f),
+            onSurface        = text,
+            surfaceVariant   = blendToWhite(bg, 0.12f),
+            onSurfaceVariant = Color(0xFF9E9E9E),
+            error            = Color(0xFFCF6679),
+            outline          = Color(0xFF49454F)
+        )
+    } else {
+        lightColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = TickAtLightBackground,
+            onBackground     = TickAtLightOnBackground,
+            surface          = TickAtLightSurface,
+            onSurface        = TickAtLightOnBackground,
+            surfaceVariant   = TickAtLightSurfaceVariant,
+            onSurfaceVariant = TickAtLightOnSurfaceVar,
+            error            = TickAtLightError,
+            outline          = TickAtLightOutline
+        )
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography  = Typography,
+        content     = content
+    )
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
 package com.tao0524.tickat.widget
 
@@ -1867,6 +1884,8 @@ object TaskAlertScheduler {
     }
 
     fun schedule(context: Context, task: Task) {
+        if (!task.isEnabled) return
+
         val now = LocalDateTime.now()
         var nextStart = LocalDate.now().atTime(task.startTime)
 
@@ -1902,7 +1921,7 @@ object TaskAlertScheduler {
                     }
                 }
                 RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
-                RepeatType.ONCE -> return // 1回限りで既に過ぎた
+                RepeatType.ONCE -> nextStart = nextStart.plusDays(1) // 翌日にスケジュール（発火後に自動オフ）
             }
         }
 
@@ -2103,134 +2122,6 @@ class WidgetConfigActivity : ComponentActivity() {
     android:initialLayout="@layout/tickat_widget_loading"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/MainActivity.kt">
-package com.tao0524.tickat
-
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.core.app.ActivityCompat
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.preferencesDataStore
-import androidx.lifecycle.lifecycleScope
-import com.tao0524.tickat.data.local.AppDatabase
-import com.tao0524.tickat.data.repository.TaskRepository
-import com.tao0524.tickat.ui.navigation.AppNavigation
-import com.tao0524.tickat.ui.theme.TickAtTheme
-import com.tao0524.tickat.widget.TaskAlertScheduler
-import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-
-private val Context.dataStore by preferencesDataStore(name = "tickat_settings")
-private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
-
-class MainActivity : ComponentActivity() {
-
-    private val _showExpanded      = MutableStateFlow(false)
-    private val _expandedTaskId    = MutableStateFlow<String?>(null)
-    private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
-
-    private val settingsViewModel: SettingsViewModel by lazy {
-        SettingsViewModel(applicationContext, appWidgetId = 0)
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // API 33+ の通知パーミッション要求
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
-                    0
-                )
-            }
-        }
-
-        if (intent?.getBooleanExtra("show_expanded", false) == true) {
-            _showExpanded.value = true
-            _expandedTaskId.value = intent?.getStringExtra("expanded_task_id")
-        }
-
-        lifecycleScope.launch {
-            val complete = dataStore.data.first()[ONBOARDING_COMPLETE] ?: false
-            _onboardingChecked.value = complete
-        }
-
-        startForegroundService(
-            Intent(this, com.tao0524.tickat.widget.WidgetUpdateService::class.java)
-        )
-
-        val db         = AppDatabase.getInstance(applicationContext)
-        val repository = TaskRepository(db.taskDao())
-
-        // アプリ起動時に全タスクのアラームを再スケジュール
-        lifecycleScope.launch {
-            val tasks = repository.allTasks.first()
-            TaskAlertScheduler.scheduleAll(applicationContext, tasks)
-        }
-
-        setContent {
-            val settings by settingsViewModel.settings.collectAsState()
-            TickAtTheme(settings = settings) {
-                val onboardingChecked by _onboardingChecked.collectAsState()
-                val showExpanded      by _showExpanded.collectAsState()
-                val expandedTaskId    by _expandedTaskId.collectAsState()
-
-                when (val complete = onboardingChecked) {
-                    null -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1C1B1F))
-                    )
-                    else -> AppNavigation(
-                        repository          = repository,
-                        startWithOnboarding = !complete,
-                        onOnboardingComplete = {
-                            lifecycleScope.launch {
-                                dataStore.edit { it[ONBOARDING_COMPLETE] = true }
-                            }
-                        },
-                        openExpandedOnStart = showExpanded,
-                        expandedTaskId      = expandedTaskId,
-                        onExpandedConsumed  = {
-                            _showExpanded.value = false
-                            _expandedTaskId.value = null
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        if (intent.getBooleanExtra("show_expanded", false)) {
-            _showExpanded.value = true
-            _expandedTaskId.value = intent.getStringExtra("expanded_task_id")
-        }
-    }
-}
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/onboarding/OnboardingScreen.kt">
@@ -2528,6 +2419,135 @@ private fun FeatureChip(label: String, color: Color) {
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/MainActivity.kt">
+package com.tao0524.tickat
+
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.core.app.ActivityCompat
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.lifecycleScope
+import com.tao0524.tickat.data.local.AppDatabase
+import com.tao0524.tickat.data.repository.TaskRepository
+import com.tao0524.tickat.ui.navigation.AppNavigation
+import com.tao0524.tickat.ui.theme.TickAtTheme
+import com.tao0524.tickat.widget.TaskAlertScheduler
+import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+
+private val Context.dataStore by preferencesDataStore(name = "tickat_settings")
+private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+
+class MainActivity : ComponentActivity() {
+
+    private val _showExpanded      = MutableStateFlow(false)
+    private val _expandedTaskId    = MutableStateFlow<String?>(null)
+    private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
+
+    private val settingsViewModel: SettingsViewModel by lazy {
+        SettingsViewModel(applicationContext, appWidgetId = 0)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // API 33+ の通知パーミッション要求
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    0
+                )
+            }
+        }
+
+        if (intent?.getBooleanExtra("show_expanded", false) == true) {
+            _showExpanded.value = true
+            _expandedTaskId.value = intent?.getStringExtra("expanded_task_id")
+        }
+
+        lifecycleScope.launch {
+            val complete = dataStore.data.first()[ONBOARDING_COMPLETE] ?: false
+            _onboardingChecked.value = complete
+        }
+
+        startForegroundService(
+            Intent(this, com.tao0524.tickat.widget.WidgetUpdateService::class.java)
+        )
+
+        val db         = AppDatabase.getInstance(applicationContext)
+        val repository = TaskRepository(db.taskDao())
+
+        // アプリ起動時に全タスクのアラームを再スケジュール
+        lifecycleScope.launch {
+            val tasks = repository.allTasks.first()
+            TaskAlertScheduler.scheduleAll(applicationContext, tasks)
+        }
+
+        setContent {
+            val settings by settingsViewModel.settings.collectAsState()
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            TickAtTheme(settings = settings, themeMode = themeMode) {
+                val onboardingChecked by _onboardingChecked.collectAsState()
+                val showExpanded      by _showExpanded.collectAsState()
+                val expandedTaskId    by _expandedTaskId.collectAsState()
+
+                when (val complete = onboardingChecked) {
+                    null -> Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF1C1B1F))
+                    )
+                    else -> AppNavigation(
+                        repository          = repository,
+                        startWithOnboarding = !complete,
+                        onOnboardingComplete = {
+                            lifecycleScope.launch {
+                                dataStore.edit { it[ONBOARDING_COMPLETE] = true }
+                            }
+                        },
+                        openExpandedOnStart = showExpanded,
+                        expandedTaskId      = expandedTaskId,
+                        onExpandedConsumed  = {
+                            _showExpanded.value = false
+                            _expandedTaskId.value = null
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.getBooleanExtra("show_expanded", false)) {
+            _showExpanded.value = true
+            _expandedTaskId.value = intent.getStringExtra("expanded_task_id")
         }
     }
 }
@@ -3639,6 +3659,7 @@ import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
+import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -3696,6 +3717,17 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
         // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
         rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
+
+        // ONCEタスクの自動オフ（アラーム発火後にタスクを無効化）
+        if (repeat == RepeatType.ONCE.name) {
+            runBlocking {
+                try {
+                    AppDatabase.getInstance(context).taskDao().updateTaskEnabled(taskId, false)
+                } catch (_: Exception) {
+                    // DB更新失敗時はタスクが有効のまま残る（安全側に倒す）
+                }
+            }
+        }
 
         // OFFの場合は通知を出さない
         if (alertMode == "OFF") return
@@ -5439,6 +5471,7 @@ import kotlinx.coroutines.launch
 import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
@@ -5687,7 +5720,8 @@ class WidgetUpdateService : Service() {
             return
         }
         val now = java.time.LocalTime.now()
-        val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
+        val enabledTasks = cachedTasks.filter { it.isEnabled }
+        val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
         val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
 
         for (id in ids) {
@@ -5763,6 +5797,17 @@ class WidgetUpdateService : Service() {
                 } else ""
             } else ""
 
+            val resolvedDisplayText = if (displayText.isEmpty()) {
+                val tomorrowOnce = enabledTasks.filter {
+                    it.repeat == RepeatType.ONCE && it.startTime <= now
+                }.minByOrNull { it.startTime }
+                if (tomorrowOnce != null) {
+                    val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
+                    val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+                    "明日 ${tomorrowOnce.startTime.format(sf)} ${tomorrowOnce.name}"
+                } else ""
+            } else displayText
+
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
             val views = if (needFullRedraw) {
@@ -5770,8 +5815,8 @@ class WidgetUpdateService : Service() {
             } else {
                 buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
-            if (displayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(displayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
+            if (resolvedDisplayText.isNotEmpty()) {
+                val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {
@@ -6295,6 +6340,7 @@ val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
+private val KEY_THEME_MODE           = stringPreferencesKey("theme_mode")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
@@ -6311,7 +6357,7 @@ enum class GradientCenter {
 enum class WidgetFont { ROBOTO, THIN, LIGHT, MEDIUM, BLACK, CONDENSED, SERIF, MONO }
 enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
-
+enum class ThemeMode    { SYSTEM, DARK, LIGHT }
 data class AppSettings(
     val bgColor:             Long        = 0xFF1A237EL,
     val bgAlpha:             Int         = 95,
@@ -6400,6 +6446,9 @@ class SettingsViewModel(
 
     private val _fontTipVisible = MutableStateFlow(true)
     val fontTipVisible: StateFlow<Boolean> = _fontTipVisible.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
@@ -6492,6 +6541,9 @@ class SettingsViewModel(
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
                 _fontTipVisible.value = displayPrefs[KEY_FONT_TIP_VISIBLE] ?: true
+                _themeMode.value = displayPrefs[KEY_THEME_MODE]
+                    ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
+                    ?: ThemeMode.SYSTEM
                 _isLoaded.value = true
             }
         }
@@ -6583,6 +6635,14 @@ class SettingsViewModel(
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
                 prefs[KEY_MESSAGE_SCALE]         = s.messageScale
+            }
+        }
+    }
+
+    fun saveThemeMode(mode: ThemeMode) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_THEME_MODE] = mode.name
             }
         }
     }
@@ -6901,9 +6961,16 @@ fun SettingsScreen(
     }
 
     val bgImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
+        uri?.let {
+            // 画像の読み取り権限を永続化
+            val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            context.contentResolver.takePersistableUriPermission(it, flag)
+
+            // bgTypeも自動的にIMAGEに切り替える
+            draft = draft.copy(bgImageUri = it.toString(), bgType = BackgroundType.IMAGE)
+        }
     }
 
     var formatExpanded by remember { mutableStateOf(false) }
@@ -7257,6 +7324,46 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp)
             ) {
 
+                // --- アプリテーマ（ダーク/ライト） ---
+                val currentThemeMode by viewModel.themeMode.collectAsState()
+                SectionHeader("アプリテーマ")
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            ThemeMode.SYSTEM to "システム",
+                            ThemeMode.DARK   to "ダーク",
+                            ThemeMode.LIGHT  to "ライト"
+                        ).forEach { (mode, label) ->
+                            val isSelected = currentThemeMode == mode
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                else Color.Transparent,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { viewModel.saveThemeMode(mode) }
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // --- テーマ ---
                 AccordionHeader(
                     title = "テーマ",
@@ -7323,9 +7430,16 @@ fun SettingsScreen(
                                     }
                                 } else if (selectedThemeTab == 3) {
                                     val imageLauncher = rememberLauncherForActivityResult(
-                                        contract = ActivityResultContracts.GetContent()
+                                        contract = ActivityResultContracts.OpenDocument()
                                     ) { uri ->
-                                        uri?.let { draft = draft.copy(bgImageUri = it.toString()) }
+                                        uri?.let {
+                                            // 画像の読み取り権限を永続化
+                                            val flag = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            context.contentResolver.takePersistableUriPermission(it, flag)
+
+                                            // bgTypeも自動的にIMAGEに切り替える
+                                            draft = draft.copy(bgImageUri = it.toString(), bgType = BackgroundType.IMAGE)
+                                        }
                                     }
                                     Column(
                                         modifier = Modifier
@@ -7349,7 +7463,8 @@ fun SettingsScreen(
                                             }
                                         }
                                         Button(
-                                            onClick = { imageLauncher.launch("image/*") },
+                                            // OpenDocumentの引数はStringの配列にする必要があります
+                                            onClick = { imageLauncher.launch(arrayOf("image/*")) },
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = ButtonDefaults.buttonColors(
                                                 containerColor = MaterialTheme.colorScheme.primary
@@ -7509,7 +7624,8 @@ fun SettingsScreen(
                                     }
                                 }
                                 Button(
-                                    onClick  = { bgImageLauncher.launch("image/*") },
+                                    // OpenDocumentの引数はStringの配列にする必要があります
+                                    onClick  = { bgImageLauncher.launch(arrayOf("image/*")) },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors   = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {

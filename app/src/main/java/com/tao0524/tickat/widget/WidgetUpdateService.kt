@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 import com.tao0524.tickat.data.local.AppDatabase
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
@@ -318,7 +319,8 @@ class WidgetUpdateService : Service() {
             return
         }
         val now = java.time.LocalTime.now()
-        val timeblocks = cachedTasks.filter { it.taskType == TaskType.TIMEBLOCK }
+        val enabledTasks = cachedTasks.filter { it.isEnabled }
+        val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
         val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
 
         for (id in ids) {
@@ -394,6 +396,17 @@ class WidgetUpdateService : Service() {
                 } else ""
             } else ""
 
+            val resolvedDisplayText = if (displayText.isEmpty()) {
+                val tomorrowOnce = enabledTasks.filter {
+                    it.repeat == RepeatType.ONCE && it.startTime <= now
+                }.minByOrNull { it.startTime }
+                if (tomorrowOnce != null) {
+                    val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
+                    val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
+                    "明日 ${tomorrowOnce.startTime.format(sf)} ${tomorrowOnce.name}"
+                } else ""
+            } else displayText
+
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
             val views = if (needFullRedraw) {
@@ -401,8 +414,8 @@ class WidgetUpdateService : Service() {
             } else {
                 buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
-            if (displayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(displayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
+            if (resolvedDisplayText.isNotEmpty()) {
+                val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {

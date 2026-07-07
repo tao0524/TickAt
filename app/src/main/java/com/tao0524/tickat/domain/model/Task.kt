@@ -14,5 +14,6 @@ data class Task(
     val repeat: RepeatType,
     val memoText: String = "",
     val sortOrder: Int = 0,
-    val taskType: TaskType = TaskType.TIMEBLOCK
+    val taskType: TaskType = TaskType.TIMEBLOCK,
+    val isEnabled: Boolean = true
 )
