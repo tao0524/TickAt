@@ -663,6 +663,46 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp)
             ) {
 
+                // --- アプリテーマ（ダーク/ライト） ---
+                val currentThemeMode by viewModel.themeMode.collectAsState()
+                SectionHeader("アプリテーマ")
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(
+                            ThemeMode.SYSTEM to "システム",
+                            ThemeMode.DARK   to "ダーク",
+                            ThemeMode.LIGHT  to "ライト"
+                        ).forEach { (mode, label) ->
+                            val isSelected = currentThemeMode == mode
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                else Color.Transparent,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { viewModel.saveThemeMode(mode) }
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(vertical = 10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // --- テーマ ---
                 AccordionHeader(
                     title = "テーマ",

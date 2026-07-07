@@ -74,6 +74,7 @@ val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
+private val KEY_THEME_MODE           = stringPreferencesKey("theme_mode")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
@@ -90,7 +91,7 @@ enum class GradientCenter {
 enum class WidgetFont { ROBOTO, THIN, LIGHT, MEDIUM, BLACK, CONDENSED, SERIF, MONO }
 enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
-
+enum class ThemeMode    { SYSTEM, DARK, LIGHT }
 data class AppSettings(
     val bgColor:             Long        = 0xFF1A237EL,
     val bgAlpha:             Int         = 95,
@@ -179,6 +180,9 @@ class SettingsViewModel(
 
     private val _fontTipVisible = MutableStateFlow(true)
     val fontTipVisible: StateFlow<Boolean> = _fontTipVisible.asStateFlow()
+
+    private val _themeMode = MutableStateFlow(ThemeMode.SYSTEM)
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
 
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
@@ -271,6 +275,9 @@ class SettingsViewModel(
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
                 _fontTipVisible.value = displayPrefs[KEY_FONT_TIP_VISIBLE] ?: true
+                _themeMode.value = displayPrefs[KEY_THEME_MODE]
+                    ?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() }
+                    ?: ThemeMode.SYSTEM
                 _isLoaded.value = true
             }
         }
@@ -362,6 +369,14 @@ class SettingsViewModel(
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
                 prefs[KEY_MESSAGE_SCALE]         = s.messageScale
+            }
+        }
+    }
+
+    fun saveThemeMode(mode: ThemeMode) {
+        viewModelScope.launch {
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_THEME_MODE] = mode.name
             }
         }
     }

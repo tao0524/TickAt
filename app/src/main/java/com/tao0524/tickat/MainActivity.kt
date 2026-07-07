@@ -83,7 +83,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settings by settingsViewModel.settings.collectAsState()
-            TickAtTheme(settings = settings) {
+            val themeMode by settingsViewModel.themeMode.collectAsState()
+            TickAtTheme(settings = settings, themeMode = themeMode) {
                 val onboardingChecked by _onboardingChecked.collectAsState()
                 val showExpanded      by _showExpanded.collectAsState()
                 val expandedTaskId    by _expandedTaskId.collectAsState()

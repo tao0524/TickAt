@@ -7,6 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.ThemeMode
 
 private fun blendToWhite(base: Color, ratio: Float): Color = Color(
     red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
@@ -18,9 +19,14 @@ private fun blendToWhite(base: Color, ratio: Float): Color = Color(
 @Composable
 fun TickAtTheme(
     settings: AppSettings = AppSettings(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        ThemeMode.DARK  -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
 
     val colorScheme = if (isDark) {
         val bg   = Color(settings.bgColor)
