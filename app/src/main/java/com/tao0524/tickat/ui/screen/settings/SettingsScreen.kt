@@ -435,6 +435,13 @@ fun SettingsScreen(
     // --- 時刻のサイズ ---
     if (showTimeSizeDialog) {
         var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        val timeHint = when {
+            tempBalance <= -6 -> "時計を大きく表示。寝室やデスクの置き時計向け。"
+            tempBalance <= -2 -> "時計がやや大きめ。時刻を重視しつつ日付も確認できます。"
+            tempBalance <= 2  -> "時計と日付のバランスが取れた標準的な表示です。"
+            tempBalance <= 6  -> "時計がやや小さめ。日付やメッセージの視認性が上がります。"
+            else              -> "時計を最小限に。情報表示をメインにしたい場合に。"
+        }
         SizeAdjustDialog(
             title        = "時刻のサイズ",
             previewDraft = draft.copy(clockDateBalance = tempBalance),
@@ -447,13 +454,21 @@ fun SettingsScreen(
             onConfirm    = {
                 draft = draft.copy(clockDateBalance = tempBalance)
                 showTimeSizeDialog = false
-            }
+            },
+            hint         = timeHint
         )
     }
 
     // --- 日付のサイズ ---
     if (showDateSizeDialog) {
         var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        val dateHint = when {
+            tempBalance >= 6  -> "日付を大きく表示。スケジュール確認がメインの方に。"
+            tempBalance >= 2  -> "日付がやや大きめ。曜日や予定の確認がしやすくなります。"
+            tempBalance >= -2 -> "時計と日付のバランスが取れた標準的な表示です。"
+            tempBalance >= -6 -> "日付がやや小さめ。時刻表示を優先します。"
+            else              -> "日付を最小限に。シンプルな時計として使いたい場合に。"
+        }
         SizeAdjustDialog(
             title        = "日付のサイズ",
             previewDraft = draft.copy(clockDateBalance = tempBalance),
@@ -466,13 +481,21 @@ fun SettingsScreen(
             onConfirm    = {
                 draft = draft.copy(clockDateBalance = tempBalance)
                 showDateSizeDialog = false
-            }
+            },
+            hint         = dateHint
         )
     }
 
     // --- メッセージのサイズ ---
     if (showMessageSizeDialog) {
         var tempScale by remember { mutableStateOf(draft.messageScale) }
+        val messageHint = when {
+            tempScale <= 0.7f -> "メッセージを控えめに。時計・日付がメインの表示になります。"
+            tempScale <= 1.1f -> "標準的なサイズ。時計の下にさりげなく情報を表示します。"
+            tempScale <= 1.5f -> "メッセージがやや大きめ。タスク名やカウントダウンが目立ちます。"
+            tempScale <= 2.0f -> "メッセージを大きく表示。予定の確認を重視したい方に。"
+            else              -> "メッセージを最大限に強調。重要な予定を見逃しません。"
+        }
         SizeAdjustDialog(
             title        = "メッセージのサイズ",
             previewDraft = draft.copy(messageScale = tempScale, showTaskName = true, showCountdown = true),
@@ -485,7 +508,8 @@ fun SettingsScreen(
             onConfirm    = {
                 draft = draft.copy(messageScale = tempScale)
                 showMessageSizeDialog = false
-            }
+            },
+            hint         = messageHint
         )
     }
 
@@ -1271,6 +1295,73 @@ fun SettingsScreen(
                                 steps         = 9,
                                 modifier      = Modifier.fillMaxWidth()
                             )
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                        // --- おすすめバランス ---
+                        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+                            Text(
+                                "おすすめバランス",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    Triple("時計メイン", "シンプル時計", Triple(-6, 1.0f, 0.7f)),
+                                    Triple("バランス", "標準", Triple(0, 1.0f, 1.0f)),
+                                    Triple("情報重視", "タスク大きめ", Triple(4, 0.9f, 1.3f))
+                                ).forEach { (label, sub, values) ->
+                                    val (balance, fScale, mScale) = values
+                                    val isSelected = draft.clockDateBalance == balance
+                                            && draft.fontScale == fScale
+                                            && draft.messageScale == mScale
+                                    Card(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                draft = draft.copy(
+                                                    clockDateBalance = balance,
+                                                    fontScale = fScale,
+                                                    messageScale = mScale
+                                                )
+                                            },
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSelected)
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                        )
+                                    ) {
+                                        Column(
+                                            modifier = Modifier
+                                                .padding(vertical = 10.dp, horizontal = 8.dp)
+                                                .fillMaxWidth(),
+                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        ) {
+                                            Text(
+                                                label,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = if (isSelected)
+                                                    MaterialTheme.colorScheme.primary
+                                                else
+                                                    MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                sub,
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         // --- 時刻のサイズ ---
@@ -2630,7 +2721,8 @@ private fun SizeAdjustDialog(
     onPlus: () -> Unit,
     onMinus: () -> Unit,
     onDismiss: () -> Unit,
-    onConfirm: () -> Unit
+    onConfirm: () -> Unit,
+    hint: String? = null
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -2677,6 +2769,23 @@ private fun SizeAdjustDialog(
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         Text("＋", fontSize = 28.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                }
+                if (hint != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Text(
+                            text = "💡 $hint",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            lineHeight = 18.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        )
                     }
                 }
                 Spacer(Modifier.height(16.dp))
