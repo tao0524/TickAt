@@ -88,7 +88,63 @@ enum class GradientCenter {
     CENTER_LEFT, CENTER, CENTER_RIGHT,
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
-enum class WidgetFont { ROBOTO, THIN, LIGHT, MEDIUM, BLACK, CONDENSED, SERIF, MONO }
+enum class WidgetFont(
+    val displayName: String,
+    val assetPath: String? = null
+) {
+    // --- 既存（システムフォント） ---
+    ROBOTO("Roboto"),
+    THIN("Roboto Thin"),
+    LIGHT("Roboto Light"),
+    MEDIUM("Roboto Medium"),
+    BLACK("Roboto Black"),
+    CONDENSED("Roboto Condensed"),
+    SERIF("Noto Serif"),
+    MONO("Droid Sans Mono"),
+
+    // --- 時計・ディスプレイ系 ---
+    ORBITRON("Orbitron", "fonts/Orbitron-Regular.ttf"),
+    CHAKRA_PETCH("Chakra Petch", "fonts/ChakraPetch-Regular.ttf"),
+    OXANIUM("Oxanium", "fonts/Oxanium-Regular.ttf"),
+    RAJDHANI("Rajdhani", "fonts/Rajdhani-Regular.ttf"),
+    EXO_2("Exo 2", "fonts/Exo2-Regular.ttf"),
+    ALDRICH("Aldrich", "fonts/Aldrich-Regular.ttf"),
+
+    // --- モダン・サンセリフ系 ---
+    MONTSERRAT("Montserrat", "fonts/Montserrat-Regular.ttf"),
+    POPPINS("Poppins", "fonts/Poppins-Regular.ttf"),
+    INTER("Inter", "fonts/Inter-Regular.ttf"),
+    LATO("Lato", "fonts/Lato-Regular.ttf"),
+    DM_SANS("DM Sans", "fonts/DMSans-Regular.ttf"),
+    RALEWAY("Raleway", "fonts/Raleway-Regular.ttf"),
+    SPACE_GROTESK("Space Grotesk", "fonts/SpaceGrotesk-Regular.ttf"),
+
+    // --- 個性系 ---
+    PLAYFAIR("Playfair Display", "fonts/PlayfairDisplay-Regular.ttf"),
+    SPACE_MONO("Space Mono", "fonts/SpaceMono-Regular.ttf"),
+    CAVEAT("Caveat", "fonts/Caveat-Regular.ttf");
+
+    fun toTypeface(context: android.content.Context, style: Int = android.graphics.Typeface.NORMAL): android.graphics.Typeface {
+        assetPath?.let { path ->
+            return try {
+                val base = android.graphics.Typeface.createFromAsset(context.assets, path)
+                if (style == android.graphics.Typeface.NORMAL) base else android.graphics.Typeface.create(base, style)
+            } catch (e: Exception) {
+                android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, style)
+            }
+        }
+        return when (this) {
+            THIN      -> android.graphics.Typeface.create("sans-serif-thin", style)
+            LIGHT     -> android.graphics.Typeface.create("sans-serif-light", style)
+            MEDIUM    -> android.graphics.Typeface.create("sans-serif-medium", style)
+            BLACK     -> android.graphics.Typeface.create("sans-serif-black", style)
+            CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", style)
+            SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, style)
+            MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, style)
+            else      -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, style)
+        }
+    }
+}
 enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
 enum class ThemeMode    { SYSTEM, DARK, LIGHT }

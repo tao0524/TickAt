@@ -46,6 +46,22 @@ app/build.gradle.kts
 app/proguard-rules.pro
 app/src/androidTest/java/com/tao0524/tickat/ExampleInstrumentedTest.kt
 app/src/main/AndroidManifest.xml
+app/src/main/assets/fonts/Aldrich-Regular.ttf
+app/src/main/assets/fonts/Caveat-Regular.ttf
+app/src/main/assets/fonts/ChakraPetch-Regular.ttf
+app/src/main/assets/fonts/DMSans-Regular.ttf
+app/src/main/assets/fonts/Exo2-Regular.ttf
+app/src/main/assets/fonts/Inter-Regular.ttf
+app/src/main/assets/fonts/Lato-Regular.ttf
+app/src/main/assets/fonts/Montserrat-Regular.ttf
+app/src/main/assets/fonts/Orbitron-Regular.ttf
+app/src/main/assets/fonts/Oxanium-Regular.ttf
+app/src/main/assets/fonts/PlayfairDisplay-Regular.ttf
+app/src/main/assets/fonts/Poppins-Regular.ttf
+app/src/main/assets/fonts/Rajdhani-Regular.ttf
+app/src/main/assets/fonts/Raleway-Regular.ttf
+app/src/main/assets/fonts/SpaceGrotesk-Regular.ttf
+app/src/main/assets/fonts/SpaceMono-Regular.ttf
 app/src/main/ic_launcher-playstore.png
 app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt
 app/src/main/java/com/tao0524/tickat/data/local/Converters.kt
@@ -6115,16 +6131,7 @@ class WidgetUpdateService : Service() {
                     newSettings.isItalic                                              -> Typeface.ITALIC
                     else                                                              -> Typeface.NORMAL
                 }
-                val newTypeface = when (newSettings.fontFamily) {
-                    WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
-                    WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
-                    WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
-                    WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
-                    WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-                    WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-                    else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-                }
+                val newTypeface = newSettings.fontFamily.toTypeface(this@WidgetUpdateService, typefaceStyle)
                 val scaledDensity = resources.displayMetrics.scaledDensity
                 val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
                 val h = manager.getAppWidgetOptions(appWidgetId)
@@ -6419,7 +6426,63 @@ enum class GradientCenter {
     CENTER_LEFT, CENTER, CENTER_RIGHT,
     BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
 }
-enum class WidgetFont { ROBOTO, THIN, LIGHT, MEDIUM, BLACK, CONDENSED, SERIF, MONO }
+enum class WidgetFont(
+    val displayName: String,
+    val assetPath: String? = null
+) {
+    // --- 既存（システムフォント） ---
+    ROBOTO("Roboto"),
+    THIN("Roboto Thin"),
+    LIGHT("Roboto Light"),
+    MEDIUM("Roboto Medium"),
+    BLACK("Roboto Black"),
+    CONDENSED("Roboto Condensed"),
+    SERIF("Noto Serif"),
+    MONO("Droid Sans Mono"),
+
+    // --- 時計・ディスプレイ系 ---
+    ORBITRON("Orbitron", "fonts/Orbitron-Regular.ttf"),
+    CHAKRA_PETCH("Chakra Petch", "fonts/ChakraPetch-Regular.ttf"),
+    OXANIUM("Oxanium", "fonts/Oxanium-Regular.ttf"),
+    RAJDHANI("Rajdhani", "fonts/Rajdhani-Regular.ttf"),
+    EXO_2("Exo 2", "fonts/Exo2-Regular.ttf"),
+    ALDRICH("Aldrich", "fonts/Aldrich-Regular.ttf"),
+
+    // --- モダン・サンセリフ系 ---
+    MONTSERRAT("Montserrat", "fonts/Montserrat-Regular.ttf"),
+    POPPINS("Poppins", "fonts/Poppins-Regular.ttf"),
+    INTER("Inter", "fonts/Inter-Regular.ttf"),
+    LATO("Lato", "fonts/Lato-Regular.ttf"),
+    DM_SANS("DM Sans", "fonts/DMSans-Regular.ttf"),
+    RALEWAY("Raleway", "fonts/Raleway-Regular.ttf"),
+    SPACE_GROTESK("Space Grotesk", "fonts/SpaceGrotesk-Regular.ttf"),
+
+    // --- 個性系 ---
+    PLAYFAIR("Playfair Display", "fonts/PlayfairDisplay-Regular.ttf"),
+    SPACE_MONO("Space Mono", "fonts/SpaceMono-Regular.ttf"),
+    CAVEAT("Caveat", "fonts/Caveat-Regular.ttf");
+
+    fun toTypeface(context: android.content.Context, style: Int = android.graphics.Typeface.NORMAL): android.graphics.Typeface {
+        assetPath?.let { path ->
+            return try {
+                val base = android.graphics.Typeface.createFromAsset(context.assets, path)
+                if (style == android.graphics.Typeface.NORMAL) base else android.graphics.Typeface.create(base, style)
+            } catch (e: Exception) {
+                android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, style)
+            }
+        }
+        return when (this) {
+            THIN      -> android.graphics.Typeface.create("sans-serif-thin", style)
+            LIGHT     -> android.graphics.Typeface.create("sans-serif-light", style)
+            MEDIUM    -> android.graphics.Typeface.create("sans-serif-medium", style)
+            BLACK     -> android.graphics.Typeface.create("sans-serif-black", style)
+            CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", style)
+            SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, style)
+            MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, style)
+            else      -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, style)
+        }
+    }
+}
 enum class AmPmPosition { AFTER, BEFORE }
 enum class AmPmLabel    { JAPANESE, ENGLISH }
 enum class ThemeMode    { SYSTEM, DARK, LIGHT }
@@ -6837,6 +6900,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.draw.drawWithContent
 
 private data class ThemePreset(
     val name: String,
@@ -7103,27 +7167,30 @@ fun SettingsScreen(
             onDismissRequest = { showFontFamilyDialog = false },
             title = { Text("フォントファミリー") },
             text = {
-                Column {
-                    listOf(
-                        WidgetFont.ROBOTO    to "Roboto",
-                        WidgetFont.THIN      to "Roboto Thin",
-                        WidgetFont.LIGHT     to "Roboto Light",
-                        WidgetFont.MEDIUM    to "Roboto Medium",
-                        WidgetFont.BLACK     to "Roboto Black",
-                        WidgetFont.CONDENSED to "Roboto Condensed",
-                        WidgetFont.SERIF     to "Noto Serif",
-                        WidgetFont.MONO      to "Droid Sans Mono"
-                    ).forEach { (font, label) ->
-                        val fontFamily = when (font) {
-                            WidgetFont.THIN      -> FontFamily(android.graphics.Typeface.create("sans-serif-thin", android.graphics.Typeface.NORMAL))
-                            WidgetFont.LIGHT     -> FontFamily(android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL))
-                            WidgetFont.MEDIUM    -> FontFamily(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL))
-                            WidgetFont.BLACK     -> FontFamily(android.graphics.Typeface.create("sans-serif-black", android.graphics.Typeface.NORMAL))
-                            WidgetFont.CONDENSED -> FontFamily(android.graphics.Typeface.create("sans-serif-condensed", android.graphics.Typeface.NORMAL))
-                            WidgetFont.SERIF     -> FontFamily.Serif
-                            WidgetFont.MONO      -> FontFamily.Monospace
-                            else                 -> FontFamily.Default
+                val scrollState = rememberScrollState()
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(scrollState)
+                        .drawWithContent {
+                            drawContent()
+                            val viewportH = size.height
+                            val totalH = scrollState.maxValue.toFloat() + viewportH
+                            if (totalH > viewportH) {
+                                val barH = (viewportH / totalH) * viewportH
+                                val barY = (scrollState.value / totalH) * viewportH
+                                drawRoundRect(
+                                    color = androidx.compose.ui.graphics.Color.Gray.copy(alpha = 0.4f),
+                                    topLeft = androidx.compose.ui.geometry.Offset(size.width - 6f, barY),
+                                    size = androidx.compose.ui.geometry.Size(4f, barH),
+                                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(2f)
+                                )
+                            }
                         }
+                ) {
+                    val context = LocalContext.current
+                    WidgetFont.entries.forEach { font ->
+                        val label = font.displayName
+                        val fontFamily = FontFamily(font.toTypeface(context))
                         val isSelected = draft.fontFamily == font
                         Text(
                             text       = label,
@@ -7945,16 +8012,7 @@ fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Text("フォントファミリー", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
-                            val fontDisplayName = when (draft.fontFamily) {
-                                WidgetFont.ROBOTO    -> "Roboto"
-                                WidgetFont.THIN      -> "Roboto Thin"
-                                WidgetFont.LIGHT     -> "Roboto Light"
-                                WidgetFont.MEDIUM    -> "Roboto Medium"
-                                WidgetFont.BLACK     -> "Roboto Black"
-                                WidgetFont.CONDENSED -> "Roboto Condensed"
-                                WidgetFont.SERIF     -> "Noto Serif"
-                                WidgetFont.MONO      -> "Droid Sans Mono"
-                            }
+                            val fontDisplayName = draft.fontFamily.displayName
                             OutlinedButton(
                                 onClick  = { showFontFamilyDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
@@ -9305,16 +9363,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         draft.isItalic                                        -> android.graphics.Typeface.ITALIC
                         else                                                  -> android.graphics.Typeface.NORMAL
                     }
-                    val typeface = when (draft.fontFamily) {
-                        WidgetFont.THIN      -> android.graphics.Typeface.create("sans-serif-thin", typefaceStyle)
-                        WidgetFont.LIGHT     -> android.graphics.Typeface.create("sans-serif-light", typefaceStyle)
-                        WidgetFont.MEDIUM    -> android.graphics.Typeface.create("sans-serif-medium", typefaceStyle)
-                        WidgetFont.BLACK     -> android.graphics.Typeface.create("sans-serif-black", typefaceStyle)
-                        WidgetFont.CONDENSED -> android.graphics.Typeface.create("sans-serif-condensed", typefaceStyle)
-                        WidgetFont.SERIF     -> android.graphics.Typeface.create(android.graphics.Typeface.SERIF, typefaceStyle)
-                        WidgetFont.MONO      -> android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE, typefaceStyle)
-                        else                 -> android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, typefaceStyle)
-                    }
+                    val typeface = draft.fontFamily.toTypeface(context, typefaceStyle)
                     val now      = java.util.Calendar.getInstance()
                     val timeLocale = if (draft.amPmLabel == AmPmLabel.ENGLISH) java.util.Locale.ENGLISH else java.util.Locale.JAPANESE
                     val timeBitmap = if (draft.use24Hour) {

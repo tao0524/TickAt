@@ -239,16 +239,7 @@ class WidgetUpdateService : Service() {
                     newSettings.isItalic                                              -> Typeface.ITALIC
                     else                                                              -> Typeface.NORMAL
                 }
-                val newTypeface = when (newSettings.fontFamily) {
-                    WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
-                    WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
-                    WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
-                    WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
-                    WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-                    WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-                    WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-                    else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-                }
+                val newTypeface = newSettings.fontFamily.toTypeface(this@WidgetUpdateService, typefaceStyle)
                 val scaledDensity = resources.displayMetrics.scaledDensity
                 val manager = AppWidgetManager.getInstance(this@WidgetUpdateService)
                 val h = manager.getAppWidgetOptions(appWidgetId)
