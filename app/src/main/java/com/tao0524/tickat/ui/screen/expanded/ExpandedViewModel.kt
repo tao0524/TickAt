@@ -57,7 +57,7 @@ class ExpandedViewModel(
         _targetTaskId
     ) { tasks, checkedIds, showCb, targetId ->
         val now = LocalTime.now()
-        val sortedTasks = tasks.sortedBy { it.startTime }
+        val sortedTasks = tasks.filter { it.isEnabled }.sortedBy { it.startTime }
         val items = sortedTasks.map { task ->
             ScheduleItem(
                 task = task,

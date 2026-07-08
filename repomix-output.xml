@@ -265,53 +265,6 @@ class ExampleInstrumentedTest {
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/data/local/TaskDao.kt">
-package com.tao0524.tickat.data.local
-
-import androidx.room.*
-import com.tao0524.tickat.domain.model.Task
-import kotlinx.coroutines.flow.Flow
-
-@Dao
-interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY sortOrder ASC, startTime ASC")
-    fun getAllTasks(): Flow<List<Task>>
-
-    @Query("SELECT * FROM tasks WHERE id = :id")
-    suspend fun getTaskById(id: String): Task?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertTask(task: Task)
-
-    @Delete
-    suspend fun deleteTask(task: Task)
-
-    @Query("DELETE FROM tasks WHERE id = :id")
-    suspend fun deleteTaskById(id: String)
-
-    @Query("UPDATE tasks SET isEnabled = :isEnabled WHERE id = :id")
-    suspend fun updateTaskEnabled(id: String, isEnabled: Boolean)
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/data/repository/TaskRepository.kt">
-package com.tao0524.tickat.data.repository
-
-import com.tao0524.tickat.data.local.TaskDao
-import com.tao0524.tickat.domain.model.Task
-import kotlinx.coroutines.flow.Flow
-
-class TaskRepository(private val dao: TaskDao) {
-    val allTasks: Flow<List<Task>> = dao.getAllTasks()
-
-    suspend fun save(task: Task) = dao.upsertTask(task)
-    suspend fun delete(task: Task) = dao.deleteTask(task)
-    suspend fun deleteById(id: String) = dao.deleteTaskById(id)
-    suspend fun getById(id: String): Task? = dao.getTaskById(id)
-    suspend fun setEnabled(id: String, isEnabled: Boolean) = dao.updateTaskEnabled(id, isEnabled)
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/domain/model/RepeatType.kt">
 package com.tao0524.tickat.domain.model
 
@@ -1494,6 +1447,53 @@ rootProject.name = "TickAt"
 include(":app")
 </file>
 
+<file path="app/src/main/java/com/tao0524/tickat/data/local/TaskDao.kt">
+package com.tao0524.tickat.data.local
+
+import androidx.room.*
+import com.tao0524.tickat.domain.model.Task
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface TaskDao {
+    @Query("SELECT * FROM tasks ORDER BY sortOrder ASC, startTime ASC")
+    fun getAllTasks(): Flow<List<Task>>
+
+    @Query("SELECT * FROM tasks WHERE id = :id")
+    suspend fun getTaskById(id: String): Task?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertTask(task: Task)
+
+    @Delete
+    suspend fun deleteTask(task: Task)
+
+    @Query("DELETE FROM tasks WHERE id = :id")
+    suspend fun deleteTaskById(id: String)
+
+    @Query("UPDATE tasks SET isEnabled = :isEnabled WHERE id = :id")
+    suspend fun updateTaskEnabled(id: String, isEnabled: Boolean)
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/repository/TaskRepository.kt">
+package com.tao0524.tickat.data.repository
+
+import com.tao0524.tickat.data.local.TaskDao
+import com.tao0524.tickat.domain.model.Task
+import kotlinx.coroutines.flow.Flow
+
+class TaskRepository(private val dao: TaskDao) {
+    val allTasks: Flow<List<Task>> = dao.getAllTasks()
+
+    suspend fun save(task: Task) = dao.upsertTask(task)
+    suspend fun delete(task: Task) = dao.deleteTask(task)
+    suspend fun deleteById(id: String) = dao.deleteTaskById(id)
+    suspend fun getById(id: String): Task? = dao.getTaskById(id)
+    suspend fun setEnabled(id: String, isEnabled: Boolean) = dao.updateTaskEnabled(id, isEnabled)
+}
+</file>
+
 <file path="app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt">
 package com.tao0524.tickat.ui.theme
 
@@ -1581,73 +1581,6 @@ class BootCompletedReceiver : BroadcastReceiver() {
 </adaptive-icon>
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
-package com.tao0524.tickat.data.local
-
-import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
-import androidx.room.TypeConverters
-import com.tao0524.tickat.domain.model.Task
-
-@Database(entities = [Task::class], version = 4, exportSchema = false)
-@TypeConverters(Converters::class)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun taskDao(): TaskDao
-
-    companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
-
-        private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE tasks ADD COLUMN taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'")
-            }
-        }
-
-        private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("""
-                    CREATE TABLE tasks_new (
-                        id TEXT NOT NULL PRIMARY KEY,
-                        name TEXT NOT NULL,
-                        startTime TEXT NOT NULL,
-                        endTime TEXT NOT NULL,
-                        repeat TEXT NOT NULL,
-                        memoText TEXT NOT NULL DEFAULT '',
-                        sortOrder INTEGER NOT NULL DEFAULT 0,
-                        taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'
-                    )
-                """.trimIndent())
-                db.execSQL("""
-                    INSERT INTO tasks_new (id, name, startTime, endTime, repeat, memoText, sortOrder, taskType)
-                    SELECT id, name, startTime, endTime, repeat, memoText, sortOrder, taskType FROM tasks
-                """.trimIndent())
-                db.execSQL("DROP TABLE tasks")
-                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
-            }
-        }
-
-        private val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE tasks ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1")
-            }
-        }
-
-        fun getInstance(context: Context): AppDatabase =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "tickat_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
-            }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/data/local/Converters.kt">
 package com.tao0524.tickat.data.local
 
@@ -1672,28 +1605,6 @@ class Converters {
     @TypeConverter fun toTaskType(taskType: TaskType?): String? =
         taskType?.name
 }
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
-package com.tao0524.tickat.domain.model
-
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import java.time.LocalTime
-import java.util.UUID
-
-@Entity(tableName = "tasks")
-data class Task(
-    @PrimaryKey val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val startTime: LocalTime,
-    val endTime: LocalTime,
-    val repeat: RepeatType,
-    val memoText: String = "",
-    val sortOrder: Int = 0,
-    val taskType: TaskType = TaskType.TIMEBLOCK,
-    val isEnabled: Boolean = true
-)
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/expanded/ExpandedViewModel.kt">
@@ -1756,7 +1667,7 @@ class ExpandedViewModel(
         _targetTaskId
     ) { tasks, checkedIds, showCb, targetId ->
         val now = LocalTime.now()
-        val sortedTasks = tasks.sortedBy { it.startTime }
+        val sortedTasks = tasks.filter { it.isEnabled }.sortedBy { it.startTime }
         val items = sortedTasks.map { task ->
             ScheduleItem(
                 task = task,
@@ -1862,189 +1773,6 @@ fun TickAtTheme(
 }
 </file>
 
-<file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
-package com.tao0524.tickat.widget
-
-import android.app.AlarmManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import com.tao0524.tickat.domain.model.RepeatType
-import com.tao0524.tickat.domain.model.Task
-import com.tao0524.tickat.domain.model.TaskType
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-
-object TaskAlertScheduler {
-
-    fun scheduleAll(context: Context, tasks: List<Task>) {
-        tasks.forEach { schedule(context, it) }
-    }
-
-    fun schedule(context: Context, task: Task) {
-        if (!task.isEnabled) return
-
-        val now = LocalDateTime.now()
-        var nextStart = LocalDate.now().atTime(task.startTime)
-
-        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
-        var endScheduled = false
-        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
-            val todayEnd = LocalDate.now().atTime(task.endTime)
-            if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
-                scheduleEndAlarm(context, task, todayEnd)
-                endScheduled = true
-            }
-        }
-
-        if (nextStart.isAfter(now)) {
-            // 今日の開始時刻がまだ来ていない
-            when (task.repeat) {
-                RepeatType.WEEKDAY -> {
-                    val dow = nextStart.dayOfWeek.value
-                    if (dow > 5) {
-                        nextStart = nextStart.plusDays((8 - dow).toLong())
-                    }
-                }
-                else -> { /* 今日のまま */ }
-            }
-        } else {
-            // 今日の開始時刻は既に過ぎた → 次回を計算
-            when (task.repeat) {
-                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
-                RepeatType.WEEKDAY -> {
-                    nextStart = nextStart.plusDays(1)
-                    while (nextStart.dayOfWeek.value > 5) {
-                        nextStart = nextStart.plusDays(1)
-                    }
-                }
-                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
-                RepeatType.ONCE -> nextStart = nextStart.plusDays(1) // 翌日にスケジュール（発火後に自動オフ）
-            }
-        }
-
-        val triggerMillis = nextStart
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-
-        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
-            putExtra("task_id", task.id)
-            putExtra("task_name", task.name)
-            putExtra("task_start", task.startTime.toString())
-            putExtra("task_end", task.endTime.toString())
-            putExtra("task_memo", task.memoText)
-            putExtra("task_repeat", task.repeat.name)
-            putExtra("task_type", task.taskType.name)
-            putExtra("alert_type", "START")
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ("start_${task.id}").hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-            )
-        }
-
-        // TIMEBLOCK: 次回の終了アラームも登録（今日分を登録済みならスキップ）
-        if (!endScheduled && task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
-            scheduleEndAlarm(context, task, nextStart.toLocalDate().atTime(task.endTime))
-        }
-    }
-
-    private fun scheduleEndAlarm(context: Context, task: Task, endDateTime: LocalDateTime) {
-        val triggerMillis = endDateTime
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-
-        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
-            putExtra("task_id", task.id)
-            putExtra("task_name", task.name)
-            putExtra("task_start", task.startTime.toString())
-            putExtra("task_end", task.endTime.toString())
-            putExtra("task_memo", task.memoText)
-            putExtra("task_repeat", task.repeat.name)
-            putExtra("task_type", task.taskType.name)
-            putExtra("alert_type", "END")
-        }
-
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            ("end_${task.id}").hashCode(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            if (alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            } else {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-                )
-            }
-        } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
-            )
-        }
-    }
-
-    fun cancel(context: Context, taskId: String) {
-        // 開始アラームのキャンセル
-        val startIntent = Intent(context, TaskStartAlertReceiver::class.java)
-        val startPending = PendingIntent.getBroadcast(
-            context,
-            ("start_${taskId}").hashCode(),
-            startIntent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        if (startPending != null) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(startPending)
-            startPending.cancel()
-        }
-
-        // 終了アラームのキャンセル
-        val endIntent = Intent(context, TaskStartAlertReceiver::class.java)
-        val endPending = PendingIntent.getBroadcast(
-            context,
-            ("end_${taskId}").hashCode(),
-            endIntent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        if (endPending != null) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.cancel(endPending)
-            endPending.cancel()
-        }
-    }
-}
-</file>
-
 <file path="app/src/main/java/com/tao0524/tickat/widget/WidgetConfigActivity.kt">
 package com.tao0524.tickat.widget
 
@@ -2122,6 +1850,95 @@ class WidgetConfigActivity : ComponentActivity() {
     android:initialLayout="@layout/tickat_widget_loading"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/data/local/AppDatabase.kt">
+package com.tao0524.tickat.data.local
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.TypeConverters
+import com.tao0524.tickat.domain.model.Task
+
+@Database(entities = [Task::class], version = 4, exportSchema = false)
+@TypeConverters(Converters::class)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun taskDao(): TaskDao
+
+    companion object {
+        @Volatile private var INSTANCE: AppDatabase? = null
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE tasks_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        startTime TEXT NOT NULL,
+                        endTime TEXT NOT NULL,
+                        repeat TEXT NOT NULL,
+                        memoText TEXT NOT NULL DEFAULT '',
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        taskType TEXT NOT NULL DEFAULT 'TIMEBLOCK'
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO tasks_new (id, name, startTime, endTime, repeat, memoText, sortOrder, taskType)
+                    SELECT id, name, startTime, endTime, repeat, memoText, sortOrder, taskType FROM tasks
+                """.trimIndent())
+                db.execSQL("DROP TABLE tasks")
+                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN isEnabled INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
+        fun getInstance(context: Context): AppDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "tickat_db"
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
+            }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/domain/model/Task.kt">
+package com.tao0524.tickat.domain.model
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import java.time.LocalTime
+import java.util.UUID
+
+@Entity(tableName = "tasks")
+data class Task(
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val name: String,
+    val startTime: LocalTime,
+    val endTime: LocalTime,
+    val repeat: RepeatType,
+    val memoText: String = "",
+    val sortOrder: Int = 0,
+    val taskType: TaskType = TaskType.TIMEBLOCK,
+    val isEnabled: Boolean = true
+)
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/onboarding/OnboardingScreen.kt">
@@ -2419,6 +2236,189 @@ private fun FeatureChip(label: String, color: Color) {
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
+        }
+    }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TaskAlertScheduler.kt">
+package com.tao0524.tickat.widget
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.tao0524.tickat.domain.model.RepeatType
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.TaskType
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
+
+object TaskAlertScheduler {
+
+    fun scheduleAll(context: Context, tasks: List<Task>) {
+        tasks.forEach { schedule(context, it) }
+    }
+
+    fun schedule(context: Context, task: Task) {
+        if (!task.isEnabled) return
+
+        val now = LocalDateTime.now()
+        var nextStart = LocalDate.now().atTime(task.startTime)
+
+        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
+        var endScheduled = false
+        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            val todayEnd = LocalDate.now().atTime(task.endTime)
+            if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
+                scheduleEndAlarm(context, task, todayEnd)
+                endScheduled = true
+            }
+        }
+
+        if (nextStart.isAfter(now)) {
+            // 今日の開始時刻がまだ来ていない
+            when (task.repeat) {
+                RepeatType.WEEKDAY -> {
+                    val dow = nextStart.dayOfWeek.value
+                    if (dow > 5) {
+                        nextStart = nextStart.plusDays((8 - dow).toLong())
+                    }
+                }
+                else -> { /* 今日のまま */ }
+            }
+        } else {
+            // 今日の開始時刻は既に過ぎた → 次回を計算
+            when (task.repeat) {
+                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
+                RepeatType.WEEKDAY -> {
+                    nextStart = nextStart.plusDays(1)
+                    while (nextStart.dayOfWeek.value > 5) {
+                        nextStart = nextStart.plusDays(1)
+                    }
+                }
+                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
+                RepeatType.ONCE -> nextStart = nextStart.plusDays(1) // 翌日にスケジュール（発火後に自動オフ）
+            }
+        }
+
+        val triggerMillis = nextStart
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "START")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("start_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
+
+        // TIMEBLOCK: 次回の終了アラームも登録（今日分を登録済みならスキップ）
+        if (!endScheduled && task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+            scheduleEndAlarm(context, task, nextStart.toLocalDate().atTime(task.endTime))
+        }
+    }
+
+    private fun scheduleEndAlarm(context: Context, task: Task, endDateTime: LocalDateTime) {
+        val triggerMillis = endDateTime
+            .atZone(ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, TaskStartAlertReceiver::class.java).apply {
+            putExtra("task_id", task.id)
+            putExtra("task_name", task.name)
+            putExtra("task_start", task.startTime.toString())
+            putExtra("task_end", task.endTime.toString())
+            putExtra("task_memo", task.memoText)
+            putExtra("task_repeat", task.repeat.name)
+            putExtra("task_type", task.taskType.name)
+            putExtra("alert_type", "END")
+        }
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            ("end_${task.id}").hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            } else {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+                )
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent
+            )
+        }
+    }
+
+    fun cancel(context: Context, taskId: String) {
+        // 開始アラームのキャンセル
+        val startIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val startPending = PendingIntent.getBroadcast(
+            context,
+            ("start_${taskId}").hashCode(),
+            startIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (startPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(startPending)
+            startPending.cancel()
+        }
+
+        // 終了アラームのキャンセル
+        val endIntent = Intent(context, TaskStartAlertReceiver::class.java)
+        val endPending = PendingIntent.getBroadcast(
+            context,
+            ("end_${taskId}").hashCode(),
+            endIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (endPending != null) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.cancel(endPending)
+            endPending.cancel()
         }
     }
 }
@@ -3595,6 +3595,18 @@ class TaskListViewModel(
         }
     }
 
+    fun toggleEnabled(task: Task, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setEnabled(task.id, enabled)
+            if (enabled) {
+                val updated = task.copy(isEnabled = true)
+                TaskAlertScheduler.schedule(context, updated)
+            } else {
+                TaskAlertScheduler.cancel(context, task.id)
+            }
+        }
+    }
+
     fun delete(task: Task) {
         viewModelScope.launch {
             TaskAlertScheduler.cancel(context, task.id)
@@ -3640,6 +3652,89 @@ class TaskListViewModel(
         }
     }
 }
+</file>
+
+<file path="app/src/main/AndroidManifest.xml">
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TickAt">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.TickAt">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.TickAtWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tickat_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.TaskStartAlertReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".widget.BootCompletedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".FullScreenAlertActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.TickAt" />
+
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TickAt" />
+
+        <service
+            android:name=".widget.WidgetUpdateService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="widget_clock_update" />
+        </service>
+
+    </application>
+
+</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/widget/TaskStartAlertReceiver.kt">
@@ -3829,89 +3924,6 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
         }
     }
 }
-</file>
-
-<file path="app/src/main/AndroidManifest.xml">
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
-    <application
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.TickAt">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.TickAt">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <receiver
-            android:name=".widget.TickAtWidgetReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/tickat_widget_info" />
-        </receiver>
-
-        <receiver
-            android:name=".widget.TaskStartAlertReceiver"
-            android:exported="false" />
-
-        <receiver
-            android:name=".widget.BootCompletedReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
-
-        <activity
-            android:name=".FullScreenAlertActivity"
-            android:exported="false"
-            android:launchMode="singleTop"
-            android:showWhenLocked="true"
-            android:turnScreenOn="true"
-            android:theme="@style/Theme.TickAt" />
-
-        <activity
-            android:name=".widget.WidgetConfigActivity"
-            android:exported="false"
-            android:theme="@style/Theme.TickAt" />
-
-        <service
-            android:name=".widget.WidgetUpdateService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="widget_clock_update" />
-        </service>
-
-    </application>
-
-</manifest>
 </file>
 
 <file path="app/src/main/java/com/tao0524/tickat/ui/screen/help/HelpScreen.kt">
@@ -4800,6 +4812,7 @@ package com.tao0524.tickat.ui.screen.tasklist
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -4859,6 +4872,7 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
 
 private fun TaskType.accentColor() = when (this) {
     TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
@@ -4957,12 +4971,37 @@ fun TaskListScreen(
                         )
                     }
                 }
-                items(tasks, key = { it.id }) { task ->
+                val enabledTasks = tasks.filter { it.isEnabled }
+                val disabledTasks = tasks.filter { !it.isEnabled }
+
+                items(enabledTasks, key = { it.id }) { task ->
                     TaskItem(
                         task = task,
+                        isEnabled = true,
                         onClick = { onEditTask(task.id) },
-                        onDelete = { viewModel.delete(task) }
+                        onDelete = { viewModel.delete(task) },
+                        onToggleEnabled = null
                     )
+                }
+
+                if (disabledTasks.isNotEmpty()) {
+                    item(key = "disabled_header") {
+                        Text(
+                            text = "完了したタスク",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(disabledTasks, key = { it.id }) { task ->
+                        TaskItem(
+                            task = task,
+                            isEnabled = false,
+                            onClick = { onEditTask(task.id) },
+                            onDelete = { viewModel.delete(task) },
+                            onToggleEnabled = { viewModel.toggleEnabled(task, true) }
+                        )
+                    }
                 }
             }
         }
@@ -5093,11 +5132,14 @@ private fun EmptyState(
 @Composable
 private fun TaskItem(
     task: Task,
+    isEnabled: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleEnabled: (() -> Unit)?
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val accentColor = task.taskType.accentColor()
+    val accentColor = if (isEnabled) task.taskType.accentColor() else Color(0xFF888888)
+    val contentAlpha = if (isEnabled) 1f else 0.45f
 
     Box {
         Card(
@@ -5114,7 +5156,10 @@ private fun TaskItem(
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.alpha(contentAlpha)
+            ) {
                 Canvas(
                     modifier = Modifier
                         .width(3.dp)
@@ -5153,7 +5198,18 @@ private fun TaskItem(
                         TaskBadge(text = task.repeat.label())
                     }
                 }
-                Spacer(Modifier.width(16.dp))
+                if (!isEnabled && onToggleEnabled != null) {
+                    Text(
+                        text = "再有効化",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onToggleEnabled)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                } else {
+                    Spacer(Modifier.width(16.dp))
+                }
             }
         }
 
@@ -5161,6 +5217,15 @@ private fun TaskItem(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
         ) {
+            if (!isEnabled && onToggleEnabled != null) {
+                DropdownMenuItem(
+                    text = { Text(text = "再有効化") },
+                    onClick = {
+                        showMenu = false
+                        onToggleEnabled()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = {
                     Text(
@@ -5395,6 +5460,416 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
             return raw.split(",").mapNotNull { it.trim().toIntOrNull() }
         }
     }
+}
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt">
+package com.tao0524.tickat.widget
+
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.LinearGradient
+import android.graphics.RadialGradient
+import com.tao0524.tickat.ui.screen.settings.BackgroundType
+import com.tao0524.tickat.ui.screen.settings.GradientDirection
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.RectF
+import android.graphics.Shader
+import android.net.Uri
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.util.TypedValue
+import android.view.View
+import android.widget.RemoteViews
+import com.tao0524.tickat.MainActivity
+import com.tao0524.tickat.R
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
+import com.tao0524.tickat.ui.screen.settings.GradientCenter
+import com.tao0524.tickat.ui.screen.settings.TextWeight
+import com.tao0524.tickat.ui.screen.settings.WidgetFont
+import android.graphics.Canvas
+import android.graphics.Typeface
+import com.tao0524.tickat.ui.screen.settings.AmPmPosition
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
+
+object TickAtWidget {
+
+    fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+
+        // Typeface
+        val typefaceStyle = when {
+            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
+            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
+            settings.isItalic                                           -> Typeface.ITALIC
+            else                                                        -> Typeface.NORMAL
+        }
+        val typeface = when (settings.fontFamily) {
+            WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
+            WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
+            WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
+            WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
+            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
+            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
+            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
+            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
+        }
+
+        // フォントサイズ（px変換）
+        val hasDate = settings.datePattern.isNotEmpty() || !settings.showTime
+        val hasMessage = settings.showTaskName || settings.showCountdown || settings.showNextAlarm
+        val (clockSp, dateSp, _) = calcFontSizes(
+            widgetHeightDp = widgetHeightDp,
+            balance = settings.clockDateBalance,
+            fontScale = settings.fontScale,
+            showClock = settings.showTime,
+            showDate = hasDate,
+            showMessage = hasMessage,
+            messageScale = settings.messageScale,
+            use24Hour = settings.use24Hour,
+            amPmScale = settings.amPmScale
+        )
+        val scaledDensity = context.resources.displayMetrics.scaledDensity
+        val clockPx = clockSp * scaledDensity
+        val datePx  = dateSp  * scaledDensity
+
+        // 背景
+        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
+
+        // 時刻・日付文字列
+        val now        = Calendar.getInstance().also {
+            it.add(Calendar.MILLISECOND, settings.timeOffset)
+        }
+        val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+        val timeBitmap = if (settings.use24Hour) {
+            val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        } else {
+            val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+            val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+            val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
+        }
+        val dateText = if (settings.datePattern.isNotEmpty())
+            SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
+        else ""
+        val fallbackDate = if (dateText.isEmpty() && !settings.showTime)
+            SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
+        val displayDate = dateText.ifEmpty { fallbackDate }
+
+        // テキストBitmap
+        views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
+        if (displayDate.isNotEmpty()) {
+            views.setImageViewBitmap(
+                R.id.widget_date_img,
+                buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+            )
+        }
+
+        // 時刻の表示/非表示
+        views.setViewVisibility(
+            R.id.widget_time_img,
+            if (settings.showTime) View.VISIBLE else View.GONE
+        )
+        // 日付の表示/非表示
+        views.setViewVisibility(
+            R.id.widget_date_img,
+            if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE
+        )
+
+        // タップ → ExpandedScreen
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("show_expanded", true)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+
+        return views
+    }
+}
+
+internal fun calcFontSizes(
+    widgetHeightDp: Int,
+    balance: Int,
+    fontScale: Float = 1.0f,
+    showClock: Boolean = true,
+    showDate: Boolean = true,
+    showMessage: Boolean = false,
+    messageScale: Float = 1.0f,
+    use24Hour: Boolean = true,
+    amPmScale: Float = 0.55f
+): Triple<Int, Int, Int> {
+    val h = widgetHeightDp.toFloat()
+    val s = fontScale
+
+    // 固定パディングを確保 (全高の20%)
+    val totalPadding = h * 0.2f
+    val availableSpace = h - totalPadding
+
+    // バランスによるウェイト可変（balance: -10～+10）
+    val shift = balance * 0.1f
+    val clockWeight = if (showClock) (3.0f - shift).coerceIn(1.5f, 4.5f) else 0f
+    val dateWeight = if (showDate) (1.5f + shift).coerceIn(0.5f, 3.0f) else 0f
+    val messageWeight = if (showMessage) 1.5f else 0f
+    val totalWeight = clockWeight + dateWeight + messageWeight
+
+    if (totalWeight == 0f) return Triple(10, 8, 8)
+
+    // 領域の分配
+    var clockBase = (availableSpace * (clockWeight / totalWeight)) * s
+    val dateBase = (availableSpace * (dateWeight / totalWeight)) * s
+    val messageBase = (availableSpace * (messageWeight / totalWeight)) * s * messageScale
+
+    // 12時間制の補正（AM/PMサイズ変更による時計領域の自動補正）
+    if (!use24Hour && showClock) {
+        val amPmDelta = amPmScale - 0.55f
+        clockBase *= (1.0f - amPmDelta).coerceIn(0.5f, 1.5f)
+    }
+
+    return Triple(
+        clockBase.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
+        dateBase.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
+        messageBase.roundToInt().coerceIn(if (showMessage) 8 else 0, 54)
+    )
+}
+
+internal fun buildTextBitmap(
+    text:       String,
+    textSizePx: Float,
+    textColor:  Int,
+    typeface:   Typeface,
+    hasShadow:  Boolean
+): Bitmap {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = textSizePx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val bounds = android.graphics.Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
+    val textWidth = paint.measureText(text)
+    val padX      = 8f
+    val shadowPadY = if (hasShadow) 18 else 0 // 影が見切れないための余白
+    val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH   = (bounds.height() + shadowPadY).coerceAtLeast(1)
+    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas    = Canvas(bitmap)
+    canvas.drawText(text, padX, -bounds.top.toFloat(), paint)
+    return bitmap
+}
+
+internal fun buildTimeWithAmPmBitmap(
+    timeText:    String,
+    amPmText:    String,
+    clockPx:     Float,
+    textColor:   Int,
+    typeface:    Typeface,
+    hasShadow:   Boolean,
+    amPmPosition: AmPmPosition,
+    amPmScale:   Float = 0.55f,
+    amPmColor:   Int = 0
+): Bitmap {
+    val padX        = 8f
+    val amPmPx      = clockPx * amPmScale
+    val gap         = 6f
+    val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
+
+    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = clockPx
+        this.color    = textColor
+        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = amPmPx
+        this.color    = resolvedAmPmColor
+        if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
+    }
+
+    val timeBounds = android.graphics.Rect()
+    timePaint.getTextBounds(timeText, 0, timeText.length, timeBounds)
+    val amPmBounds = android.graphics.Rect()
+    amPmPaint.getTextBounds(amPmText, 0, amPmText.length, amPmBounds)
+
+    val timeW  = timePaint.measureText(timeText)
+    val amPmW  = amPmPaint.measureText(amPmText)
+
+    val shadowPadY = if (hasShadow) 18 else 0
+    val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
+    val bitmapH = (maxOf(timeBounds.height(), amPmBounds.height()) + shadowPadY).coerceAtLeast(1)
+
+    val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    val timeBaseline = (bitmapH - shadowPadY - timeBounds.height()) / 2f - timeBounds.top.toFloat()
+    val amPmBaseline = (bitmapH - shadowPadY - amPmBounds.height()) / 2f - amPmBounds.top.toFloat()
+
+    when (amPmPosition) {
+        AmPmPosition.AFTER  -> {
+            canvas.drawText(timeText, padX, timeBaseline, timePaint)
+            canvas.drawText(amPmText, padX + timeW + gap, amPmBaseline, amPmPaint)
+        }
+        AmPmPosition.BEFORE -> {
+            canvas.drawText(amPmText, padX, amPmBaseline, amPmPaint)
+            canvas.drawText(timeText, padX + amPmW + gap, timeBaseline, timePaint)
+        }
+    }
+
+    return bitmap
+}
+
+internal fun buildTimeOnlyViews(
+    context: Context,
+    settings: AppSettings,
+    typeface: Typeface,
+    clockPx: Float,
+    datePx: Float,
+    cachedBgBitmap: android.graphics.Bitmap? = null
+): RemoteViews {
+    val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
+    val bgBitmap = cachedBgBitmap ?: buildBackgroundBitmap(context, settings)
+    views.setImageViewBitmap(R.id.widget_bg, bgBitmap)
+    val now = Calendar.getInstance().also {
+        it.add(Calendar.MILLISECOND, settings.timeOffset)
+    }
+    val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
+    val timeBitmap = if (settings.use24Hour) {
+        val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
+        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+    } else {
+        val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
+        val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
+        val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
+        buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
+    }
+    val dateText = if (settings.datePattern.isNotEmpty())
+        SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
+    else ""
+    val fallbackDate = if (dateText.isEmpty() && !settings.showTime) SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
+    val displayDate = dateText.ifEmpty { fallbackDate }
+    views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
+    if (displayDate.isNotEmpty()) {
+        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow))
+    }
+    views.setViewVisibility(R.id.widget_time_img, if (settings.showTime) View.VISIBLE else View.GONE)
+    views.setViewVisibility(R.id.widget_date_img, if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE)
+    return views
+}
+
+internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
+    val w = 512
+    val h = 200
+    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    if (settings.bgType == BackgroundType.TRANSPARENT) return bitmap
+    val canvas = android.graphics.Canvas(bitmap)
+    val r = (h * settings.cornerRadiusRatio).coerceIn(0f, h / 2f)
+    val topPad = if (settings.compactBg) 20f else 0f
+    val botPad = if (settings.compactBg) 20f else 0f
+    val rect = RectF(0f, topPad, w.toFloat(), h.toFloat() - botPad)
+
+    if (settings.bgImageUri.isNotEmpty()) {
+        runCatching {
+            val uri = Uri.parse(settings.bgImageUri)
+            val inputStream = context.contentResolver.openInputStream(uri)
+            val srcBitmap = BitmapFactory.decodeStream(inputStream)
+            inputStream?.close()
+            if (srcBitmap != null) {
+                val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                canvas.drawRoundRect(rect, r, r, clipPaint)
+                val xferPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                }
+                val scale = maxOf(w.toFloat() / srcBitmap.width, h.toFloat() / srcBitmap.height)
+                val scaledW = (srcBitmap.width * scale).toInt()
+                val scaledH = (srcBitmap.height * scale).toInt()
+                val scaledBitmap = Bitmap.createScaledBitmap(srcBitmap, scaledW, scaledH, true)
+                val left = (w - scaledW) / 2f
+                val top = (h - scaledH) / 2f
+                canvas.drawBitmap(scaledBitmap, left, top, xferPaint)
+                return bitmap
+            }
+        }
+    }
+
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    val aStart = (settings.bgAlpha            * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aEnd   = (settings.bgGradientEndAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    val aMid   = (settings.bgColor2Alpha      * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
+    if (settings.bgType == BackgroundType.LINEAR || settings.bgType == BackgroundType.RADIAL) {
+        val startColor = ((settings.bgColor       and 0x00FFFFFFL).toInt()) or (aStart shl 24)
+        val endColor   = ((settings.bgGradientEnd and 0x00FFFFFFL).toInt()) or (aEnd   shl 24)
+        val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
+        val midColor   = ((settings.bgColor2 and 0x00FFFFFFL).toInt()) or (aMid shl 24)
+        if (settings.bgType == BackgroundType.RADIAL) {
+            val (cx, cy) = when (settings.gradientCenter) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> w / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
+                GradientCenter.CENTER        -> w / 2f to h / 2f
+                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
+                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
+                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
+            }
+            val dx     = maxOf(cx, w.toFloat() - cx)
+            val dy     = maxOf(cy, h.toFloat() - cy)
+            val radius = sqrt(dx * dx + dy * dy)
+            paint.shader = if (use3)
+                RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
+        } else {
+            val wf = w.toFloat()
+            val hf = h.toFloat()
+            val (x0, y0) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> 0f to 0f
+                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
+                GradientCenter.TOP_RIGHT     -> wf to 0f
+                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
+                GradientCenter.CENTER        -> 0f to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> 0f to hf
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
+                GradientCenter.BOTTOM_RIGHT  -> wf to hf
+            }
+            val (x1, y1) = when (settings.linearStartPoint) {
+                GradientCenter.TOP_LEFT      -> wf to hf
+                GradientCenter.TOP_CENTER    -> wf / 2f to hf
+                GradientCenter.TOP_RIGHT     -> 0f to hf
+                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
+                GradientCenter.CENTER        -> wf to hf / 2f
+                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
+                GradientCenter.BOTTOM_LEFT   -> wf to 0f
+                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
+                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
+            }
+            paint.shader = if (use3)
+                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
+            else
+                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
+        }
+    } else {
+        val rgb = (settings.bgColor and 0xFFFFFFFFL).toInt() and 0x00FFFFFF
+        paint.color = (aStart shl 24) or rgb
+    }
+    canvas.drawRoundRect(rect, r, r, paint)
+    return bitmap
 }
 </file>
 
@@ -5850,416 +6325,6 @@ class WidgetUpdateService : Service() {
             .build()
         startForeground(1001, notification)
     }
-}
-</file>
-
-<file path="app/src/main/java/com/tao0524/tickat/widget/TickAtWidget.kt">
-package com.tao0524.tickat.widget
-
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.LinearGradient
-import android.graphics.RadialGradient
-import com.tao0524.tickat.ui.screen.settings.BackgroundType
-import com.tao0524.tickat.ui.screen.settings.GradientDirection
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.RectF
-import android.graphics.Shader
-import android.net.Uri
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.util.TypedValue
-import android.view.View
-import android.widget.RemoteViews
-import com.tao0524.tickat.MainActivity
-import com.tao0524.tickat.R
-import com.tao0524.tickat.ui.screen.settings.AppSettings
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
-import com.tao0524.tickat.ui.screen.settings.GradientCenter
-import com.tao0524.tickat.ui.screen.settings.TextWeight
-import com.tao0524.tickat.ui.screen.settings.WidgetFont
-import android.graphics.Canvas
-import android.graphics.Typeface
-import com.tao0524.tickat.ui.screen.settings.AmPmPosition
-import com.tao0524.tickat.ui.screen.settings.AmPmLabel
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-
-object TickAtWidget {
-
-    fun buildViews(context: Context, settings: AppSettings, widgetHeightDp: Int = 44): RemoteViews {
-        val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
-
-        // Typeface
-        val typefaceStyle = when {
-            settings.fontWeight == TextWeight.BOLD && settings.isItalic -> Typeface.BOLD_ITALIC
-            settings.fontWeight == TextWeight.BOLD                      -> Typeface.BOLD
-            settings.isItalic                                           -> Typeface.ITALIC
-            else                                                        -> Typeface.NORMAL
-        }
-        val typeface = when (settings.fontFamily) {
-            WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
-            WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
-            WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
-            WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
-            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-        }
-
-        // フォントサイズ（px変換）
-        val hasDate = settings.datePattern.isNotEmpty() || !settings.showTime
-        val hasMessage = settings.showTaskName || settings.showCountdown || settings.showNextAlarm
-        val (clockSp, dateSp, _) = calcFontSizes(
-            widgetHeightDp = widgetHeightDp,
-            balance = settings.clockDateBalance,
-            fontScale = settings.fontScale,
-            showClock = settings.showTime,
-            showDate = hasDate,
-            showMessage = hasMessage,
-            messageScale = settings.messageScale,
-            use24Hour = settings.use24Hour,
-            amPmScale = settings.amPmScale
-        )
-        val scaledDensity = context.resources.displayMetrics.scaledDensity
-        val clockPx = clockSp * scaledDensity
-        val datePx  = dateSp  * scaledDensity
-
-        // 背景
-        views.setImageViewBitmap(R.id.widget_bg, buildBackgroundBitmap(context, settings))
-
-        // 時刻・日付文字列
-        val now        = Calendar.getInstance().also {
-            it.add(Calendar.MILLISECOND, settings.timeOffset)
-        }
-        val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
-        val timeBitmap = if (settings.use24Hour) {
-            val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
-            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
-        } else {
-            val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
-            val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
-            val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
-            buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
-        }
-        val dateText = if (settings.datePattern.isNotEmpty())
-            SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
-        else ""
-        val fallbackDate = if (dateText.isEmpty() && !settings.showTime)
-            SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
-        val displayDate = dateText.ifEmpty { fallbackDate }
-
-        // テキストBitmap
-        views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
-        if (displayDate.isNotEmpty()) {
-            views.setImageViewBitmap(
-                R.id.widget_date_img,
-                buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
-            )
-        }
-
-        // 時刻の表示/非表示
-        views.setViewVisibility(
-            R.id.widget_time_img,
-            if (settings.showTime) View.VISIBLE else View.GONE
-        )
-        // 日付の表示/非表示
-        views.setViewVisibility(
-            R.id.widget_date_img,
-            if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE
-        )
-
-        // タップ → ExpandedScreen
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-            putExtra("show_expanded", true)
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
-
-        return views
-    }
-}
-
-internal fun calcFontSizes(
-    widgetHeightDp: Int,
-    balance: Int,
-    fontScale: Float = 1.0f,
-    showClock: Boolean = true,
-    showDate: Boolean = true,
-    showMessage: Boolean = false,
-    messageScale: Float = 1.0f,
-    use24Hour: Boolean = true,
-    amPmScale: Float = 0.55f
-): Triple<Int, Int, Int> {
-    val h = widgetHeightDp.toFloat()
-    val s = fontScale
-
-    // 固定パディングを確保 (全高の20%)
-    val totalPadding = h * 0.2f
-    val availableSpace = h - totalPadding
-
-    // バランスによるウェイト可変（balance: -10～+10）
-    val shift = balance * 0.1f
-    val clockWeight = if (showClock) (3.0f - shift).coerceIn(1.5f, 4.5f) else 0f
-    val dateWeight = if (showDate) (1.5f + shift).coerceIn(0.5f, 3.0f) else 0f
-    val messageWeight = if (showMessage) 1.5f else 0f
-    val totalWeight = clockWeight + dateWeight + messageWeight
-
-    if (totalWeight == 0f) return Triple(10, 8, 8)
-
-    // 領域の分配
-    var clockBase = (availableSpace * (clockWeight / totalWeight)) * s
-    val dateBase = (availableSpace * (dateWeight / totalWeight)) * s
-    val messageBase = (availableSpace * (messageWeight / totalWeight)) * s * messageScale
-
-    // 12時間制の補正（AM/PMサイズ変更による時計領域の自動補正）
-    if (!use24Hour && showClock) {
-        val amPmDelta = amPmScale - 0.55f
-        clockBase *= (1.0f - amPmDelta).coerceIn(0.5f, 1.5f)
-    }
-
-    return Triple(
-        clockBase.roundToInt().coerceIn(if (showClock) 10 else 0, 60),
-        dateBase.roundToInt().coerceIn(if (showDate) 8 else 0, 40),
-        messageBase.roundToInt().coerceIn(if (showMessage) 8 else 0, 54)
-    )
-}
-
-internal fun buildTextBitmap(
-    text:       String,
-    textSizePx: Float,
-    textColor:  Int,
-    typeface:   Typeface,
-    hasShadow:  Boolean
-): Bitmap {
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = textSizePx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-    val bounds = android.graphics.Rect()
-    paint.getTextBounds(text, 0, text.length, bounds)
-    val textWidth = paint.measureText(text)
-    val padX      = 8f
-    val shadowPadY = if (hasShadow) 18 else 0 // 影が見切れないための余白
-    val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH   = (bounds.height() + shadowPadY).coerceAtLeast(1)
-    val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
-    val canvas    = Canvas(bitmap)
-    canvas.drawText(text, padX, -bounds.top.toFloat(), paint)
-    return bitmap
-}
-
-internal fun buildTimeWithAmPmBitmap(
-    timeText:    String,
-    amPmText:    String,
-    clockPx:     Float,
-    textColor:   Int,
-    typeface:    Typeface,
-    hasShadow:   Boolean,
-    amPmPosition: AmPmPosition,
-    amPmScale:   Float = 0.55f,
-    amPmColor:   Int = 0
-): Bitmap {
-    val padX        = 8f
-    val amPmPx      = clockPx * amPmScale
-    val gap         = 6f
-    val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
-
-    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = clockPx
-        this.color    = textColor
-        if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = amPmPx
-        this.color    = resolvedAmPmColor
-        if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
-    }
-
-    val timeBounds = android.graphics.Rect()
-    timePaint.getTextBounds(timeText, 0, timeText.length, timeBounds)
-    val amPmBounds = android.graphics.Rect()
-    amPmPaint.getTextBounds(amPmText, 0, amPmText.length, amPmBounds)
-
-    val timeW  = timePaint.measureText(timeText)
-    val amPmW  = amPmPaint.measureText(amPmText)
-
-    val shadowPadY = if (hasShadow) 18 else 0
-    val bitmapW = (timeW + amPmW + gap + padX * 2).toInt().coerceAtLeast(1)
-    val bitmapH = (maxOf(timeBounds.height(), amPmBounds.height()) + shadowPadY).coerceAtLeast(1)
-
-    val bitmap = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-
-    val timeBaseline = (bitmapH - shadowPadY - timeBounds.height()) / 2f - timeBounds.top.toFloat()
-    val amPmBaseline = (bitmapH - shadowPadY - amPmBounds.height()) / 2f - amPmBounds.top.toFloat()
-
-    when (amPmPosition) {
-        AmPmPosition.AFTER  -> {
-            canvas.drawText(timeText, padX, timeBaseline, timePaint)
-            canvas.drawText(amPmText, padX + timeW + gap, amPmBaseline, amPmPaint)
-        }
-        AmPmPosition.BEFORE -> {
-            canvas.drawText(amPmText, padX, amPmBaseline, amPmPaint)
-            canvas.drawText(timeText, padX + amPmW + gap, timeBaseline, timePaint)
-        }
-    }
-
-    return bitmap
-}
-
-internal fun buildTimeOnlyViews(
-    context: Context,
-    settings: AppSettings,
-    typeface: Typeface,
-    clockPx: Float,
-    datePx: Float,
-    cachedBgBitmap: android.graphics.Bitmap? = null
-): RemoteViews {
-    val views = RemoteViews(context.packageName, R.layout.widget_tickat_base)
-    val bgBitmap = cachedBgBitmap ?: buildBackgroundBitmap(context, settings)
-    views.setImageViewBitmap(R.id.widget_bg, bgBitmap)
-    val now = Calendar.getInstance().also {
-        it.add(Calendar.MILLISECOND, settings.timeOffset)
-    }
-    val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
-    val timeBitmap = if (settings.use24Hour) {
-        val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
-        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
-    } else {
-        val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
-        val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
-        val amPmStr  = SimpleDateFormat("a", timeLocale).format(now.time)
-        buildTimeWithAmPmBitmap(timeOnly, amPmStr, clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, settings.amPmPosition, settings.amPmScale, settings.amPmColor.toInt())
-    }
-    val dateText = if (settings.datePattern.isNotEmpty())
-        SimpleDateFormat(settings.datePattern, Locale.getDefault()).format(now.time)
-    else ""
-    val fallbackDate = if (dateText.isEmpty() && !settings.showTime) SimpleDateFormat("M/d", Locale.getDefault()).format(now.time) else ""
-    val displayDate = dateText.ifEmpty { fallbackDate }
-    views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
-    if (displayDate.isNotEmpty()) {
-        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow))
-    }
-    views.setViewVisibility(R.id.widget_time_img, if (settings.showTime) View.VISIBLE else View.GONE)
-    views.setViewVisibility(R.id.widget_date_img, if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE)
-    return views
-}
-
-internal fun buildBackgroundBitmap(context: Context, settings: AppSettings): Bitmap {
-    val w = 512
-    val h = 200
-    val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-    if (settings.bgType == BackgroundType.TRANSPARENT) return bitmap
-    val canvas = android.graphics.Canvas(bitmap)
-    val r = (h * settings.cornerRadiusRatio).coerceIn(0f, h / 2f)
-    val topPad = if (settings.compactBg) 20f else 0f
-    val botPad = if (settings.compactBg) 20f else 0f
-    val rect = RectF(0f, topPad, w.toFloat(), h.toFloat() - botPad)
-
-    if (settings.bgImageUri.isNotEmpty()) {
-        runCatching {
-            val uri = Uri.parse(settings.bgImageUri)
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val srcBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-            if (srcBitmap != null) {
-                val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                canvas.drawRoundRect(rect, r, r, clipPaint)
-                val xferPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-                }
-                val scale = maxOf(w.toFloat() / srcBitmap.width, h.toFloat() / srcBitmap.height)
-                val scaledW = (srcBitmap.width * scale).toInt()
-                val scaledH = (srcBitmap.height * scale).toInt()
-                val scaledBitmap = Bitmap.createScaledBitmap(srcBitmap, scaledW, scaledH, true)
-                val left = (w - scaledW) / 2f
-                val top = (h - scaledH) / 2f
-                canvas.drawBitmap(scaledBitmap, left, top, xferPaint)
-                return bitmap
-            }
-        }
-    }
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    val aStart = (settings.bgAlpha            * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
-    val aEnd   = (settings.bgGradientEndAlpha * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
-    val aMid   = (settings.bgColor2Alpha      * 255f / 100f + 0.5f).toInt().coerceIn(0, 255)
-    if (settings.bgType == BackgroundType.LINEAR || settings.bgType == BackgroundType.RADIAL) {
-        val startColor = ((settings.bgColor       and 0x00FFFFFFL).toInt()) or (aStart shl 24)
-        val endColor   = ((settings.bgGradientEnd and 0x00FFFFFFL).toInt()) or (aEnd   shl 24)
-        val use3       = settings.gradientColorCount == 3 && settings.bgColor2 != 0L
-        val midColor   = ((settings.bgColor2 and 0x00FFFFFFL).toInt()) or (aMid shl 24)
-        if (settings.bgType == BackgroundType.RADIAL) {
-            val (cx, cy) = when (settings.gradientCenter) {
-                GradientCenter.TOP_LEFT      -> 0f to 0f
-                GradientCenter.TOP_CENTER    -> w / 2f to 0f
-                GradientCenter.TOP_RIGHT     -> w.toFloat() to 0f
-                GradientCenter.CENTER_LEFT   -> 0f to h / 2f
-                GradientCenter.CENTER        -> w / 2f to h / 2f
-                GradientCenter.CENTER_RIGHT  -> w.toFloat() to h / 2f
-                GradientCenter.BOTTOM_LEFT   -> 0f to h.toFloat()
-                GradientCenter.BOTTOM_CENTER -> w / 2f to h.toFloat()
-                GradientCenter.BOTTOM_RIGHT  -> w.toFloat() to h.toFloat()
-            }
-            val dx     = maxOf(cx, w.toFloat() - cx)
-            val dy     = maxOf(cy, h.toFloat() - cy)
-            val radius = sqrt(dx * dx + dy * dy)
-            paint.shader = if (use3)
-                RadialGradient(cx, cy, radius, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-            else
-                RadialGradient(cx, cy, radius, startColor, endColor, Shader.TileMode.CLAMP)
-        } else {
-            val wf = w.toFloat()
-            val hf = h.toFloat()
-            val (x0, y0) = when (settings.linearStartPoint) {
-                GradientCenter.TOP_LEFT      -> 0f to 0f
-                GradientCenter.TOP_CENTER    -> wf / 2f to 0f
-                GradientCenter.TOP_RIGHT     -> wf to 0f
-                GradientCenter.CENTER_LEFT   -> 0f to hf / 2f
-                GradientCenter.CENTER        -> 0f to hf / 2f
-                GradientCenter.CENTER_RIGHT  -> wf to hf / 2f
-                GradientCenter.BOTTOM_LEFT   -> 0f to hf
-                GradientCenter.BOTTOM_CENTER -> wf / 2f to hf
-                GradientCenter.BOTTOM_RIGHT  -> wf to hf
-            }
-            val (x1, y1) = when (settings.linearStartPoint) {
-                GradientCenter.TOP_LEFT      -> wf to hf
-                GradientCenter.TOP_CENTER    -> wf / 2f to hf
-                GradientCenter.TOP_RIGHT     -> 0f to hf
-                GradientCenter.CENTER_LEFT   -> wf to hf / 2f
-                GradientCenter.CENTER        -> wf to hf / 2f
-                GradientCenter.CENTER_RIGHT  -> 0f to hf / 2f
-                GradientCenter.BOTTOM_LEFT   -> wf to 0f
-                GradientCenter.BOTTOM_CENTER -> wf / 2f to 0f
-                GradientCenter.BOTTOM_RIGHT  -> 0f to 0f
-            }
-            paint.shader = if (use3)
-                LinearGradient(x0, y0, x1, y1, intArrayOf(startColor, midColor, endColor), floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
-            else
-                LinearGradient(x0, y0, x1, y1, startColor, endColor, Shader.TileMode.CLAMP)
-        }
-    } else {
-        val rgb = (settings.bgColor and 0xFFFFFFFFL).toInt() and 0x00FFFFFF
-        paint.color = (aStart shl 24) or rgb
-    }
-    canvas.drawRoundRect(rect, r, r, paint)
-    return bitmap
 }
 </file>
 

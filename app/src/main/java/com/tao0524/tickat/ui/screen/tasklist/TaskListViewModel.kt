@@ -65,6 +65,18 @@ class TaskListViewModel(
         }
     }
 
+    fun toggleEnabled(task: Task, enabled: Boolean) {
+        viewModelScope.launch {
+            repository.setEnabled(task.id, enabled)
+            if (enabled) {
+                val updated = task.copy(isEnabled = true)
+                TaskAlertScheduler.schedule(context, updated)
+            } else {
+                TaskAlertScheduler.cancel(context, task.id)
+            }
+        }
+    }
+
     fun delete(task: Task) {
         viewModelScope.launch {
             TaskAlertScheduler.cancel(context, task.id)

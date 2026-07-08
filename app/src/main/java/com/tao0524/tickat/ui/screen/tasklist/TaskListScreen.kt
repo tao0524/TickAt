@@ -2,6 +2,7 @@ package com.tao0524.tickat.ui.screen.tasklist
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,6 +62,7 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.alpha
 
 private fun TaskType.accentColor() = when (this) {
     TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
@@ -159,12 +161,37 @@ fun TaskListScreen(
                         )
                     }
                 }
-                items(tasks, key = { it.id }) { task ->
+                val enabledTasks = tasks.filter { it.isEnabled }
+                val disabledTasks = tasks.filter { !it.isEnabled }
+
+                items(enabledTasks, key = { it.id }) { task ->
                     TaskItem(
                         task = task,
+                        isEnabled = true,
                         onClick = { onEditTask(task.id) },
-                        onDelete = { viewModel.delete(task) }
+                        onDelete = { viewModel.delete(task) },
+                        onToggleEnabled = null
                     )
+                }
+
+                if (disabledTasks.isNotEmpty()) {
+                    item(key = "disabled_header") {
+                        Text(
+                            text = "完了したタスク",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(disabledTasks, key = { it.id }) { task ->
+                        TaskItem(
+                            task = task,
+                            isEnabled = false,
+                            onClick = { onEditTask(task.id) },
+                            onDelete = { viewModel.delete(task) },
+                            onToggleEnabled = { viewModel.toggleEnabled(task, true) }
+                        )
+                    }
                 }
             }
         }
@@ -295,11 +322,14 @@ private fun EmptyState(
 @Composable
 private fun TaskItem(
     task: Task,
+    isEnabled: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onToggleEnabled: (() -> Unit)?
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    val accentColor = task.taskType.accentColor()
+    val accentColor = if (isEnabled) task.taskType.accentColor() else Color(0xFF888888)
+    val contentAlpha = if (isEnabled) 1f else 0.45f
 
     Box {
         Card(
@@ -316,7 +346,10 @@ private fun TaskItem(
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.alpha(contentAlpha)
+            ) {
                 Canvas(
                     modifier = Modifier
                         .width(3.dp)
@@ -355,7 +388,18 @@ private fun TaskItem(
                         TaskBadge(text = task.repeat.label())
                     }
                 }
-                Spacer(Modifier.width(16.dp))
+                if (!isEnabled && onToggleEnabled != null) {
+                    Text(
+                        text = "再有効化",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable(onClick = onToggleEnabled)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                } else {
+                    Spacer(Modifier.width(16.dp))
+                }
             }
         }
 
@@ -363,6 +407,15 @@ private fun TaskItem(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
         ) {
+            if (!isEnabled && onToggleEnabled != null) {
+                DropdownMenuItem(
+                    text = { Text(text = "再有効化") },
+                    onClick = {
+                        showMenu = false
+                        onToggleEnabled()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = {
                     Text(
