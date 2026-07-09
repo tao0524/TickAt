@@ -339,17 +339,14 @@ class WidgetUpdateService : Service() {
                 } else if (settings.showNextAlarm) {
                     val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
                     val nextAlarm = alarmManager.nextAlarmClock
-                    android.util.Log.d("TickAtAlarm", "CHECK1: nextAlarm=$nextAlarm showIntent=${nextAlarm?.showIntent} creatorPkg=${nextAlarm?.showIntent?.creatorPackage} triggerTime=${nextAlarm?.triggerTime}")
                     val creatorPkg = nextAlarm?.showIntent?.creatorPackage
                     val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
-                    android.util.Log.d("TickAtAlarm", "FILTER: showIntent=${nextAlarm?.showIntent != null} isXiaomi=$isXiaomiCalendar")
                     if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
                         val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
                         val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
                                 && cal.get(java.util.Calendar.MINUTE) == 0
                                 && cal.get(java.util.Calendar.SECOND) == 0
                                 && cal.get(java.util.Calendar.MILLISECOND) == 0
-                        android.util.Log.d("TickAtAlarm", "ALARM_TIME: h=${cal.get(java.util.Calendar.HOUR_OF_DAY)} m=${cal.get(java.util.Calendar.MINUTE)} isSystemAlarm=$isSystemAlarm use24h=${settings.use24Hour}")
                         if (!isSystemAlarm) {
                             if (settings.use24Hour) {
                                 val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
@@ -409,7 +406,6 @@ class WidgetUpdateService : Service() {
                 buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
             if (resolvedDisplayText.isNotEmpty()) {
-                android.util.Log.d("TickAtAlarm", "RENDER: text=$resolvedDisplayText messagePx=$messagePx messageColor=${settings.messageTextColor}")
                 val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
