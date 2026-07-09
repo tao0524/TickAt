@@ -36,6 +36,11 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
         } catch (e: Exception) {
             // HyperOS: バックグラウンドからの起動を無視
         }
+    }fun loadWidgetIds(context: Context): List<Int> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_IDS, "") ?: ""
+        if (raw.isEmpty()) return emptyList()
+        return raw.split(",").mapNotNull { it.trim().toIntOrNull() }
     }
 
     override fun onDisabled(context: Context) {
@@ -97,7 +102,16 @@ class TickAtWidgetReceiver : AppWidgetProvider() {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val raw = prefs.getString(KEY_IDS, "") ?: ""
             if (raw.isEmpty()) return emptyList()
-            return raw.split(",").mapNotNull { it.trim().toIntOrNull() }
+            val savedIds = raw.split(",").mapNotNull { it.trim().toIntOrNull() }
+            val manager = AppWidgetManager.getInstance(context)
+            val systemIds = manager.getAppWidgetIds(
+                ComponentName(context, TickAtWidgetReceiver::class.java)
+            ).toSet()
+            val validIds = savedIds.filter { it in systemIds }
+            if (validIds.size != savedIds.size) {
+                prefs.edit().putString(KEY_IDS, validIds.joinToString(",")).apply()
+            }
+            return validIds
         }
     }
 }

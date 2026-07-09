@@ -121,6 +121,10 @@ class WidgetUpdateService : Service() {
                         startTicking()
                     }
                 }
+                android.app.AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED -> {
+                    fullRedrawNeededMap.keys.forEach { fullRedrawNeededMap[it] = true }
+                    updateWidgets()
+                }
             }
         }
     }
@@ -132,6 +136,7 @@ class WidgetUpdateService : Service() {
             addAction(Intent.ACTION_SCREEN_ON)
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_TIME_TICK)
+            addAction(android.app.AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
         }
         registerReceiver(screenReceiver, filter)
         startSettingsObserver()
