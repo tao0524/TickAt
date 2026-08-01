@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+app/release/
+mockup_gen/
+repomix-*.xml
+repomix-*.txt
+repomix-*.txt.

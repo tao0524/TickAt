@@ -700,6 +700,22 @@ fun SettingsScreen(
 
                 // --- アプリテーマ（ダーク/ライト） ---
                 val currentThemeMode by viewModel.themeMode.collectAsState()
+                var themeTabInitialized by remember { mutableStateOf(false) }
+                LaunchedEffect(saved.bgType, currentThemeMode) {
+                    if (!themeTabInitialized) {
+                        selectedThemeTab = when (saved.bgType) {
+                            BackgroundType.LINEAR, BackgroundType.RADIAL -> 2
+                            BackgroundType.IMAGE       -> 3
+                            BackgroundType.TRANSPARENT -> 4
+                            else -> when (currentThemeMode) {
+                                ThemeMode.DARK   -> 0
+                                ThemeMode.LIGHT  -> 1
+                                ThemeMode.SYSTEM -> 0
+                            }
+                        }
+                        themeTabInitialized = true
+                    }
+                }
                 SectionHeader("アプリテーマ")
                 Surface(
                     shape = RoundedCornerShape(14.dp),
@@ -2938,6 +2954,19 @@ private fun SelectOption(
     }
 }
 
+/** グラデーション色群の平均輝度を返す (0.0=黒 〜 1.0=白) */
+private fun gradientLuminance(bgColor: Long, endColor: Long, bgColor2: Long, count: Int): Float {
+    fun lum(c: Long): Float {
+        val color = Color(c)
+        return 0.2126f * color.red + 0.7152f * color.green + 0.0722f * color.blue
+    }
+    return if (count == 3 && bgColor2 != 0L) {
+        (lum(bgColor) + lum(bgColor2) + lum(endColor)) / 3f
+    } else {
+        (lum(bgColor) + lum(endColor)) / 2f
+    }
+}
+
 @Composable
 private fun LinearStartPicker(
     selected:           GradientCenter,
@@ -3004,23 +3033,28 @@ private fun LinearStartPicker(
                     row.forEach { pos ->
                         val isSelected = selected == pos
                         val isDisabled = pos == GradientCenter.CENTER
+                        val isLightBg = gradientLuminance(bgColor, endColor, bgColor2, gradientColorCount) > 0.5f
+                        val dotFill   = if (isLightBg) Color.Black.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.55f)
+                        val dotBorder = if (isLightBg) Color.Black.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.85f)
+                        val disFill   = if (isLightBg) Color.Black.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.2f)
+                        val disBorder = if (isLightBg) Color.Black.copy(alpha = 0.20f) else Color.White.copy(alpha = 0.3f)
                         Box(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
                                 .background(
                                     when {
-                                        isDisabled -> Color.White.copy(alpha = 0.2f)
+                                        isDisabled -> disFill
                                         isSelected -> MaterialTheme.colorScheme.primary
-                                        else       -> Color.White.copy(alpha = 0.55f)
+                                        else       -> dotFill
                                     }
                                 )
                                 .border(
                                     width = 1.5.dp,
                                     color = when {
-                                        isDisabled -> Color.White.copy(alpha = 0.3f)
+                                        isDisabled -> disBorder
                                         isSelected -> MaterialTheme.colorScheme.primary
-                                        else       -> Color.White.copy(alpha = 0.85f)
+                                        else       -> dotBorder
                                     },
                                     shape = CircleShape
                                 )
@@ -3095,12 +3129,15 @@ private fun RadialCenterPicker(
                 ) {
                     row.forEach { pos ->
                         val isSelected = selected == pos
+                        val isLightBg = gradientLuminance(bgColor, endColor, bgColor2, gradientColorCount) > 0.5f
+                        val dotFill   = if (isLightBg) Color.Black.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.55f)
+                        val dotBorder = if (isLightBg) Color.Black.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.85f)
                         Box(
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.55f))
-                                .border(width = 1.5.dp, color = if (isSelected) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.85f), shape = CircleShape)
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else dotFill)
+                                .border(width = 1.5.dp, color = if (isSelected) MaterialTheme.colorScheme.primary else dotBorder, shape = CircleShape)
                                 .clickable { onSelect(pos) },
                             contentAlignment = Alignment.Center
                         ) {

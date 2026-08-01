@@ -44,6 +44,7 @@ The content is organized as follows:
 app/.gitignore
 app/build.gradle.kts
 app/proguard-rules.pro
+app/release/app-release.aab
 app/src/androidTest/java/com/tao0524/tickat/ExampleInstrumentedTest.kt
 app/src/main/AndroidManifest.xml
 app/src/main/assets/fonts/Aldrich-Regular.ttf
@@ -134,11 +135,640 @@ gradle/wrapper/gradle-wrapper.jar
 gradle/wrapper/gradle-wrapper.properties
 gradlew
 gradlew.bat
+mockup_gen/error.txt
+mockup_gen/gemini-code-1783643527035.html
+mockup_gen/generate_mockup_2.py
+mockup_gen/generate_mockup_3.py
+mockup_gen/generate_mockups.py
+mockup_gen/image_176ce9.jpg
+mockup_gen/image_fc2d67.jpg
+mockup_gen/mockup_1.png
+mockup_gen/mockup_2.png
+mockup_gen/mockup_3.png
+repomix-theme.txt.
 settings.gradle.kts
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="mockup_gen/error.txt">
+
+</file>
+
+<file path="mockup_gen/gemini-code-1783643527035.html">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>モックアップ プレビュー</title>
+    <style>
+        body {
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        /* モックアップのスクリーン部分（412x915）を再現 */
+        #app-screen {
+            width: 412px;
+            height: 915px;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+            background-color: #222;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        /* 実機スクショ（ステータスバーを隠すため上に-4%ずらす） */
+        .screenshot {
+            width: 100%;
+            position: absolute;
+            top: -4%; 
+            left: 0;
+            object-fit: cover;
+        }
+        
+        /* ドックと検索バーを完全に隠すマスク */
+        .dock-mask {
+            position: absolute;
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            /* 高さを28%に広げました */
+            height: 28%; 
+            /* 検索バーの位置が100%の塗りつぶし（rgba(34, 34, 34, 1)）に収まるようにグラデーションの割合を調整 */
+            background: linear-gradient(to bottom, rgba(34, 34, 34, 0) 0%, rgba(34, 34, 34, 1) 15%, rgba(34, 34, 34, 1) 100%);
+        }
+    </style>
+</head>
+<body>
+    <div id="app-screen">
+        <img src="image_fc2d67.jpg" class="screenshot" alt="screenshot" />
+        
+        <div class="dock-mask"></div>
+    </div>
+</body>
+</html>
+</file>
+
+<file path="mockup_gen/generate_mockup_2.py">
+import asyncio
+from playwright.async_api import async_playwright
+
+CANVAS_WIDTH = 1080
+CANVAS_HEIGHT = 1920
+
+def generate_html():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+            @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+            
+            body {
+                margin: 0;
+                background: linear-gradient(to bottom, #0A0A0C, #14101E);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: 1920px;
+                font-family: 'Noto Sans JP', sans-serif;
+            }
+            .copy-container {
+                margin-top: 240px;
+                text-align: center;
+            }
+            .copy-text {
+                color: #E6E1E5;
+                font-size: 42px;
+                font-weight: 700;
+                letter-spacing: 2px;
+            }
+            .accent-line {
+                width: 40px;
+                height: 3px;
+                background-color: #BB86FC;
+                margin: 24px auto 0 auto;
+            }
+            .device-container {
+                margin-top: 120px;
+                width: 412px;
+                height: 915px;
+                border-radius: 30px;
+                overflow: hidden;
+                position: relative;
+                background: #1C1B1F;
+                border: 8px solid #32323A;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+                display: flex;
+                flex-direction: column;
+            }
+            
+            /* TopAppBar */
+            .top-bar {
+                display: flex;
+                align-items: center;
+                height: 64px;
+                padding: 0 4px;
+                background: #1C1B1F;
+                color: #E6E1E5;
+            }
+            .icon-btn {
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .icon-btn .material-icons {
+                font-size: 24px;
+            }
+            .top-bar-title {
+                flex: 1;
+                font-size: 20px;
+                font-weight: 400;
+                padding-left: 12px;
+            }
+            
+            .lazy-column {
+                flex: 1;
+                padding: 0 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                padding-top: 8px;
+            }
+            
+            /* ScheduleCard */
+            .card {
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                padding: 12px 16px;
+            }
+            .card.active {
+                background: rgba(25, 118, 210, 0.3);
+            }
+            .card.inactive {
+                background: rgba(58, 56, 63, 0.5);
+            }
+            .card-content {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+            }
+            .task-name {
+                font-size: 16px;
+                font-weight: 500;
+                color: #E6E1E5;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .task-memo {
+                font-size: 13px;
+                color: rgba(158, 158, 158, 0.7);
+                margin-top: 2px;
+            }
+            
+            /* 右側の時間とタスクタイプラベル */
+            .time-container {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                margin-left: 8px;
+            }
+            .task-type {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                margin-bottom: 2px;
+            }
+            .type-timeblock { color: #BB86FC; }
+            .type-reminder { color: #FFDE03; }
+            .task-time {
+                font-size: 14px;
+                color: #9E9E9E;
+            }
+            
+            .footer {
+                position: absolute;
+                bottom: 80px;
+                color: #78787D;
+                font-size: 20px;
+                font-weight: 400;
+                letter-spacing: 1px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="copy-container">
+            <div class="copy-text">タップひとつで、今日の全体像。</div>
+            <div class="accent-line"></div>
+        </div>
+        
+        <div class="device-container">
+            <div class="top-bar">
+                <div class="icon-btn"><span class="material-icons">arrow_back</span></div>
+                <div class="top-bar-title">今日のスケジュール</div>
+                <div class="icon-btn"><span class="material-icons">settings</span></div>
+            </div>
+            
+            <div class="lazy-column">
+                
+                <div class="card active">
+                    <div class="card-content">
+                        <div class="task-name">朝の準備とタスク整理</div>
+                        <div class="task-memo">💬 今日の優先順位をつける</div>
+                    </div>
+                    <div class="time-container">
+                        <div class="task-type type-timeblock">タイムブロック</div>
+                        <div class="task-time">9:00〜10:00</div>
+                    </div>
+                </div>
+                
+                <div class="card inactive">
+                    <div class="card-content">
+                        <div class="task-name">開発プロジェクト ミーティング</div>
+                    </div>
+                    <div class="time-container">
+                        <div class="task-type type-timeblock">タイムブロック</div>
+                        <div class="task-time">10:30〜11:30</div>
+                    </div>
+                </div>
+                
+                <div class="card inactive">
+                    <div class="card-content">
+                        <div class="task-name">機能要件の設計とコーディング</div>
+                        <div class="task-memo">💬 カレンダー連携の仕様をまとめる</div>
+                    </div>
+                    <div class="time-container">
+                        <div class="task-type type-timeblock">タイムブロック</div>
+                        <div class="task-time">13:00〜15:00</div>
+                    </div>
+                </div>
+                
+                <div class="card inactive">
+                    <div class="card-content">
+                        <div class="task-name">休憩・コーヒーブレイク</div>
+                    </div>
+                    <div class="time-container">
+                        <div class="task-type type-reminder">リマインダー</div>
+                        <div class="task-time">15:00</div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="footer">TickAt</div>
+    </body>
+    </html>
+    """
+
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page(viewport={"width": CANVAS_WIDTH, "height": CANVAS_HEIGHT})
+        
+        await page.set_content(generate_html())
+        await asyncio.sleep(2)
+        
+        await page.screenshot(path="mockup_2.png")
+        print("撮影完了: mockup_2.png")
+        await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+</file>
+
+<file path="mockup_gen/generate_mockup_3.py">
+import asyncio
+import base64
+from playwright.async_api import async_playwright
+import os
+
+CANVAS_WIDTH = 1080
+CANVAS_HEIGHT = 1920
+# 今回アップロードいただいた画像ファイル名に合わせています
+IMAGE_PATH = os.path.abspath("image_176ce9.jpg")
+
+def generate_html(inner_html):
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+            
+            body {{
+                margin: 0;
+                background: linear-gradient(to bottom, #0A0A0C, #14101E);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: 1920px;
+                font-family: 'Noto Sans JP', sans-serif;
+            }}
+            .copy-container {{
+                margin-top: 240px; /* 上部の余白 */
+                text-align: center;
+            }}
+            .copy-text {{
+                color: #E6E1E5;
+                font-size: 42px;
+                font-weight: 700;
+                letter-spacing: 2px;
+            }}
+            .accent-line {{
+                width: 40px;
+                height: 3px;
+                background-color: #BB86FC;
+                margin: 24px auto 0 auto;
+            }}
+            .device-container {{
+                margin-top: 120px; /* キャッチコピーとの間隔 */
+                width: 412px;
+                height: 915px;
+                border-radius: 30px;
+                overflow: hidden;
+                position: relative;
+                background: #222;
+                border: 8px solid #32323A;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            }}
+            .footer {{
+                position: absolute;
+                bottom: 80px;
+                color: #78787D;
+                font-size: 20px;
+                font-weight: 400;
+                letter-spacing: 1px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="copy-container">
+            <div class="copy-text">カスタマイズの自由度は、妥協しない。</div>
+            <div class="accent-line"></div>
+        </div>
+        
+        <div class="device-container">
+            {inner_html}
+        </div>
+        
+        <div class="footer">TickAt</div>
+    </body>
+    </html>
+    """
+
+async def main():
+    if not os.path.exists(IMAGE_PATH):
+        print(f"致命的エラー: ファイルが存在しません -> {IMAGE_PATH}")
+        return
+
+    # 画像をBase64にエンコードしてData URI化
+    with open(IMAGE_PATH, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    base64_url = f"data:image/jpeg;base64,{encoded_string}"
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page(viewport={"width": CANVAS_WIDTH, "height": CANVAS_HEIGHT})
+        
+        # 画面本体の中身（画像を100%で配置）
+        inner_html = f"""
+        <img src="{base64_url}" style="width:100%; height:100%; object-fit:cover;" />
+        """
+        
+        await page.set_content(generate_html(inner_html))
+        
+        # 画像の読み込み完了を待機
+        await page.wait_for_selector("img", state="attached")
+        await asyncio.sleep(2) 
+        
+        await page.screenshot(path="mockup_3.png")
+        print("撮影完了: mockup_3.png")
+        await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+</file>
+
+<file path="mockup_gen/generate_mockups.py">
+import asyncio
+import base64
+from playwright.async_api import async_playwright
+import os
+
+CANVAS_WIDTH = 1080
+CANVAS_HEIGHT = 1920
+# 現在のフォルダにある画像へのフルパスを取得
+IMAGE_PATH = os.path.abspath("image_fc2d67.jpg")
+
+def generate_html(inner_html):
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="margin:0; background:#0A0A0C; display:flex; justify-content:center; align-items:center; height:1920px;">
+        <div style="width:412px; height:915px; border-radius:30px; overflow:hidden; position:relative; background:#222; border:8px solid #32323A;">
+            {inner_html}
+        </div>
+    </body>
+    </html>
+    """
+
+async def main():
+    if not os.path.exists(IMAGE_PATH):
+        print(f"致命的エラー: ファイルが存在しません -> {IMAGE_PATH}")
+        return
+
+    # 画像をBase64にエンコードしてData URI化する
+    with open(IMAGE_PATH, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    base64_url = f"data:image/jpeg;base64,{encoded_string}"
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page(viewport={"width": CANVAS_WIDTH, "height": CANVAS_HEIGHT})
+        
+        inner_html = f"""
+        <img src="{base64_url}" style="width:100%; position:absolute; top:-4%; left:0; object-fit:cover;" />
+        <div style="position:absolute; bottom:0; left:0; width:100%; height:28%; 
+                    background:linear-gradient(to bottom, rgba(34,34,34,0) 0%, rgba(34,34,34,1) 15%, rgba(34,34,34,1) 100%);"></div>
+        """
+        
+        await page.set_content(generate_html(inner_html))
+        
+        # 画像の読み込み完了を待機
+        await page.wait_for_selector("img", state="attached")
+        await asyncio.sleep(2) # 念のための追加待機
+        
+        await page.screenshot(path="mockup_1.png")
+        print("撮影完了: mockup_1.png")
+        await browser.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+</file>
+
+<file path="repomix-theme.txt.">
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of a subset of the repository's contents that is considered the most important context.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt, app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt
+- Files matching these patterns are excluded: build/, *.gradle*
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt
+app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Color.kt">
+package com.tao0524.tickat.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// ダークテーマ
+val TickAtBackground     = Color(0xFF1C1B1F)
+val TickAtSurface        = Color(0xFF2B2930)
+val TickAtSurfaceVariant = Color(0xFF3A383F)
+val TickAtOnBackground   = Color(0xFFE6E1E5)
+val TickAtOnSurface      = Color(0xFFE6E1E5)
+val TickAtOnSurfaceVar   = Color(0xFF9E9E9E)
+val TickAtPrimary        = Color(0xFF1976D2)
+val TickAtOnPrimary      = Color(0xFFFFFFFF)
+val TickAtError          = Color(0xFFCF6679)
+val TickAtOutline        = Color(0xFF49454F)
+
+// ライトテーマ
+val TickAtLightBackground     = Color(0xFFFAFAF9)
+val TickAtLightSurface        = Color(0xFFF3F0F4)
+val TickAtLightSurfaceVariant = Color(0xFFE7E0EC)
+val TickAtLightOnBackground   = Color(0xFF1C1B1F)
+val TickAtLightOnSurfaceVar   = Color(0xFF49454F)
+val TickAtLightError          = Color(0xFFB3261E)
+val TickAtLightOutline        = Color(0xFF79747E)
+</file>
+
+<file path="app/src/main/java/com/tao0524/tickat/ui/theme/Theme.kt">
+package com.tao0524.tickat.ui.theme
+
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
+import com.tao0524.tickat.ui.screen.settings.AppSettings
+import com.tao0524.tickat.ui.screen.settings.ThemeMode
+
+private fun blendToWhite(base: Color, ratio: Float): Color = Color(
+    red   = (base.red   + (1f - base.red)   * ratio).coerceIn(0f, 1f),
+    green = (base.green + (1f - base.green) * ratio).coerceIn(0f, 1f),
+    blue  = (base.blue  + (1f - base.blue)  * ratio).coerceIn(0f, 1f),
+    alpha = 1f
+)
+
+@Composable
+fun TickAtTheme(
+    settings: AppSettings = AppSettings(),
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit
+) {
+    val isDark = when (themeMode) {
+        ThemeMode.DARK  -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val colorScheme = if (isDark) {
+        val bg   = Color(settings.bgColor)
+        val text = Color(settings.textColor)
+        darkColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = bg,
+            onBackground     = text,
+            surface          = blendToWhite(bg, 0.06f),
+            onSurface        = text,
+            surfaceVariant   = blendToWhite(bg, 0.12f),
+            onSurfaceVariant = Color(0xFF9E9E9E),
+            error            = Color(0xFFCF6679),
+            outline          = Color(0xFF49454F)
+        )
+    } else {
+        lightColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = TickAtLightBackground,
+            onBackground     = TickAtLightOnBackground,
+            surface          = TickAtLightSurface,
+            onSurface        = TickAtLightOnBackground,
+            surfaceVariant   = TickAtLightSurfaceVariant,
+            onSurfaceVariant = TickAtLightOnSurfaceVar,
+            error            = TickAtLightError,
+            outline          = TickAtLightOutline
+        )
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography  = Typography,
+        content     = content
+    )
+}
+</file>
+
+</files>
+</file>
 
 <file path=".gitignore">
 *.iml
@@ -163,10 +793,17 @@ local.properties
 </file>
 
 <file path="app/build.gradle.kts">
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
 }
 
 android {
@@ -177,15 +814,25 @@ android {
         applicationId = "com.tao0524.tickat"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProperties["KEYSTORE_PATH"] as String)
+            storePassword = localProperties["KEYSTORE_PASSWORD"] as String
+            keyAlias = localProperties["KEY_ALIAS"] as String
+            keyPassword = localProperties["KEY_PASSWORD"] as String
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

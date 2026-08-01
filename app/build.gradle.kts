@@ -1,7 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) load(file.inputStream())
 }
 
 android {
@@ -12,15 +19,25 @@ android {
         applicationId = "com.tao0524.tickat"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProperties["KEYSTORE_PATH"] as String)
+            storePassword = localProperties["KEYSTORE_PASSWORD"] as String
+            keyAlias = localProperties["KEY_ALIAS"] as String
+            keyPassword = localProperties["KEY_PASSWORD"] as String
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
