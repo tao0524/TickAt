@@ -7,14 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.core.app.ActivityCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
@@ -25,7 +22,14 @@ import com.tao0524.tickat.ui.navigation.AppNavigation
 import com.tao0524.tickat.ui.theme.TickAtTheme
 import com.tao0524.tickat.widget.TaskAlertScheduler
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -34,16 +38,16 @@ private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 
 class MainActivity : ComponentActivity() {
 
-    private val _showExpanded      = MutableStateFlow(false)
-    private val _expandedTaskId    = MutableStateFlow<String?>(null)
-    private val _onboardingChecked = MutableStateFlow<Boolean?>(null)
+    private var isAppReady = false
 
     private val settingsViewModel: SettingsViewModel by lazy {
         SettingsViewModel(applicationContext, appWidgetId = 0)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+        splashScreen.setKeepOnScreenCondition { !isAppReady }
 
         // API 33+ の通知パーミッション要求
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -56,16 +60,6 @@ class MainActivity : ComponentActivity() {
                     0
                 )
             }
-        }
-
-        if (intent?.getBooleanExtra("show_expanded", false) == true) {
-            _showExpanded.value = true
-            _expandedTaskId.value = intent?.getStringExtra("expanded_task_id")
-        }
-
-        lifecycleScope.launch {
-            val complete = dataStore.data.first()[ONBOARDING_COMPLETE] ?: false
-            _onboardingChecked.value = complete
         }
 
         startForegroundService(
@@ -84,43 +78,33 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by settingsViewModel.settings.collectAsState()
             val themeMode by settingsViewModel.themeMode.collectAsState()
-            TickAtTheme(settings = settings, themeMode = themeMode) {
-                val onboardingChecked by _onboardingChecked.collectAsState()
-                val showExpanded      by _showExpanded.collectAsState()
-                val expandedTaskId    by _expandedTaskId.collectAsState()
 
-                when (val complete = onboardingChecked) {
-                    null -> Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF1C1B1F))
-                    )
-                    else -> AppNavigation(
+            var onboardingState by remember { mutableStateOf<Boolean?>(null) }
+
+            LaunchedEffect(Unit) {
+                onboardingState = dataStore.data.first()[ONBOARDING_COMPLETE] ?: false
+                kotlinx.coroutines.delay(150)
+                isAppReady = true
+            }
+
+            TickAtTheme(settings = settings, themeMode = themeMode) {
+                if (onboardingState == null) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {}
+                } else {
+                    AppNavigation(
                         repository          = repository,
-                        startWithOnboarding = !complete,
+                        startWithOnboarding = !onboardingState!!,
                         onOnboardingComplete = {
                             lifecycleScope.launch {
                                 dataStore.edit { it[ONBOARDING_COMPLETE] = true }
                             }
-                        },
-                        openExpandedOnStart = showExpanded,
-                        expandedTaskId      = expandedTaskId,
-                        onExpandedConsumed  = {
-                            _showExpanded.value = false
-                            _expandedTaskId.value = null
                         }
                     )
                 }
             }
-        }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        if (intent.getBooleanExtra("show_expanded", false)) {
-            _showExpanded.value = true
-            _expandedTaskId.value = intent.getStringExtra("expanded_task_id")
         }
     }
 }

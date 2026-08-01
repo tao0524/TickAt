@@ -13,7 +13,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
-import com.tao0524.tickat.ui.screen.expanded.ExpandedScreen
 import androidx.compose.ui.platform.LocalContext
 import com.tao0524.tickat.ui.screen.help.HelpScreen
 import com.tao0524.tickat.ui.screen.settings.SettingsScreen
@@ -27,7 +26,6 @@ sealed class Screen(val route: String) {
     object Onboarding     : Screen("onboarding")
     object TaskList       : Screen("task_list")
     object TaskEdit       : Screen("task_edit")
-    object Expanded       : Screen("expanded")
     object Help           : Screen("help")
     object Settings       : Screen("settings")
     object WidgetSettings : Screen("widget_settings/{widgetId}") {
@@ -41,9 +39,6 @@ fun AppNavigation(
     repository: TaskRepository,
     startWithOnboarding: Boolean = false,
     onOnboardingComplete: () -> Unit = {},
-    openExpandedOnStart: Boolean = false,
-    expandedTaskId: String? = null,
-    onExpandedConsumed: () -> Unit = {},
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
@@ -51,28 +46,18 @@ fun AppNavigation(
     val startDestination = if (startWithOnboarding) Screen.Onboarding.route
     else Screen.TaskList.route
 
-    LaunchedEffect(openExpandedOnStart) {
-        if (openExpandedOnStart) {
-            val route = if (expandedTaskId != null) {
-                "${Screen.Expanded.route}?taskId=$expandedTaskId"
-            } else {
-                Screen.Expanded.route
-            }
-            navController.navigate(route)
-            onExpandedConsumed()
-        }
-    }
-
     NavHost(navController = navController, startDestination = startDestination) {
-        composable(Screen.Onboarding.route) {
-            OnboardingScreen(
+        if (startWithOnboarding) {
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(
                 onComplete = {
                     onOnboardingComplete()
                     navController.navigate(Screen.TaskList.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 }
-            )
+                )
+            }
         }
         composable(Screen.TaskList.route) {
             TaskListScreen(
@@ -103,18 +88,6 @@ fun AppNavigation(
                         ?.remove<String>("taskId")
                     navController.popBackStack()
                 }
-            )
-        }
-        composable(
-            route = "${Screen.Expanded.route}?taskId={taskId}",
-            arguments = listOf(navArgument("taskId") { defaultValue = ""; type = NavType.StringType })
-        ) { backStackEntry ->
-            val taskId = backStackEntry.arguments?.getString("taskId")?.ifEmpty { null }
-            ExpandedScreen(
-                viewModel = viewModel(factory = factory),
-                targetTaskId = taskId,
-                onDismiss = { navController.popBackStack() },
-                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
             )
         }
         composable(Screen.Help.route) {

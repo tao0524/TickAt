@@ -74,6 +74,7 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
+    implementation("androidx.core:core-splashscreen:1.0.1")
 
     coreLibraryDesugaring(libs.android.desugar.jdk)
 
