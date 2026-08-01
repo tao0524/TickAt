@@ -329,18 +329,53 @@ class WidgetUpdateService : Service() {
             val needFullRedraw = fullRedrawNeededMap[id] ?: true
 
             val displayText: String = if (activeBlock != null && settings.showTaskName) {
+                // 進行中のタイムブロックは最優先
                 val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
                 val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
                 "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-            } else if (activeBlock == null && settings.showCountdown) {
-                val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
-                if (nextBlock != null) {
-                    val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
-                    when {
-                        minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                        minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                        else          -> "${nextBlock.name}まで あと1分未満"
+            } else {
+                // 全タスクから直近のものを1つ選んで表示
+                data class Candidate(val minutesUntil: Long, val text: String)
+                val candidates = mutableListOf<Candidate>()
+
+                // 次のタイムブロック
+                if (settings.showCountdown) {
+                    val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
+                    if (nextBlock != null) {
+                        val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
+                        val text = when {
+                            minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
+                            minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
+                            else          -> "${nextBlock.name}まで あと1分未満"
+                        }
+                        candidates.add(Candidate(minutes, text))
                     }
+                }
+
+                // 次のONCEリマインダー
+                val nextOnce = enabledTasks.filter {
+                    it.repeat == RepeatType.ONCE
+                }.minByOrNull {
+                    val diff = java.time.Duration.between(now, it.startTime).toMinutes()
+                    if (diff < 0) diff + 1440 else diff  // 過ぎた場合は翌日扱い
+                }
+                if (nextOnce != null) {
+                    val rawDiff = java.time.Duration.between(now, nextOnce.startTime).toMinutes()
+                    val minutesUntil = if (rawDiff < 0) rawDiff + 1440 else rawDiff
+                    val label = if (nextOnce.startTime > now) "今日" else "明日"
+                    val timeStr = if (settings.use24Hour) {
+                        nextOnce.startTime.format(java.time.format.DateTimeFormatter.ofPattern("H:mm"))
+                    } else {
+                        val amPm = if (nextOnce.startTime.hour < 12) "午前" else "午後"
+                        "$amPm${nextOnce.startTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm"))}"
+                    }
+                    candidates.add(Candidate(minutesUntil, "$label $timeStr ${nextOnce.name}"))
+                }
+
+                // 直近のものを選択、なければシステムアラーム
+                val nearest = candidates.minByOrNull { it.minutesUntil }
+                if (nearest != null) {
+                    nearest.text
                 } else if (settings.showNextAlarm) {
                     val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
                     val nextAlarm = alarmManager.nextAlarmClock
@@ -366,42 +401,9 @@ class WidgetUpdateService : Service() {
                         } else ""
                     } else ""
                 } else ""
-            } else if (settings.showNextAlarm) {
-                val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-                val nextAlarm = alarmManager.nextAlarmClock
-                val creatorPkg = nextAlarm?.showIntent?.creatorPackage
-                val isXiaomiCalendar = creatorPkg == "com.xiaomi.calendar"
-                if (nextAlarm?.showIntent != null && !isXiaomiCalendar) {
-                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
-                    val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
-                            && cal.get(java.util.Calendar.MINUTE) == 0
-                            && cal.get(java.util.Calendar.SECOND) == 0
-                            && cal.get(java.util.Calendar.MILLISECOND) == 0
-                    if (!isSystemAlarm) {
-                        if (settings.use24Hour) {
-                            val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
-                            val m = cal.get(java.util.Calendar.MINUTE)
-                            "⏰ %d:%02d".format(h, m)
-                        } else {
-                            val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
-                            val m = cal.get(java.util.Calendar.MINUTE)
-                            val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
-                            "⏰ $amPm$h:%02d".format(m)
-                        }
-                    } else ""
-                } else ""
-            } else ""
+            }
 
-            val resolvedDisplayText = if (displayText.isEmpty()) {
-                val tomorrowOnce = enabledTasks.filter {
-                    it.repeat == RepeatType.ONCE && it.startTime <= now
-                }.minByOrNull { it.startTime }
-                if (tomorrowOnce != null) {
-                    val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
-                    val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
-                    "明日 ${tomorrowOnce.startTime.format(sf)} ${tomorrowOnce.name}"
-                } else ""
-            } else displayText
+            val resolvedDisplayText = displayText
 
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
