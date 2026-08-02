@@ -119,6 +119,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.draw.drawWithContent
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 
 private data class ThemePreset(
     val name: String,
@@ -288,10 +292,13 @@ fun SettingsScreen(
     LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }
 
     val soundName = remember(currentSoundUri) {
-        if (currentSoundUri.isEmpty()) "既定の通知音"
-        else runCatching {
-            RingtoneManager.getRingtone(context, Uri.parse(currentSoundUri))?.getTitle(context) ?: "カスタム音"
-        }.getOrElse { "カスタム音" }
+        when {
+            currentSoundUri.isEmpty() -> "既定の通知音"
+            currentSoundUri.startsWith("/") -> "カスタム音"
+            else -> runCatching {
+                RingtoneManager.getRingtone(context, Uri.parse(currentSoundUri))?.getTitle(context) ?: "カスタム音"
+            }.getOrElse { "カスタム音" }
+        }
     }
 
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
@@ -300,10 +307,58 @@ fun SettingsScreen(
         if (result.resultCode == Activity.RESULT_OK) {
             @Suppress("DEPRECATION")
             val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            val newUri = uri?.toString() ?: ""
-            currentSoundUri = newUri
-            draft = draft.copy(notificationSoundUri = newUri)
-            viewModel.save(draft.copy(notificationSoundUri = newUri))
+            if (uri == null) {
+                currentSoundUri = ""
+                draft = draft.copy(notificationSoundUri = "")
+                viewModel.save(draft.copy(notificationSoundUri = ""))
+                return@rememberLauncherForActivityResult
+            }
+
+            val uriStr = uri.toString()
+
+            if (uriStr.startsWith("content://settings/")) {
+                currentSoundUri = uriStr
+                draft = draft.copy(notificationSoundUri = uriStr)
+                viewModel.save(draft.copy(notificationSoundUri = uriStr))
+                return@rememberLauncherForActivityResult
+            }
+
+            try {
+                val soundDir = java.io.File(context.filesDir, "notification_sounds")
+                if (!soundDir.exists()) soundDir.mkdirs()
+                val destFile = java.io.File(soundDir, "custom_sound")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                val internalUri = destFile.absolutePath
+                currentSoundUri = internalUri
+                draft = draft.copy(notificationSoundUri = internalUri)
+                viewModel.save(draft.copy(notificationSoundUri = internalUri))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "通知音のコピーに失敗しました", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val storagePermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                if (draft.notificationSoundUri.isNotEmpty() && !draft.notificationSoundUri.startsWith("/")) {
+                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
+                }
+            }
+            ringtonePickerLauncher.launch(intent)
+        } else {
+            Toast.makeText(context, "ストレージへのアクセスが許可されていません", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1926,13 +1981,6 @@ fun SettingsScreen(
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
-                            label    = "チェックボックスを表示",
-                            sub      = "スケジュール一覧にチェックボックスを表示します",
-                            checked  = draft.showCheckboxes,
-                            onToggle = { draft = draft.copy(showCheckboxes = it) }
-                        )
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                        SwitchRow(
                             label    = "コンパクトな背景",
                             sub      = "ウィジェットの縦幅を詰める",
                             checked  = draft.compactBg,
@@ -1994,16 +2042,23 @@ fun SettingsScreen(
                                         shape    = RoundedCornerShape(8.dp),
                                         color    = MaterialTheme.colorScheme.surfaceVariant,
                                         modifier = Modifier.weight(1f).clickable {
-                                            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALL)
-                                                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                                                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                                if (draft.notificationSoundUri.isNotEmpty()) {
-                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
+                                            if (Build.VERSION.SDK_INT <= 32 &&
+                                                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+                                                != PackageManager.PERMISSION_GRANTED
+                                            ) {
+                                                storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                                            } else {
+                                                val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
+                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+                                                    if (draft.notificationSoundUri.isNotEmpty() && !draft.notificationSoundUri.startsWith("/")) {
+                                                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
+                                                    }
                                                 }
+                                                ringtonePickerLauncher.launch(intent)
                                             }
-                                            ringtonePickerLauncher.launch(intent)
                                         }
                                     ) {
                                         Text(soundName, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))

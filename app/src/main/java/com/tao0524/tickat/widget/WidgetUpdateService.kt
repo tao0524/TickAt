@@ -283,6 +283,7 @@ class WidgetUpdateService : Service() {
         serviceScope.launch {
             taskRepository.allTasks.collect { tasks ->
                 cachedTasks = tasks
+                updateWidgets()
             }
         }
     }

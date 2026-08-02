@@ -70,7 +70,6 @@ val KEY_TIME_OFFSET            = intPreferencesKey("time_offset")
 val KEY_SHOW_TASK_NAME         = booleanPreferencesKey("show_task_name")
 val KEY_SHOW_COUNTDOWN         = booleanPreferencesKey("show_countdown")
 val KEY_SHOW_NEXT_ALARM        = booleanPreferencesKey("show_next_alarm")
-val KEY_SHOW_CHECKBOXES        = booleanPreferencesKey("show_checkboxes")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
@@ -187,7 +186,6 @@ data class AppSettings(
     val timeOffset:               Int                = 0,
     val showTaskName:             Boolean            = true,
     val showCountdown:            Boolean            = true,
-    val showCheckboxes:           Boolean            = true,
     val alertMode:                String             = "NOTIFICATION",
     val messageTextColor:         Long               = 0x99E6E1E5L,
     val messageScale:             Float              = 1.0f,
@@ -304,7 +302,6 @@ class SettingsViewModel(
                             showTaskName             = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                             showCountdown            = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
                             showNextAlarm            = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
-                            showCheckboxes           = prefs[KEY_SHOW_CHECKBOXES]       ?: true,
                             alertMode                = prefs[KEY_ALERT_MODE]            ?: "NOTIFICATION",
                             messageTextColor         = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
                             messageScale             = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
@@ -326,7 +323,11 @@ class SettingsViewModel(
             ) { appSettings, displayPrefs ->
                 appSettings to displayPrefs
             }.collect { (appSettings, displayPrefs) ->
-                _settings.value = appSettings
+                _settings.value = appSettings.copy(
+                    alertMode = displayPrefs[KEY_ALERT_MODE] ?: "NOTIFICATION",
+                    notificationSoundUri = displayPrefs[KEY_NOTIFICATION_SOUND] ?: "",
+                    notificationDuration = displayPrefs[KEY_NOTIFICATION_DURATION] ?: 5
+                )
                 _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
@@ -396,8 +397,6 @@ class SettingsViewModel(
                 prefs[KEY_FONT_WEIGHT]        = s.fontWeight.name
                 prefs[KEY_CORNER_RADIUS_RATIO] = s.cornerRadiusRatio
                 prefs[KEY_DATE_TEXT_COLOR]       = s.dateTextColor
-                prefs[KEY_NOTIFICATION_SOUND]    = s.notificationSoundUri
-                prefs[KEY_NOTIFICATION_DURATION] = s.notificationDuration
                 prefs[KEY_BG_IMAGE_URI]          = s.bgImageUri
                 prefs[KEY_GRADIENT_COLOR_COUNT]  = s.gradientColorCount
                 prefs[KEY_BG_COLOR2]             = s.bgColor2
@@ -421,10 +420,13 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_TASK_NAME]        = s.showTaskName
                 prefs[KEY_SHOW_COUNTDOWN]        = s.showCountdown
                 prefs[KEY_SHOW_NEXT_ALARM]       = s.showNextAlarm
-                prefs[KEY_SHOW_CHECKBOXES]       = s.showCheckboxes
-                prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
                 prefs[KEY_MESSAGE_SCALE]         = s.messageScale
+            }
+            context.displaySettingsDataStore.edit { prefs ->
+                prefs[KEY_ALERT_MODE]            = s.alertMode
+                prefs[KEY_NOTIFICATION_SOUND]     = s.notificationSoundUri
+                prefs[KEY_NOTIFICATION_DURATION]  = s.notificationDuration
             }
         }
     }
