@@ -54,8 +54,8 @@ private val pages = listOf(
         subtitle = "TickAtはホーム画面を静かに保ちます。\n時を刻みながら、あなたへメッセージを渡す機会を待っています。"
     ),
     OnboardingPage(
-        title    = "タップして、次のスケジュールをチェック",
-        subtitle = "ウィジェットをタップすると、今日のスケジュール一覧と\n進み具合がすぐにわかります。"
+        title    = "タップして、スケジュールを管理",
+        subtitle = "ウィジェットをタップすると、\nスケジュールの管理画面が開きます。"
     ),
     OnboardingPage(
         title    = "2つの表示方法で、毎日をナビ",
