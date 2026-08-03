@@ -6,6 +6,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import java.time.LocalTime
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -109,7 +110,8 @@ class TaskListViewModel(
                     endTime = LocalTime.of(19, 0),
                     repeat = RepeatType.ONCE,
                     sortOrder = 2,
-                    taskType = TaskType.REMINDER
+                    taskType = TaskType.REMINDER,
+                    displayMode = WidgetDisplayMode.SIMPLE
                 )
             )
             templates.forEach {

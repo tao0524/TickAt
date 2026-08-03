@@ -81,9 +81,9 @@ private val features = listOf(
         description = "スケジュールの開始と終了の時間に、メモと一緒に通知でお知らせします。"
     ),
     FeatureInfo(
-        title = "1日の流れをチェック",
+        title = "2つのタスクタイプ",
         color = Feature3Color,
-        description = "タップすると、今日のスケジュール一覧と進み具合をチェックボックスで確認できます。"
+        description = "「タイムブロック」で時間帯をウィジェットに表示、「リマインダー」で指定時刻に通知。用途に合わせて使い分けられます。"
     )
 )
 
@@ -618,7 +618,7 @@ private fun FeatureCard(feature: FeatureInfo, index: Int) {
                 when (index) {
                     0 -> WidgetIllustration()
                     1 -> NotificationIllustration()
-                    2 -> ChecklistIllustration()
+                    2 -> TaskTypeIllustration()
                 }
             }
 
@@ -720,20 +720,24 @@ private fun NotificationIllustration() {
 }
 
 @Composable
-private fun ChecklistIllustration() {
+private fun TaskTypeIllustration() {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(modifier = Modifier.size(16.dp).background(Feature3Color, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
-                Text("✓", color = IllustSurface, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text("▶", color = IllustSurface, fontSize = 8.sp, fontWeight = FontWeight.Bold)
             }
-            Text("朝のルーティン", color = IllustSecondText, fontSize = 13.sp)
+            Text("タイムブロック", color = IllustPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text("9:00〜10:00", color = IllustSecondText, fontSize = 11.sp)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Box(modifier = Modifier.size(16.dp).border(1.5.dp, IllustSecondText, RoundedCornerShape(4.dp)))
-            Text("ミーティング", color = IllustPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Box(modifier = Modifier.size(16.dp).background(Feature2Color, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                Text("🔔", fontSize = 9.sp)
+            }
+            Text("リマインダー", color = IllustPrimaryText, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text("12:00", color = IllustSecondText, fontSize = 11.sp)
         }
     }
 }

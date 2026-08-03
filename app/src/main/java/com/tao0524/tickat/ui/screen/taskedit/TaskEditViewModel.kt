@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalTime
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import android.content.Context
 import com.tao0524.tickat.widget.TaskAlertScheduler
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -27,7 +28,8 @@ data class TaskEditState(
     val endTime: LocalTime = LocalTime.of(10, 0),
     val repeat: RepeatType = RepeatType.DAILY,
     val memoText: String = "",
-    val taskType: TaskType = TaskType.TIMEBLOCK
+    val taskType: TaskType = TaskType.TIMEBLOCK,
+    val displayMode: WidgetDisplayMode = WidgetDisplayMode.COUNTDOWN
 )
 
 private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
@@ -63,7 +65,8 @@ class TaskEditViewModel(
                         endTime = task.endTime,
                         repeat = task.repeat,
                         memoText = task.memoText,
-                        taskType = task.taskType
+                        taskType = task.taskType,
+                        displayMode = task.displayMode
                     )
                 }
             }
@@ -75,7 +78,17 @@ class TaskEditViewModel(
     fun onEndTimeChange(v: LocalTime)             = _state.update { it.copy(endTime = v) }
     fun onRepeatChange(v: RepeatType)             = _state.update { it.copy(repeat = v) }
     fun onMemoChange(v: String)                   = _state.update { it.copy(memoText = v) }
-    fun onTaskTypeChange(v: TaskType)             = _state.update { it.copy(taskType = v) }
+    fun onTaskTypeChange(v: TaskType) = _state.update { state ->
+        val newMode = if (v == TaskType.REMINDER && state.displayMode == WidgetDisplayMode.COUNTDOWN) {
+            WidgetDisplayMode.SIMPLE
+        } else if (v == TaskType.TIMEBLOCK && state.displayMode == WidgetDisplayMode.SIMPLE) {
+            WidgetDisplayMode.COUNTDOWN
+        } else {
+            state.displayMode
+        }
+        state.copy(taskType = v, displayMode = newMode)
+    }
+    fun onDisplayModeChange(v: WidgetDisplayMode)  = _state.update { it.copy(displayMode = v) }
 
     fun save(onDone: () -> Unit) {
         val s = _state.value
@@ -89,7 +102,8 @@ class TaskEditViewModel(
                 endTime = s.endTime,
                 repeat = s.repeat,
                 memoText = s.memoText,
-                taskType = s.taskType
+                taskType = s.taskType,
+                displayMode = s.displayMode
             )
             repository.save(savedTask)
             TaskAlertScheduler.schedule(context, savedTask)

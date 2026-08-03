@@ -15,5 +15,6 @@ data class Task(
     val memoText: String = "",
     val sortOrder: Int = 0,
     val taskType: TaskType = TaskType.TIMEBLOCK,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    val displayMode: WidgetDisplayMode = WidgetDisplayMode.COUNTDOWN
 )

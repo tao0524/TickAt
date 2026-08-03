@@ -72,6 +72,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
@@ -334,43 +335,44 @@ class WidgetUpdateService : Service() {
                 val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
                 val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
                 "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-            } else {
-                // 全タスクから直近のものを1つ選んで表示
+            } else if (settings.showCountdown) {
+                // 全タスクからdisplayModeに応じて候補を収集
                 data class Candidate(val minutesUntil: Long, val text: String)
                 val candidates = mutableListOf<Candidate>()
 
-                // 次のタイムブロック
-                if (settings.showCountdown) {
-                    val nextBlock = timeblocks.filter { it.startTime > now }.minByOrNull { it.startTime }
-                    if (nextBlock != null) {
-                        val minutes = java.time.Duration.between(now, nextBlock.startTime).toMinutes()
-                        val text = when {
-                            minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                            minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                            else          -> "${nextBlock.name}まで あと1分未満"
-                        }
-                        candidates.add(Candidate(minutes, text))
-                    }
-                }
+                for (task in enabledTasks) {
+                    if (task.displayMode == WidgetDisplayMode.HIDDEN) continue
+                    // 進行中のタイムブロックはスキップ
+                    if (task.taskType == TaskType.TIMEBLOCK && now >= task.startTime && now < task.endTime) continue
 
-                // 次のONCEリマインダー
-                val nextOnce = enabledTasks.filter {
-                    it.repeat == RepeatType.ONCE
-                }.minByOrNull {
-                    val diff = java.time.Duration.between(now, it.startTime).toMinutes()
-                    if (diff < 0) diff + 1440 else diff  // 過ぎた場合は翌日扱い
-                }
-                if (nextOnce != null) {
-                    val rawDiff = java.time.Duration.between(now, nextOnce.startTime).toMinutes()
-                    val minutesUntil = if (rawDiff < 0) rawDiff + 1440 else rawDiff
-                    val label = if (nextOnce.startTime > now) "今日" else "明日"
-                    val timeStr = if (settings.use24Hour) {
-                        nextOnce.startTime.format(java.time.format.DateTimeFormatter.ofPattern("H:mm"))
-                    } else {
-                        val amPm = if (nextOnce.startTime.hour < 12) "午前" else "午後"
-                        "$amPm${nextOnce.startTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm"))}"
+                    val rawMinutes = java.time.Duration.between(now, task.startTime).toMinutes()
+                    if (rawMinutes < 0 && task.repeat != RepeatType.ONCE) continue
+                    val minutesUntil = if (rawMinutes < 0) rawMinutes + 1440 else rawMinutes
+
+                    when (task.displayMode) {
+                        WidgetDisplayMode.COUNTDOWN -> {
+                            val text = when {
+                                minutesUntil >= 60 -> "${task.name}まで あと${minutesUntil / 60}時間${minutesUntil % 60}分"
+                                minutesUntil >= 1  -> "${task.name}まで あと${minutesUntil}分"
+                                else               -> "${task.name}まで あと1分未満"
+                            }
+                            candidates.add(Candidate(minutesUntil, text))
+                        }
+                        WidgetDisplayMode.SIMPLE -> {
+                            val timeStr = if (settings.use24Hour) {
+                                task.startTime.format(java.time.format.DateTimeFormatter.ofPattern("H:mm"))
+                            } else {
+                                val amPm = if (task.startTime.hour < 12) "午前" else "午後"
+                                "$amPm${task.startTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm"))}"
+                            }
+                            val label = if (task.repeat == RepeatType.ONCE) {
+                                if (task.startTime > now) "今日" else "明日"
+                            } else ""
+                            val prefix = if (label.isNotEmpty()) "$label " else ""
+                            candidates.add(Candidate(minutesUntil, "$prefix$timeStr ${task.name}"))
+                        }
+                        else -> { /* HIDDEN — already filtered */ }
                     }
-                    candidates.add(Candidate(minutesUntil, "$label $timeStr ${nextOnce.name}"))
                 }
 
                 // 直近のものを選択、なければシステムアラーム
@@ -402,7 +404,7 @@ class WidgetUpdateService : Service() {
                         } else ""
                     } else ""
                 } else ""
-            }
+            } else ""
 
             val resolvedDisplayText = displayText
 

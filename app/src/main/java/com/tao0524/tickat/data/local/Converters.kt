@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import java.time.LocalTime
+import com.tao0524.tickat.domain.model.WidgetDisplayMode
 
 class Converters {
     @TypeConverter fun fromLocalTime(value: String?): LocalTime? =
@@ -20,5 +21,10 @@ class Converters {
         value?.let { TaskType.valueOf(it) }
     @TypeConverter fun toTaskType(taskType: TaskType?): String? =
         taskType?.name
+
+    @TypeConverter fun fromDisplayMode(value: String?): WidgetDisplayMode? =
+        value?.let { WidgetDisplayMode.valueOf(it) }
+    @TypeConverter fun toDisplayMode(mode: WidgetDisplayMode?): String? =
+        mode?.name
 }
 

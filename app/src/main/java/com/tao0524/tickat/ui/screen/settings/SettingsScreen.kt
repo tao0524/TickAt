@@ -1967,8 +1967,8 @@ fun SettingsScreen(
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
-                            label    = "カウントダウンを表示",
-                            sub      = "空き時間に次のスケジュールまでの残り時間を表示",
+                            label    = "次の予定を表示",
+                            sub      = "ウィジェットに次の予定の情報を表示（表示形式はタスクごとに設定）",
                             checked  = draft.showCountdown,
                             onToggle = { draft = draft.copy(showCountdown = it) }
                         )
@@ -2716,7 +2716,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                             } else {
                                 when {
                                     draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                                    draft.showCountdown -> "次のタスクまで あと30分"
+                                    draft.showCountdown -> "次の予定まで あと30分"
                                     else -> ""
                                 }
                             }

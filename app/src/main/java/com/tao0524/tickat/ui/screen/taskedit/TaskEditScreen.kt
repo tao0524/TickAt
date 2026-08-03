@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.tao0524.tickat.ui.component.FirstTimeHint
@@ -265,6 +266,62 @@ fun TaskEditScreen(
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = state.taskType == TaskType.TIMEBLOCK,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                SectionHeader(text = "ウィジェット表示")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = state.displayMode == WidgetDisplayMode.COUNTDOWN,
+                        onClick = { viewModel.onDisplayModeChange(WidgetDisplayMode.COUNTDOWN) },
+                        label = { Text("カウントダウン") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.displayMode == WidgetDisplayMode.COUNTDOWN,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = state.displayMode == WidgetDisplayMode.SIMPLE,
+                        onClick = { viewModel.onDisplayModeChange(WidgetDisplayMode.SIMPLE) },
+                        label = { Text("時刻表示") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.displayMode == WidgetDisplayMode.SIMPLE,
+                            borderColor = MaterialTheme.colorScheme.outline,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = state.displayMode == WidgetDisplayMode.HIDDEN,
+                        onClick = { viewModel.onDisplayModeChange(WidgetDisplayMode.HIDDEN) },
+                        label = { Text("非表示") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = state.displayMode == WidgetDisplayMode.HIDDEN,
                             borderColor = MaterialTheme.colorScheme.outline,
                             selectedBorderColor = MaterialTheme.colorScheme.primary
                         )
