@@ -2163,12 +2163,29 @@ private fun ColorPickerDialog(
             modifier       = Modifier.fillMaxWidth()
         ) {
             if (stage == 1) {
-                Column(
-                    modifier = Modifier
-                        .padding(20.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                val scrollState1 = rememberScrollState()
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier
+                                .verticalScroll(scrollState1)
+                                .drawWithContent {
+                                    drawContent()
+                                    if (scrollState1.maxValue > 0) {
+                                        val trackH = size.height
+                                        val thumbH = (trackH * trackH / (trackH + scrollState1.maxValue)).coerceIn(24.dp.toPx(), trackH)
+                                        val thumbY = scrollState1.value.toFloat() / scrollState1.maxValue * (trackH - thumbH)
+                                        drawRoundRect(
+                                            color       = Color.Gray.copy(alpha = 0.35f),
+                                            topLeft     = Offset(size.width + 6.dp.toPx(), thumbY),
+                                            size        = Size(4.dp.toPx(), thumbH),
+                                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+                                        )
+                                    }
+                                }
+                                .padding(end = 8.dp)
+                        ) {
+                            Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(14.dp))
 
                     ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
@@ -2260,12 +2277,31 @@ private fun ColorPickerDialog(
                         }
                     )
 
-                    if (showAlpha) {
-                        Spacer(Modifier.height(12.dp))
-                        AlphaSliderRow(alpha = selectedAlpha, onChange = { selectedAlpha = it })
-                    }
+                            if (showAlpha) {
+                                Spacer(Modifier.height(12.dp))
+                                AlphaSliderRow(alpha = selectedAlpha, onChange = { selectedAlpha = it })
+                            }
 
-                    Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        if (scrollState1.maxValue > 0 && scrollState1.value < scrollState1.maxValue) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height(32.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
 
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
@@ -2291,8 +2327,29 @@ private fun ColorPickerDialog(
                     }
                 }
             } else {
+                val scrollState2 = rememberScrollState()
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("カスタム", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Box(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier
+                                .verticalScroll(scrollState2)
+                                .drawWithContent {
+                                    drawContent()
+                                    if (scrollState2.maxValue > 0) {
+                                        val trackH = size.height
+                                        val thumbH = (trackH * trackH / (trackH + scrollState2.maxValue)).coerceIn(24.dp.toPx(), trackH)
+                                        val thumbY = scrollState2.value.toFloat() / scrollState2.maxValue * (trackH - thumbH)
+                                        drawRoundRect(
+                                            color       = Color.Gray.copy(alpha = 0.35f),
+                                            topLeft     = Offset(size.width - 4.dp.toPx(), thumbY),
+                                            size        = Size(4.dp.toPx(), thumbH),
+                                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx())
+                                        )
+                                    }
+                                }
+                                .padding(end = 8.dp)
+                        ) {
+                            Text("カスタム", color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(14.dp))
 
                     ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
@@ -2418,7 +2475,26 @@ private fun ColorPickerDialog(
                         }
                     )
 
-                    Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(16.dp))
+                        }
+
+                        if (scrollState2.maxValue > 0 && scrollState2.value < scrollState2.maxValue) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height(32.dp)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    )
+                            )
+                        }
+                    }
 
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
