@@ -46,6 +46,7 @@ val KEY_FONT_WEIGHT          = stringPreferencesKey("font_weight")
 val KEY_CORNER_RADIUS_RATIO  = floatPreferencesKey("corner_radius_ratio")
 val KEY_DATE_TEXT_COLOR       = longPreferencesKey("date_text_color")
 val KEY_NOTIFICATION_SOUND    = stringPreferencesKey("notification_sound")
+val KEY_NOTIFICATION_SOUND_NAME = stringPreferencesKey("notification_sound_name")
 val KEY_NOTIFICATION_DURATION = intPreferencesKey("notification_duration")
 val KEY_BG_IMAGE_URI           = stringPreferencesKey("bg_image_uri")
 val KEY_GRADIENT_COLOR_COUNT   = intPreferencesKey("gradient_color_count")
@@ -163,6 +164,7 @@ data class AppSettings(
     val cornerRadiusRatio:   Float       = 0.1f,
     val dateTextColor:            Long   = 0x99E6E1E5L,
     val notificationSoundUri:     String = "",
+    val notificationSoundName:    String = "",
     val notificationDuration:     Int    = 5,
     val bgImageUri:               String  = "",
     val gradientColorCount:       Int     = 2,
@@ -264,6 +266,7 @@ class SettingsViewModel(
                             cornerRadiusRatio    = prefs[KEY_CORNER_RADIUS_RATIO] ?: 0.1f,
                             dateTextColor            = prefs[KEY_DATE_TEXT_COLOR]       ?: 0x99E6E1E5L,
                             notificationSoundUri     = prefs[KEY_NOTIFICATION_SOUND]    ?: "",
+                            notificationSoundName    = prefs[KEY_NOTIFICATION_SOUND_NAME] ?: "",
                             notificationDuration     = prefs[KEY_NOTIFICATION_DURATION] ?: 5,
                             bgImageUri               = prefs[KEY_BG_IMAGE_URI]          ?: "",
                             gradientColorCount       = prefs[KEY_GRADIENT_COLOR_COUNT]  ?: 2,
@@ -326,6 +329,7 @@ class SettingsViewModel(
                 _settings.value = appSettings.copy(
                     alertMode = displayPrefs[KEY_ALERT_MODE] ?: "NOTIFICATION",
                     notificationSoundUri = displayPrefs[KEY_NOTIFICATION_SOUND] ?: "",
+                    notificationSoundName = displayPrefs[KEY_NOTIFICATION_SOUND_NAME] ?: "",
                     notificationDuration = displayPrefs[KEY_NOTIFICATION_DURATION] ?: 5
                 )
                 _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
@@ -426,6 +430,7 @@ class SettingsViewModel(
             context.displaySettingsDataStore.edit { prefs ->
                 prefs[KEY_ALERT_MODE]            = s.alertMode
                 prefs[KEY_NOTIFICATION_SOUND]     = s.notificationSoundUri
+                prefs[KEY_NOTIFICATION_SOUND_NAME] = s.notificationSoundName
                 prefs[KEY_NOTIFICATION_DURATION]  = s.notificationDuration
             }
         }

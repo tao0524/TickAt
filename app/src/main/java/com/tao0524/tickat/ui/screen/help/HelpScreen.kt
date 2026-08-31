@@ -254,6 +254,14 @@ private val faqItems = listOf(
         """.trimIndent()
     ),
     HelpItem(
+        title = "通知音を変えたのに他のアプリの音が変わらない",
+        body  = """
+TickAtの通知音設定は、TickAtのタスク通知にのみ適用されます。
+
+端末の時計アプリのアラーム音や、他のアプリの通知音には影響しません。それぞれのアプリで個別に設定してください。
+        """.trimIndent()
+    ),
+    HelpItem(
         title = "背景が透明にならない",
         body  = """
 「表示設定」→「背景の種類」で「透明」を選択してください。

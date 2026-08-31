@@ -291,10 +291,10 @@ fun SettingsScreen(
     var currentSoundUri by remember { mutableStateOf(saved.notificationSoundUri) }
     LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }
 
-    val soundName = remember(currentSoundUri) {
+    val soundName = remember(currentSoundUri, saved.notificationSoundName) {
         when {
             currentSoundUri.isEmpty() -> "既定の通知音"
-            currentSoundUri.startsWith("/") -> "カスタム音"
+            currentSoundUri.startsWith("/") -> saved.notificationSoundName.ifEmpty { "カスタム音" }
             else -> runCatching {
                 RingtoneManager.getRingtone(context, Uri.parse(currentSoundUri))?.getTitle(context) ?: "カスタム音"
             }.getOrElse { "カスタム音" }
@@ -332,10 +332,15 @@ fun SettingsScreen(
                         input.copyTo(output)
                     }
                 }
+                val displayName = runCatching {
+                    context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0)?.replace(Regex("\\.[^.]+$"), "") else null
+                    }
+                }.getOrNull() ?: "カスタム音"
                 val internalUri = destFile.absolutePath
                 currentSoundUri = internalUri
-                draft = draft.copy(notificationSoundUri = internalUri)
-                viewModel.save(draft.copy(notificationSoundUri = internalUri))
+                draft = draft.copy(notificationSoundUri = internalUri, notificationSoundName = displayName)
+                viewModel.save(draft.copy(notificationSoundUri = internalUri, notificationSoundName = displayName))
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(context, "通知音のコピーに失敗しました", Toast.LENGTH_SHORT).show()
@@ -2087,6 +2092,8 @@ fun SettingsScreen(
                                 }
                                 Spacer(Modifier.height(6.dp))
                                 Text("タップして端末の着信音・通知音から選択できます", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                                Spacer(Modifier.height(4.dp))
+                                Text("※ この設定はTickAtの通知にのみ適用されます。端末の時計アプリなど他のアプリのアラーム音には影響しません。", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 10.sp)
                             }
                         }
                     }

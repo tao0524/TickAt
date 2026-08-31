@@ -164,7 +164,7 @@ class TaskAlertService : Service() {
     private fun playSound(soundUriStr: String) {
         val audioAttrs = AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .setUsage(AudioAttributes.USAGE_ALARM)
             .build()
 
         if (soundUriStr.startsWith("/")) {
@@ -185,7 +185,8 @@ class TaskAlertService : Service() {
             } else {
                 RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
             }
-            val r = RingtoneManager.getRingtone(this, uri) ?: return
+            val r = RingtoneManager.getRingtone(this, uri)
+            if (r == null) return
             r.audioAttributes = audioAttrs
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
