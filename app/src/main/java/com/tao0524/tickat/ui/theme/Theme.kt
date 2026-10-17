@@ -1,11 +1,16 @@
 package com.tao0524.tickat.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.tao0524.tickat.ui.screen.settings.AppSettings
 import com.tao0524.tickat.ui.screen.settings.ThemeMode
 
@@ -56,6 +61,19 @@ fun TickAtTheme(
             error            = TickAtLightError,
             outline          = TickAtLightOutline
         )
+    }
+
+    // ステータスバー・ナビゲーションバーのアイコン色を背景の明るさに合わせる
+    // （WCAGのコントラスト比で黒と白が同じになる明るさ ≒ 0.179 を境目にする）
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val useDarkIcons = colorScheme.background.luminance() > 0.179f
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            val controller = WindowCompat.getInsetsController(window, view)
+            controller.isAppearanceLightStatusBars = useDarkIcons
+            controller.isAppearanceLightNavigationBars = useDarkIcons
+        }
     }
 
     MaterialTheme(
