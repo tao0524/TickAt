@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -235,7 +236,10 @@ fun TaskEditScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionHeader(text = "タイプ")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     FilterChip(
                         selected = state.taskType == TaskType.REMINDER,
                         onClick = { viewModel.onTaskTypeChange(TaskType.REMINDER) },
@@ -274,7 +278,10 @@ fun TaskEditScreen(
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionHeader(text = "ウィジェット表示")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     FilterChip(
                         selected = state.displayMode == WidgetDisplayMode.COUNTDOWN,
                         onClick = { viewModel.onDisplayModeChange(WidgetDisplayMode.COUNTDOWN) },
@@ -380,7 +387,10 @@ fun TaskEditScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 SectionHeader(text = "繰り返し")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     RepeatType.entries.forEach { repeat ->
                         FilterChip(
                             selected = state.repeat == repeat,
