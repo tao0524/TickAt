@@ -62,19 +62,27 @@ fun TickAtTheme(
             outline          = TickAtOutline
         )
     } else if (isDark) {
+        // 「ダーク」: 背景・カード・文字はウィジェットの設定の色を使う。
+        // それ以外は、基本色 #1976D2 から Material 3 の方法で作った色（material-color-utilities で計算）。
+        // 指定しない役割は material3 の紫系の初期値になるため、画面で使っている役割はすべて指定する。
         val bg   = Color(settings.bgColor)
         val text = Color(settings.textColor)
         darkColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = bg,
-            onBackground     = text,
-            surface          = blendToWhite(bg, 0.06f),
-            onSurface        = text,
-            surfaceVariant   = blendToWhite(bg, 0.12f),
-            onSurfaceVariant = Color(0xFF9E9E9E),
-            error            = Color(0xFFCF6679),
-            outline          = Color(0xFF49454F)
+            primary              = Color(0xFFA5C8FF), // トーン80
+            onPrimary            = Color(0xFF00315F), // トーン20
+            primaryContainer     = Color(0xFF004786), // トーン30
+            onPrimaryContainer   = Color(0xFFD4E3FF), // トーン90
+            secondaryContainer   = Color(0xFF6D788A), // スライダーの線・「−」「＋」。見やすさのためトーン50
+            onSecondaryContainer = Color(0xFFD8E3F8),
+            background           = bg,
+            onBackground         = text,
+            surface              = blendToWhite(bg, 0.06f),
+            onSurface            = text,
+            surfaceVariant       = blendToWhite(bg, 0.12f),
+            onSurfaceVariant     = Color(0xFFC3C6CF),
+            error                = Color(0xFFCF6679),
+            outline              = Color(0xFF8D9199),
+            outlineVariant       = Color(0xFF8D9199)  // 「編集前に戻す」などの枠。トーン30では見えないため outline と同じ
         )
     } else {
         lightColorScheme(
