@@ -1,14 +1,18 @@
 package com.tao0524.tickat.ui.theme
 
 import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.tao0524.tickat.ui.screen.settings.AppSettings
@@ -33,7 +37,31 @@ fun TickAtTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    val colorScheme = if (isDark) {
+    // 「システム」のときは、スマホ本体が壁紙などから作った色（ダイナミックカラー）を使う。
+    // ダイナミックカラーは Android 12（API 31）以上だけ。それより前は Color.kt の配色を使う。
+    val context = LocalContext.current
+    val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val isSystemMode = themeMode == ThemeMode.SYSTEM
+
+    val colorScheme = if (isSystemMode && dynamicColor && isDark) {
+        dynamicDarkColorScheme(context)
+    } else if (isSystemMode && dynamicColor) {
+        dynamicLightColorScheme(context)
+    } else if (isSystemMode && isDark) {
+        // Android 11 以前の「システム」でスマホがダークのとき
+        darkColorScheme(
+            primary          = TickAtPrimary,
+            onPrimary        = TickAtOnPrimary,
+            background       = TickAtBackground,
+            onBackground     = TickAtOnBackground,
+            surface          = TickAtSurface,
+            onSurface        = TickAtOnSurface,
+            surfaceVariant   = TickAtSurfaceVariant,
+            onSurfaceVariant = TickAtOnSurfaceVar,
+            error            = TickAtError,
+            outline          = TickAtOutline
+        )
+    } else if (isDark) {
         val bg   = Color(settings.bgColor)
         val text = Color(settings.textColor)
         darkColorScheme(
