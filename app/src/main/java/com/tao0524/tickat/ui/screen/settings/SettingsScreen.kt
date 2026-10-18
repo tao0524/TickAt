@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Button
@@ -182,14 +183,6 @@ private fun generateTintShadeColors(baseColor: Long): List<Long> {
         lerp(base, black, 0.78f).toArgb().toLong() and 0xFFFFFFFFL,
         lerp(base, black, 0.92f).toArgb().toLong() and 0xFFFFFFFFL
     )
-}
-
-private fun contentColorFor(bgColor: Long): Color {
-    val r = ((bgColor shr 16) and 0xFF) / 255f
-    val g = ((bgColor shr 8)  and 0xFF) / 255f
-    val b = ( bgColor         and 0xFF) / 255f
-    val luminance = 0.299f * r + 0.587f * g + 0.114f * b
-    return if (luminance > 0.5f) Color.Black else Color.White
 }
 
 @Composable
@@ -997,7 +990,7 @@ fun SettingsScreen(
                                                                         .background(MaterialTheme.colorScheme.primary, CircleShape),
                                                                     contentAlignment = Alignment.Center
                                                                 ) {
-                                                                    Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                                    Icon(Icons.Filled.Check, contentDescription = "選択中", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(12.dp))
                                                                 }
                                                             }
                                                         }
@@ -3006,7 +2999,7 @@ private fun ThemeCard(
                     .background(MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Text("✓", color = contentColorFor(theme.bgColor), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Icon(Icons.Filled.Check, contentDescription = "選択中", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(12.dp))
             }
         }
     }
@@ -3200,7 +3193,7 @@ private fun LinearStartPicker(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
-                                Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.Check, contentDescription = "選択中", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
@@ -3280,7 +3273,7 @@ private fun RadialCenterPicker(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isSelected) {
-                                Text("✓", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Icon(Icons.Filled.Check, contentDescription = "選択中", tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
