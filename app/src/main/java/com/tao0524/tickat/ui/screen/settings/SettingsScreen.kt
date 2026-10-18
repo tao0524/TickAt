@@ -276,10 +276,9 @@ fun SettingsScreen(
 
     if (!isLoaded) return
 
-    var draft   by remember { mutableStateOf(saved) }
-    LaunchedEffect(saved) {
-        draft = saved
-    }
+    // 編集中の内容（保存前）は ViewModel に持つ。
+    // スマホ本体のダークモードの切り替えなどで画面が作り直されても消えないようにするため。
+    var draft   by viewModel.draftState
 
     var currentSoundUri by remember { mutableStateOf(saved.notificationSoundUri) }
     LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }
@@ -1329,7 +1328,7 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
-                            label    = "斜體",
+                            label    = "斜体",
                             sub      = "イタリック体で表示",
                             checked  = draft.isItalic,
                             onToggle = { draft = draft.copy(isItalic = it) }

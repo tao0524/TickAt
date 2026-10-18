@@ -1,6 +1,8 @@
 package com.tao0524.tickat.ui.screen.settings
 
 import android.content.Context
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -243,6 +245,10 @@ class SettingsViewModel(
     private val _isLoaded = MutableStateFlow(false)
     val isLoaded: StateFlow<Boolean> = _isLoaded.asStateFlow()
 
+    // 表示設定の画面で編集中の内容（保存前）。
+    // 画面の作り直し（スマホ本体のダークモードの切り替えなど）のあとも残すため、画面ではなく ViewModel に持つ。
+    val draftState: MutableState<AppSettings> = mutableStateOf(AppSettings())
+
     init {
         viewModelScope.launch {
             combine(
@@ -326,12 +332,19 @@ class SettingsViewModel(
             ) { appSettings, displayPrefs ->
                 appSettings to displayPrefs
             }.collect { (appSettings, displayPrefs) ->
-                _settings.value = appSettings.copy(
+                val newSettings = appSettings.copy(
                     alertMode = displayPrefs[KEY_ALERT_MODE] ?: "NOTIFICATION",
                     notificationSoundUri = displayPrefs[KEY_NOTIFICATION_SOUND] ?: "",
                     notificationSoundName = displayPrefs[KEY_NOTIFICATION_SOUND_NAME] ?: "",
                     notificationDuration = displayPrefs[KEY_NOTIFICATION_DURATION] ?: 5
                 )
+                // 保存済みの設定を初めて読み込んだとき、または内容が変わったときだけ、編集中の内容を保存済みに合わせる。
+                // （以前は画面の LaunchedEffect(saved) で行っていた。画面が作り直されると LaunchedEffect が
+                //   もう一度動いて編集中の内容を上書きするため、ここに移した）
+                if (!_isLoaded.value || newSettings != _settings.value) {
+                    draftState.value = newSettings
+                }
+                _settings.value = newSettings
                 _previewVisible.value = displayPrefs[KEY_PREVIEW_VISIBLE] ?: true
                 _previewSizePercent.value = (displayPrefs[KEY_PREVIEW_SIZE_PERCENT] ?: 90).coerceIn(40, 100)
                 _hintSettingsShown.value = displayPrefs[KEY_HINT_SETTINGS] ?: false
