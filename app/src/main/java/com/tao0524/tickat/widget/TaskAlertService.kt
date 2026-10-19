@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
@@ -27,10 +28,19 @@ import kotlinx.coroutines.launch
 class TaskAlertService : Service() {
 
     companion object {
-        const val ACTION_TAP = "com.tao0524.tickat.ACTION_ALERT_TAP"
         const val ACTION_DISMISS = "com.tao0524.tickat.ACTION_ALERT_DISMISS"
         private const val SILENT_CHANNEL_ID = "tickat_alert_silent"
         private const val STATIC_CHANNEL_ID = "tickat_alert_static"
+
+        // 通知を押して開く画面に付ける印（この印があるときだけ通知音を止める）
+        private const val EXTRA_STOP_ALERT = "com.tao0524.tickat.EXTRA_STOP_ALERT"
+
+        /** 通知を押して画面が開いたときに呼ぶ。印があれば、このサービスを止める（通知音と通知が消える） */
+        fun stopFromNotificationTap(context: Context, intent: Intent?) {
+            if (intent?.getBooleanExtra(EXTRA_STOP_ALERT, false) == true) {
+                context.stopService(Intent(context, TaskAlertService::class.java))
+            }
+        }
     }
 
     // 内部コピーファイル → MediaPlayer、それ以外 → Ringtone
@@ -51,10 +61,6 @@ class TaskAlertService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_TAP -> {
-                stopPlayback(StopReason.TAP)
-                return START_NOT_STICKY
-            }
             ACTION_DISMISS -> {
                 stopPlayback(StopReason.DISMISS)
                 return START_NOT_STICKY
@@ -91,9 +97,23 @@ class TaskAlertService : Service() {
         ensureChannels(manager)
 
         // --- フォアグラウンド通知を構築 ---
-        val tapPending = PendingIntent.getService(
-            this, currentNotificationId,
-            Intent(this, TaskAlertService::class.java).apply { action = ACTION_TAP },
+        // 通知を押したときは、画面を直接開く（Android 12 以上では、サービスから画面を開けないため）
+        val tapIntent = if (alertMode == "FULLSCREEN") {
+            Intent(this, FullScreenAlertActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("task_name", taskName)
+                putExtra("task_type_label", featureLabel)
+                putExtra("time_range", "$taskStartTime〜$taskEndTime")
+                putExtra(EXTRA_STOP_ALERT, true)
+            }
+        } else {
+            Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra(EXTRA_STOP_ALERT, true)
+            }
+        }
+        val tapPending = PendingIntent.getActivity(
+            this, currentNotificationId + 3000, tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val dismissPending = PendingIntent.getService(
@@ -241,7 +261,7 @@ class TaskAlertService : Service() {
     //  再生停止
     // ---------------------------------------------------------------
 
-    private enum class StopReason { TIMER, TAP, DISMISS }
+    private enum class StopReason { TIMER, DISMISS }
 
     private fun stopPlayback(reason: StopReason) {
         releasePlayer()
@@ -252,21 +272,6 @@ class TaskAlertService : Service() {
         when (reason) {
             StopReason.TIMER -> {
                 postStaticNotification()
-            }
-            StopReason.TAP -> {
-                val target = if (alertMode == "FULLSCREEN") {
-                    Intent(this, FullScreenAlertActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                        putExtra("task_name", taskName)
-                        putExtra("task_type_label", featureLabel)
-                        putExtra("time_range", "$taskStartTime〜$taskEndTime")
-                    }
-                } else {
-                    Intent(this, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    }
-                }
-                startActivity(target)
             }
             StopReason.DISMISS -> { }
         }

@@ -21,6 +21,7 @@ import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.navigation.AppNavigation
 import com.tao0524.tickat.ui.theme.TickAtTheme
 import com.tao0524.tickat.widget.TaskAlertScheduler
+import com.tao0524.tickat.widget.TaskAlertService
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +49,11 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         splashScreen.setKeepOnScreenCondition { !isAppReady }
+
+        // 通知を押して開いたときは、通知音を止める（画面の作り直しのときは何もしない）
+        if (savedInstanceState == null) {
+            TaskAlertService.stopFromNotificationTap(this, intent)
+        }
 
         // API 33+ の通知パーミッション要求
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -106,5 +112,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // すでに開いているときに通知を押した場合（singleTask のため、ここに届く）
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        TaskAlertService.stopFromNotificationTap(this, intent)
     }
 }

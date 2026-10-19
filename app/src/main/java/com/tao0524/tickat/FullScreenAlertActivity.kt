@@ -1,6 +1,7 @@
 package com.tao0524.tickat
 
 import android.app.KeyguardManager
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -34,13 +35,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tao0524.tickat.ui.screen.settings.ThemeMode
 import com.tao0524.tickat.ui.theme.TickAtTheme
+import com.tao0524.tickat.widget.TaskAlertService
 import kotlinx.coroutines.delay
 
 class FullScreenAlertActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 通知を押して開いたときは、通知音を止める（画面の作り直しのときは何もしない）
+        if (savedInstanceState == null) {
+            TaskAlertService.stopFromNotificationTap(this, intent)
+        }
 
         // ロック画面上での表示 + 画面点灯
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
@@ -63,7 +71,7 @@ class FullScreenAlertActivity : ComponentActivity() {
         val timeRange    = intent.getStringExtra("time_range") ?: ""
 
         setContent {
-            TickAtTheme {
+            TickAtTheme(themeMode = ThemeMode.DARK) {
                 FullScreenAlertContent(
                     taskName      = taskName,
                     taskTypeLabel = taskTypeLabel,
@@ -72,6 +80,12 @@ class FullScreenAlertActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    // すでに開いているときに通知を押した場合
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        TaskAlertService.stopFromNotificationTap(this, intent)
     }
 }
 
