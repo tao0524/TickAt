@@ -131,6 +131,7 @@ class TaskAlertService : Service() {
             .setDeleteIntent(dismissPending)
             .setOngoing(false)
             .setAutoCancel(false)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         if (memo.isNotEmpty()) {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
