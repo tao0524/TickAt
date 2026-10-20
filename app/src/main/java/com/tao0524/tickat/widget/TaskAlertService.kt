@@ -139,6 +139,8 @@ class TaskAlertService : Service() {
             .setOngoing(false)
             .setAutoCancel(false)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            // 鳴っている間だけの「止める」ボタン（横にスワイプしたときと同じ処理で音を止める）
+            .addAction(0, "止める", dismissPending)
 
         if (memo.isNotEmpty()) {
             builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
