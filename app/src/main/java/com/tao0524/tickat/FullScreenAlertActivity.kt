@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -81,6 +82,8 @@ class FullScreenAlertActivity : ComponentActivity() {
                         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     }
                 }
+                // 鳴っている間は ◁（戻る）で閉じない（止めるのは「止める」ボタンだけ）
+                BackHandler(enabled = isAlerting) { }
                 FullScreenAlertContent(
                     taskName      = taskName,
                     taskTypeLabel = taskTypeLabel,
