@@ -8,8 +8,6 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,9 +22,9 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,9 +36,13 @@ import androidx.compose.ui.unit.sp
 import com.tao0524.tickat.ui.screen.settings.ThemeMode
 import com.tao0524.tickat.ui.theme.TickAtTheme
 import com.tao0524.tickat.widget.TaskAlertService
-import kotlinx.coroutines.delay
 
 class FullScreenAlertActivity : ComponentActivity() {
+
+    // 画面に出す予定の情報（画面を出したまま別の予定が鳴ったときに書き換える）
+    private var taskName      by mutableStateOf("")
+    private var taskTypeLabel by mutableStateOf("")
+    private var timeRange     by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,26 +68,46 @@ class FullScreenAlertActivity : ComponentActivity() {
         }
 
         // Intentからタスク情報を取得
-        val taskName      = intent.getStringExtra("task_name") ?: ""
-        val taskTypeLabel = intent.getStringExtra("task_type_label") ?: ""
-        val timeRange    = intent.getStringExtra("time_range") ?: ""
+        readTaskInfo(intent)
 
         setContent {
             TickAtTheme(themeMode = ThemeMode.DARK) {
+                // 音が鳴っている間だけ、画面を暗くさせない
+                val isAlerting by TaskAlertService.isAlerting.collectAsState()
+                LaunchedEffect(isAlerting) {
+                    if (isAlerting) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
                 FullScreenAlertContent(
                     taskName      = taskName,
                     taskTypeLabel = taskTypeLabel,
                     timeRange    = timeRange,
-                    onDismiss    = { finish() }
+                    isAlerting   = isAlerting,
+                    onButtonClick = {
+                        // 鳴っている間は音を止めてから閉じる（鳴り終わったあとは閉じるだけ）
+                        stopService(Intent(this@FullScreenAlertActivity, TaskAlertService::class.java))
+                        finish()
+                    }
                 )
             }
         }
     }
 
-    // すでに開いているときに通知を押した場合
+    // すでに開いているときに、通知を押した場合・別の予定が鳴った場合
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
+        readTaskInfo(intent)
         TaskAlertService.stopFromNotificationTap(this, intent)
+    }
+
+    private fun readTaskInfo(intent: Intent) {
+        taskName      = intent.getStringExtra("task_name") ?: ""
+        taskTypeLabel = intent.getStringExtra("task_type_label") ?: ""
+        timeRange     = intent.getStringExtra("time_range") ?: ""
     }
 }
 
@@ -101,26 +123,13 @@ private fun FullScreenAlertContent(
     taskName: String,
     taskTypeLabel: String,
     timeRange: String,
-    onDismiss: () -> Unit
+    isAlerting: Boolean,
+    onButtonClick: () -> Unit
 ) {
-    // 10秒間操作なしで自動終了
-    var touched by remember { mutableStateOf(false) }
-
-    LaunchedEffect(touched) {
-        if (!touched) {
-            delay(10_000)
-            onDismiss()
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BgColor)
-            .clickable(
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { touched = true },
+            .background(BgColor),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -160,9 +169,9 @@ private fun FullScreenAlertContent(
 
             Spacer(Modifier.height(48.dp))
 
-            // 閉じるボタン
+            // 鳴っている間は「止める」、鳴り終わったあとは「閉じる」
             Button(
-                onClick = onDismiss,
+                onClick = onButtonClick,
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AccentColor,
@@ -173,7 +182,7 @@ private fun FullScreenAlertContent(
                     .height(48.dp)
             ) {
                 Text(
-                    text = "閉じる",
+                    text = if (isAlerting) "止める" else "閉じる",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )

@@ -22,6 +22,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -34,6 +37,10 @@ class TaskAlertService : Service() {
 
         // 通知を押して開く画面に付ける印（この印があるときだけ通知音を止める）
         private const val EXTRA_STOP_ALERT = "com.tao0524.tickat.EXTRA_STOP_ALERT"
+
+        // 鳴っている間は true（全画面の画面が、ボタンの文字と画面の明かりを切り替えるために見る）
+        private val _isAlerting = MutableStateFlow(false)
+        val isAlerting: StateFlow<Boolean> = _isAlerting.asStateFlow()
 
         /** 通知を押して画面が開いたときに呼ぶ。印があれば、このサービスを止める（通知音と通知が消える） */
         fun stopFromNotificationTap(context: Context, intent: Intent?) {
@@ -152,6 +159,7 @@ class TaskAlertService : Service() {
         }
 
         // --- startForeground ---
+        _isAlerting.value = true
         val notification = builder.build()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(
@@ -266,6 +274,7 @@ class TaskAlertService : Service() {
 
     private fun stopPlayback(reason: StopReason) {
         releasePlayer()
+        _isAlerting.value = false
         soundJob?.cancel()
 
         try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
@@ -318,6 +327,7 @@ class TaskAlertService : Service() {
 
     override fun onDestroy() {
         releasePlayer()
+        _isAlerting.value = false
         soundJob?.cancel()
         super.onDestroy()
     }
