@@ -90,6 +90,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.tao0524.tickat.ui.component.FullScreenPermissionDialog
+import com.tao0524.tickat.ui.component.FULL_SCREEN_SELECTED_TITLE
+import com.tao0524.tickat.ui.component.FULL_SCREEN_SELECTED_MESSAGE
+import com.tao0524.tickat.ui.component.needsFullScreenPermission
+import com.tao0524.tickat.ui.component.openFullScreenPermissionSettings
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -378,6 +383,7 @@ fun SettingsScreen(
     var showMessageSizeDialog by remember { mutableStateOf(false) }
     var showAmPmSizeDialog by remember { mutableStateOf(false) }
     var showFontFamilyDialog by remember { mutableStateOf(false) }
+    var showFullScreenPermissionDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
     val previewVisible by viewModel.previewVisible.collectAsState()
@@ -427,6 +433,19 @@ fun SettingsScreen(
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
+            }
+        )
+    }
+
+    // --- 全画面通知の許可のお願い（「フルスクリーン」を押した直後） ---
+    if (showFullScreenPermissionDialog) {
+        FullScreenPermissionDialog(
+            title          = FULL_SCREEN_SELECTED_TITLE,
+            message        = FULL_SCREEN_SELECTED_MESSAGE,
+            onLater        = { showFullScreenPermissionDialog = false },
+            onOpenSettings = {
+                showFullScreenPermissionDialog = false
+                openFullScreenPermissionSettings(context)
             }
         )
     }
@@ -2009,7 +2028,13 @@ fun SettingsScreen(
                                             label      = label,
                                             isSelected = draft.alertMode == value,
                                             modifier   = Modifier.weight(1f),
-                                            onSelect   = { draft = draft.copy(alertMode = value) }
+                                            onSelect   = {
+                                                draft = draft.copy(alertMode = value)
+                                                // 許可がないまま「フルスクリーン」を押したら知らせる（選んだままにする）
+                                                if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
+                                                    showFullScreenPermissionDialog = true
+                                                }
+                                            }
                                         )
                                     }
                                 }

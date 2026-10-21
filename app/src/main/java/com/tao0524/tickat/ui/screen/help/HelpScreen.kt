@@ -48,6 +48,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import android.content.Intent
 import android.provider.Settings
+import com.tao0524.tickat.ui.component.isFullScreenPermissionRequestable
+import com.tao0524.tickat.ui.component.openFullScreenPermissionSettings
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,7 +89,12 @@ private val features = listOf(
     )
 )
 
-private data class HelpItem(val title: String, val body: String)
+private data class HelpItem(
+    val title: String,
+    val body: String,
+    // true のとき、答えの下に「全画面通知の設定を開く」ボタンを出す
+    val opensFullScreenSettings: Boolean = false
+)
 
 // ─── カスタマイズガイド ───
 
@@ -173,9 +180,12 @@ private val guideItems = listOf(
     GuideItem(
         title = "通知の設定",
         emoji = "🔔",
-        steps = listOf(
+        steps = listOfNotNull(
+            "トップ画面の⚙アイコン → ウィジェットのカードを押すと「表示設定」が開きます",
             "「表示設定」→「通知」を開く",
             "フルスクリーン：開始時に全画面表示",
+            // Android 13 以下では許可が自動で与えられるので、Android 14 以上だけ出す
+            if (isFullScreenPermissionRequestable()) "画面が真っ暗なときやロック画面のときにも全画面で出すには、スマホの設定で「全画面通知」の許可が必要です（「よくある質問」に手順があります）" else null,
             "通知：開始時にバナー通知のみ",
             "OFF：通知を表示しない",
             "カウントダウン通知音を端末の着信音・通知音から選択可能",
@@ -196,7 +206,7 @@ private val guideItems = listOf(
 
 // ─── よくある質問 ───
 
-private val faqItems = listOf(
+private val faqItems = listOfNotNull(
     HelpItem(
         title = "ウィジェットの追加方法",
         body  = """
@@ -261,6 +271,20 @@ TickAtの通知音設定は、TickAtのタスク通知にのみ適用されま�
 端末の時計アプリのアラーム音や、他のアプリの通知音には影響しません。それぞれのアプリで個別に設定してください。
         """.trimIndent()
     ),
+    // Android 13 以下では許可が自動で与えられるので、Android 14 以上だけ出す
+    if (isFullScreenPermissionRequestable()) HelpItem(
+        title = "フルスクリーンにしたのに、画面が真っ暗なときに全画面で出ない",
+        body  = """
+画面が真っ暗なときやロック画面のときにも全画面で出すには、スマホの設定で「全画面通知」の許可が必要です。
+
+下の「全画面通知の設定を開く」を押すと、TickAt の「全画面通知」の画面が開きます。「このアプリからの全画面通知を許可する」をオンにしてください。
+
+許可しない場合、画面が真っ暗なときは、全画面では出ず、音だけでお知らせします。スマホを使っているときは、画面のいちばん上に、通知が出ます（「止める」ボタン付き）。
+
+※ 画面の名前は機種によって異なる場合があります。
+        """.trimIndent(),
+        opensFullScreenSettings = true
+    ) else null,
     HelpItem(
         title = "背景が透明にならない",
         body  = """
@@ -475,10 +499,12 @@ fun HelpScreen(onBack: () -> Unit) {
 
             faqItems.forEachIndexed { index, item ->
                 FaqSection(
-                    title      = item.title,
-                    body       = item.body,
-                    isExpanded = faqExpandedStates[index],
-                    onToggle   = { faqExpandedStates[index] = !faqExpandedStates[index] }
+                    title       = item.title,
+                    body        = item.body,
+                    isExpanded  = faqExpandedStates[index],
+                    onToggle    = { faqExpandedStates[index] = !faqExpandedStates[index] },
+                    actionLabel = if (item.opensFullScreenSettings) "🔔  全画面通知の設定を開く" else null,
+                    onAction    = { openFullScreenPermissionSettings(context) }
                 )
             }
 
@@ -850,7 +876,9 @@ private fun FaqSection(
     title: String,
     body: String,
     isExpanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    actionLabel: String? = null,
+    onAction: () -> Unit = {}
 ) {
     Column {
         Row(
@@ -882,13 +910,34 @@ private fun FaqSection(
             exit  = shrinkVertically(animationSpec = tween(200)) +
                     fadeOut(animationSpec = tween(150))
         ) {
-            Text(
-                text = body,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                lineHeight = 24.sp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 24.sp
+                )
+                if (actionLabel != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onAction),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Text(
+                            text = actionLabel,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)
+                        )
+                    }
+                }
+            }
         }
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))

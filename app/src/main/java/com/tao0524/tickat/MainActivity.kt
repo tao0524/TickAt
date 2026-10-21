@@ -23,6 +23,11 @@ import com.tao0524.tickat.ui.theme.TickAtTheme
 import com.tao0524.tickat.widget.TaskAlertScheduler
 import com.tao0524.tickat.widget.TaskAlertService
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
+import com.tao0524.tickat.ui.component.FullScreenPermissionDialog
+import com.tao0524.tickat.ui.component.FULL_SCREEN_PROMPT_TITLE
+import com.tao0524.tickat.ui.component.FULL_SCREEN_PROMPT_MESSAGE
+import com.tao0524.tickat.ui.component.needsFullScreenPermission
+import com.tao0524.tickat.ui.component.openFullScreenPermissionSettings
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +41,8 @@ import kotlinx.coroutines.launch
 
 private val Context.dataStore by preferencesDataStore(name = "tickat_settings")
 private val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
+// 全画面通知の許可のお願い（ポップアップ）を出したかどうか
+private val FULL_SCREEN_PROMPT_SHOWN = booleanPreferencesKey("full_screen_prompt_shown")
 
 class MainActivity : ComponentActivity() {
 
@@ -86,9 +93,19 @@ class MainActivity : ComponentActivity() {
             val themeMode by settingsViewModel.themeMode.collectAsState()
 
             var onboardingState by remember { mutableStateOf<Boolean?>(null) }
+            var fullScreenPromptShown by remember { mutableStateOf(true) }
+            var showFullScreenPrompt by remember { mutableStateOf(false) }
 
             LaunchedEffect(Unit) {
-                onboardingState = dataStore.data.first()[ONBOARDING_COMPLETE] ?: false
+                val prefs = dataStore.data.first()
+                onboardingState = prefs[ONBOARDING_COMPLETE] ?: false
+                fullScreenPromptShown = prefs[FULL_SCREEN_PROMPT_SHOWN] ?: false
+                // アップデートした人（案内は終わっている）には、最初に開いたときに1回出す
+                if (onboardingState == true && !fullScreenPromptShown &&
+                    needsFullScreenPermission(this@MainActivity)
+                ) {
+                    showFullScreenPrompt = true
+                }
                 kotlinx.coroutines.delay(150)
                 isAppReady = true
             }
@@ -107,8 +124,31 @@ class MainActivity : ComponentActivity() {
                             lifecycleScope.launch {
                                 dataStore.edit { it[ONBOARDING_COMPLETE] = true }
                             }
+                            // 新しく入れた人には、はじめての案内が終わった直後に1回出す
+                            if (!fullScreenPromptShown && needsFullScreenPermission(this@MainActivity)) {
+                                showFullScreenPrompt = true
+                            }
                         }
                     )
+
+                    if (showFullScreenPrompt) {
+                        val closePrompt: () -> Unit = {
+                            showFullScreenPrompt = false
+                            fullScreenPromptShown = true
+                            lifecycleScope.launch {
+                                dataStore.edit { it[FULL_SCREEN_PROMPT_SHOWN] = true }
+                            }
+                        }
+                        FullScreenPermissionDialog(
+                            title          = FULL_SCREEN_PROMPT_TITLE,
+                            message        = FULL_SCREEN_PROMPT_MESSAGE,
+                            onLater        = closePrompt,
+                            onOpenSettings = {
+                                closePrompt()
+                                openFullScreenPermissionSettings(this@MainActivity)
+                            }
+                        )
+                    }
                 }
             }
         }
