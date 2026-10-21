@@ -55,6 +55,8 @@ class TaskAlertService : Service() {
     private var ringtone: Ringtone? = null
     private var soundJob: Job? = null
     private var currentNotificationId: Int = 0
+    // 鳴っている間の通知の番号（鳴り終わったあとの通知とは別の番号にする）
+    private var ringingNotificationId: Int = 0
 
     // タイマー終了後の静的通知で再利用するタスク情報
     private var taskName: String = ""
@@ -98,6 +100,7 @@ class TaskAlertService : Service() {
         }
 
         currentNotificationId = ("start_$taskId").hashCode()
+        ringingNotificationId = ("ring_$taskId").hashCode()
 
         // --- サイレント通知チャンネル作成 ---
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -161,16 +164,18 @@ class TaskAlertService : Service() {
         }
 
         // --- startForeground ---
+        // 同じ予定の、前に鳴り終わったあとの通知が残っていると全画面の画面が出ないため、先に消す
+        manager.cancel(currentNotificationId)
         _isAlerting.value = true
         val notification = builder.build()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(
-                currentNotificationId,
+                ringingNotificationId,
                 notification,
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
             )
         } else {
-            startForeground(currentNotificationId, notification)
+            startForeground(ringingNotificationId, notification)
         }
 
         // --- 音声再生 ---
