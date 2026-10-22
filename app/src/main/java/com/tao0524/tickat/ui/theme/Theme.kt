@@ -49,17 +49,24 @@ fun TickAtTheme(
         dynamicLightColorScheme(context)
     } else if (isSystemMode && isDark) {
         // Android 11 以前の「システム」でスマホがダークのとき
+        // 背景・カード・文字は今の暗い灰色のまま。ボタン・枠・補助の文字などは「ダーク」と同じ色にする
+        // （#1976D2 などは暗い背景の上で見にくいため。指定しない役割は material3 の紫系の初期値になる）
         darkColorScheme(
-            primary          = TickAtPrimary,
-            onPrimary        = TickAtOnPrimary,
-            background       = TickAtBackground,
-            onBackground     = TickAtOnBackground,
-            surface          = TickAtSurface,
-            onSurface        = TickAtOnSurface,
-            surfaceVariant   = TickAtSurfaceVariant,
-            onSurfaceVariant = TickAtOnSurfaceVar,
-            error            = TickAtError,
-            outline          = TickAtOutline
+            primary              = Color(0xFFA5C8FF), // 「ダーク」と同じ
+            onPrimary            = Color(0xFF00315F),
+            primaryContainer     = Color(0xFF004786),
+            onPrimaryContainer   = Color(0xFFD4E3FF),
+            secondaryContainer   = Color(0xFF6D788A),
+            onSecondaryContainer = Color(0xFFD8E3F8),
+            background           = TickAtBackground,
+            onBackground         = TickAtOnBackground,
+            surface              = TickAtSurface,
+            onSurface            = TickAtOnSurface,
+            surfaceVariant       = TickAtSurfaceVariant,
+            onSurfaceVariant     = Color(0xFFC3C6CF),
+            error                = TickAtError,
+            outline              = Color(0xFF8D9199),
+            outlineVariant       = Color(0xFF8D9199)
         )
     } else if (isDark) {
         // 「ダーク」: 背景・カード・文字はウィジェットの設定の色を使う。
