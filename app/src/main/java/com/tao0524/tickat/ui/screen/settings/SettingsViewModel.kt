@@ -76,7 +76,7 @@ val KEY_SHOW_NEXT_ALARM        = booleanPreferencesKey("show_next_alarm")
 val KEY_ALERT_MODE             = stringPreferencesKey("alert_mode")
 val KEY_MESSAGE_TEXT_COLOR     = longPreferencesKey("message_text_color")
 val KEY_MESSAGE_SCALE          = floatPreferencesKey("message_scale")
-private val KEY_THEME_MODE           = stringPreferencesKey("theme_mode")
+val KEY_THEME_MODE           = stringPreferencesKey("theme_mode")
 private val KEY_PREVIEW_VISIBLE      = booleanPreferencesKey("preview_visible")
 private val KEY_PREVIEW_SIZE_PERCENT = intPreferencesKey("preview_size_percent")
 private val KEY_HINT_SETTINGS  = booleanPreferencesKey("hint_settings")
@@ -439,20 +439,6 @@ class SettingsViewModel(
                 prefs[KEY_SHOW_NEXT_ALARM]       = s.showNextAlarm
                 prefs[KEY_MESSAGE_TEXT_COLOR]    = s.messageTextColor
                 prefs[KEY_MESSAGE_SCALE]         = s.messageScale
-            }
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_ALERT_MODE]            = s.alertMode
-                prefs[KEY_NOTIFICATION_SOUND]     = s.notificationSoundUri
-                prefs[KEY_NOTIFICATION_SOUND_NAME] = s.notificationSoundName
-                prefs[KEY_NOTIFICATION_DURATION]  = s.notificationDuration
-            }
-        }
-    }
-
-    fun saveThemeMode(mode: ThemeMode) {
-        viewModelScope.launch {
-            context.displaySettingsDataStore.edit { prefs ->
-                prefs[KEY_THEME_MODE] = mode.name
             }
         }
     }

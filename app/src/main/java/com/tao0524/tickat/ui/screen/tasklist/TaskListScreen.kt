@@ -76,7 +76,7 @@ fun TaskListScreen(
     onAddTask: () -> Unit,
     onEditTask: (String) -> Unit,
     onOpenHelp: () -> Unit,
-    onOpenWidgetList: () -> Unit = {}
+    onOpenSettings: () -> Unit = {}
 ) {
     val tasks by viewModel.tasks.collectAsState()
     val guideStep by viewModel.guideStep.collectAsState()
@@ -93,10 +93,10 @@ fun TaskListScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = onOpenWidgetList) {
+                    IconButton(onClick = onOpenSettings) {
                         Icon(
                             Icons.Default.Settings,
-                            contentDescription = "ウィジェット設定",
+                            contentDescription = "設定",
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }

@@ -14,6 +14,8 @@ import androidx.navigation.navArgument
 import com.tao0524.tickat.data.repository.TaskRepository
 import com.tao0524.tickat.ui.ViewModelFactory
 import androidx.compose.ui.platform.LocalContext
+import com.tao0524.tickat.ui.screen.appsettings.AppSettingsScreen
+import com.tao0524.tickat.ui.screen.appsettings.AppSettingsViewModel
 import com.tao0524.tickat.ui.screen.help.HelpScreen
 import com.tao0524.tickat.ui.screen.settings.SettingsScreen
 import com.tao0524.tickat.ui.screen.settings.SettingsViewModel
@@ -32,6 +34,7 @@ sealed class Screen(val route: String) {
         fun createRoute(widgetId: Int) = "widget_settings/$widgetId"
     }
     object WidgetList : Screen("widget_list")
+    object AppSettings : Screen("app_settings")
 }
 
 @Composable
@@ -70,7 +73,7 @@ fun AppNavigation(
                     navController.navigate(Screen.TaskEdit.route)
                 },
                 onOpenHelp     = { navController.navigate(Screen.Help.route) },
-                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+                onOpenSettings = { navController.navigate(Screen.AppSettings.route) }
             )
         }
         composable(Screen.TaskEdit.route) {
@@ -92,6 +95,13 @@ fun AppNavigation(
         }
         composable(Screen.Help.route) {
             HelpScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.AppSettings.route) {
+            AppSettingsScreen(
+                viewModel = viewModel(factory = AppSettingsViewModel.factory(context)),
+                onBack = { navController.popBackStack() },
+                onOpenWidgetList = { navController.navigate(Screen.WidgetList.route) }
+            )
         }
         composable(Screen.WidgetList.route) {
             WidgetListScreen(

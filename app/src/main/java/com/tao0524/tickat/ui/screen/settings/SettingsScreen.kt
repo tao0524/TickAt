@@ -1,8 +1,5 @@
 package com.tao0524.tickat.ui.screen.settings
 
-import android.app.Activity
-import android.media.RingtoneManager
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -90,11 +87,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.tao0524.tickat.ui.component.FullScreenPermissionDialog
-import com.tao0524.tickat.ui.component.FULL_SCREEN_SELECTED_TITLE
-import com.tao0524.tickat.ui.component.FULL_SCREEN_SELECTED_MESSAGE
-import com.tao0524.tickat.ui.component.needsFullScreenPermission
-import com.tao0524.tickat.ui.component.openFullScreenPermissionSettings
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -125,10 +117,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.ui.draw.rotate
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.draw.drawWithContent
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.content.ContextCompat
 
 private data class ThemePreset(
     val name: String,
@@ -191,7 +179,7 @@ private fun generateTintShadeColors(baseColor: Long): List<Long> {
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+internal fun SectionHeader(title: String) {
     Text(
         text          = title,
         color         = MaterialTheme.colorScheme.onBackground,
@@ -285,85 +273,6 @@ fun SettingsScreen(
     // スマホ本体のダークモードの切り替えなどで画面が作り直されても消えないようにするため。
     var draft   by viewModel.draftState
 
-    var currentSoundUri by remember { mutableStateOf(saved.notificationSoundUri) }
-    LaunchedEffect(saved.notificationSoundUri) { currentSoundUri = saved.notificationSoundUri }
-
-    val soundName = remember(currentSoundUri, saved.notificationSoundName) {
-        when {
-            currentSoundUri.isEmpty() -> "既定の通知音"
-            currentSoundUri.startsWith("/") -> saved.notificationSoundName.ifEmpty { "カスタム音" }
-            else -> runCatching {
-                RingtoneManager.getRingtone(context, Uri.parse(currentSoundUri))?.getTitle(context) ?: "カスタム音"
-            }.getOrElse { "カスタム音" }
-        }
-    }
-
-    val ringtonePickerLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            @Suppress("DEPRECATION")
-            val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            if (uri == null) {
-                currentSoundUri = ""
-                draft = draft.copy(notificationSoundUri = "")
-                viewModel.save(draft.copy(notificationSoundUri = ""))
-                return@rememberLauncherForActivityResult
-            }
-
-            val uriStr = uri.toString()
-
-            if (uriStr.startsWith("content://settings/")) {
-                currentSoundUri = uriStr
-                draft = draft.copy(notificationSoundUri = uriStr)
-                viewModel.save(draft.copy(notificationSoundUri = uriStr))
-                return@rememberLauncherForActivityResult
-            }
-
-            try {
-                val soundDir = java.io.File(context.filesDir, "notification_sounds")
-                if (!soundDir.exists()) soundDir.mkdirs()
-                val destFile = java.io.File(soundDir, "custom_sound")
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                val displayName = runCatching {
-                    context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) cursor.getString(0)?.replace(Regex("\\.[^.]+$"), "") else null
-                    }
-                }.getOrNull() ?: "カスタム音"
-                val internalUri = destFile.absolutePath
-                currentSoundUri = internalUri
-                draft = draft.copy(notificationSoundUri = internalUri, notificationSoundName = displayName)
-                viewModel.save(draft.copy(notificationSoundUri = internalUri, notificationSoundName = displayName))
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "通知音のコピーに失敗しました", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    val storagePermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                if (draft.notificationSoundUri.isNotEmpty() && !draft.notificationSoundUri.startsWith("/")) {
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
-                }
-            }
-            ringtonePickerLauncher.launch(intent)
-        } else {
-            Toast.makeText(context, "ストレージへのアクセスが許可されていません", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     val bgImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -383,7 +292,6 @@ fun SettingsScreen(
     var showMessageSizeDialog by remember { mutableStateOf(false) }
     var showAmPmSizeDialog by remember { mutableStateOf(false) }
     var showFontFamilyDialog by remember { mutableStateOf(false) }
-    var showFullScreenPermissionDialog by remember { mutableStateOf(false) }
     var selectedThemeTab by remember { mutableStateOf(0) }
     val pickerTarget = remember { mutableStateOf<String?>(null) }
     val previewVisible by viewModel.previewVisible.collectAsState()
@@ -433,19 +341,6 @@ fun SettingsScreen(
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
-            }
-        )
-    }
-
-    // --- 全画面通知の許可のお願い（「フルスクリーン」を押した直後） ---
-    if (showFullScreenPermissionDialog) {
-        FullScreenPermissionDialog(
-            title          = FULL_SCREEN_SELECTED_TITLE,
-            message        = FULL_SCREEN_SELECTED_MESSAGE,
-            onLater        = { showFullScreenPermissionDialog = false },
-            onOpenSettings = {
-                showFullScreenPermissionDialog = false
-                openFullScreenPermissionSettings(context)
             }
         )
     }
@@ -769,7 +664,7 @@ fun SettingsScreen(
                     .padding(horizontal = 20.dp)
             ) {
 
-                // --- アプリテーマ（ダーク/ライト） ---
+                // --- テーマのタブの最初の位置 ---
                 val currentThemeMode by viewModel.themeMode.collectAsState()
                 var themeTabInitialized by remember { mutableStateOf(false) }
                 LaunchedEffect(saved.bgType, currentThemeMode) {
@@ -785,43 +680,6 @@ fun SettingsScreen(
                             }
                         }
                         themeTabInitialized = true
-                    }
-                }
-                SectionHeader("アプリテーマ")
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(
-                            ThemeMode.SYSTEM to "システム",
-                            ThemeMode.DARK   to "ダーク",
-                            ThemeMode.LIGHT  to "ライト"
-                        ).forEach { (mode, label) ->
-                            val isSelected = currentThemeMode == mode
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                else Color.Transparent,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.saveThemeMode(mode) }
-                            ) {
-                                Text(
-                                    text = label,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 13.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(vertical = 10.dp)
-                                )
-                            }
-                        }
                     }
                 }
 
@@ -2005,117 +1863,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // --- 通知 ---
-                AccordionHeader(
-                    title = "通知",
-                    summary = when(draft.alertMode) { "FULLSCREEN" -> "フルスクリーン"; "NOTIFICATION" -> "バナー通知"; else -> "OFF" },
-                    expanded = expandedSections["notification"] == true,
-                    onClick = { expandedSections["notification"] = expandedSections["notification"] != true }
-                )
-                AnimatedVisibility(visible = expandedSections["notification"] == true) {
-                    Column {
-                        Card(
-                            shape    = RoundedCornerShape(14.dp),
-                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                                Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                Spacer(Modifier.height(8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
-                                        SelectOption(
-                                            label      = label,
-                                            isSelected = draft.alertMode == value,
-                                            modifier   = Modifier.weight(1f),
-                                            onSelect   = {
-                                                draft = draft.copy(alertMode = value)
-                                                // 許可がないまま「フルスクリーン」を押したら知らせる（選んだままにする）
-                                                if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
-                                                    showFullScreenPermissionDialog = true
-                                                }
-                                            }
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = when (draft.alertMode) {
-                                        "FULLSCREEN"   -> "開始時に全画面で表示します"
-                                        "NOTIFICATION" -> "開始時にバナー通知を表示します"
-                                        else           -> "通知を表示しません"
-                                    },
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Card(
-                            shape    = RoundedCornerShape(14.dp),
-                            colors   = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                                Text("カウントダウン通知音", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                                Spacer(Modifier.height(10.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        shape    = RoundedCornerShape(8.dp),
-                                        color    = MaterialTheme.colorScheme.surfaceVariant,
-                                        modifier = Modifier.weight(1f).clickable {
-                                            if (Build.VERSION.SDK_INT <= 32 &&
-                                                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
-                                                != PackageManager.PERMISSION_GRANTED
-                                            ) {
-                                                storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                                            } else {
-                                                val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                                                    putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                                    if (draft.notificationSoundUri.isNotEmpty() && !draft.notificationSoundUri.startsWith("/")) {
-                                                        putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(draft.notificationSoundUri))
-                                                    }
-                                                }
-                                                ringtonePickerLauncher.launch(intent)
-                                            }
-                                        }
-                                    ) {
-                                        Text(soundName, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))
-                                    }
-                                    if (currentSoundUri.isNotEmpty()) {
-                                        TextButton(onClick = {
-                                            currentSoundUri = ""
-                                            draft = draft.copy(notificationSoundUri = "")
-                                            viewModel.save(draft.copy(notificationSoundUri = ""))
-                                        }) {
-                                            Text("デフォルト\nに戻す", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center)
-                                        }
-                                    }
-                                }
-                                Spacer(Modifier.height(12.dp))
-                                Text("再生時間", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf(3, 5, 10, 15, 30).forEach { sec ->
-                                        SelectOption(
-                                            label      = "${sec}秒",
-                                            isSelected = draft.notificationDuration == sec,
-                                            modifier   = Modifier.weight(1f),
-                                            onSelect   = { draft = draft.copy(notificationDuration = sec) }
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.height(6.dp))
-                                Text("タップして端末の着信音・通知音から選択できます", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                                Spacer(Modifier.height(4.dp))
-                                Text("※ この設定はTickAtの通知にのみ適用されます。端末の時計アプリなど他のアプリのアラーム音には影響しません。", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 10.sp)
-                            }
-                        }
-                    }
-                }
-
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -3086,7 +2833,7 @@ private fun SwitchRow(
 }
 
 @Composable
-private fun SelectOption(
+internal fun SelectOption(
     label: String,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
