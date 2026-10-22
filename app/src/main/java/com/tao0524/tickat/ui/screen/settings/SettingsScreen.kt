@@ -82,6 +82,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -252,6 +254,16 @@ private fun DrawScope.drawCheckerboard(cellSizeDp: Float = 6f) {
             )
         }
     }
+}
+
+// 色の丸の上の「✓」の色。丸が透けて見える市松模様（#CCCCCC と白）の両方の上で、黒と白の見やすいほうを選ぶ
+private fun checkMarkColorOn(shown: Color): Color {
+    val onGray  = shown.compositeOver(Color(0xFFCCCCCC)).luminance()
+    val onWhite = shown.compositeOver(Color.White).luminance()
+    fun contrast(a: Float, b: Float) = (maxOf(a, b) + 0.05f) / (minOf(a, b) + 0.05f)
+    val blackContrast = minOf(contrast(onGray, 0f), contrast(onWhite, 0f))
+    val whiteContrast = minOf(contrast(onGray, 1f), contrast(onWhite, 1f))
+    return if (blackContrast >= whiteContrast) Color.Black else Color.White
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1992,7 +2004,7 @@ private fun ColorPickerDialog(
                                         if (isSelected) {
                                             Text(
                                                 text       = "✓",
-                                                color      = Color.White,
+                                                color      = checkMarkColorOn(Color(value).copy(alpha = displayAlpha)),
                                                 fontSize   = 14.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
