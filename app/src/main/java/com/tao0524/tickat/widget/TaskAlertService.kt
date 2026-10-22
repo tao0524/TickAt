@@ -91,6 +91,8 @@ class TaskAlertService : Service() {
         val duration = intent.getIntExtra("duration", 5)
 
         featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
+        // リマインダーには終了時刻がないので、全画面の画面には開始時刻だけを出す
+        val timeRange = if (taskType == "REMINDER") taskStartTime else "$taskStartTime〜$taskEndTime"
 
         contentText = when (taskType) {
             "TIMEBLOCK" -> if (memo.isNotEmpty()) "$taskStartTime〜$taskEndTime\n💬 $memo"
@@ -113,7 +115,7 @@ class TaskAlertService : Service() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("task_name", taskName)
                 putExtra("task_type_label", featureLabel)
-                putExtra("time_range", "$taskStartTime〜$taskEndTime")
+                putExtra("time_range", timeRange)
                 putExtra(EXTRA_STOP_ALERT, true)
             }
         } else {
@@ -154,7 +156,7 @@ class TaskAlertService : Service() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("task_name", taskName)
                 putExtra("task_type_label", featureLabel)
-                putExtra("time_range", "$taskStartTime〜$taskEndTime")
+                putExtra("time_range", timeRange)
             }
             val fullScreenPending = PendingIntent.getActivity(
                 this, currentNotificationId + 2000, fullScreenIntent,

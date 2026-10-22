@@ -379,7 +379,8 @@ private fun TaskItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "${task.startTime} – ${task.endTime}",
+                            text = if (task.taskType == TaskType.REMINDER) task.startTime.toString()
+                            else "${task.startTime} – ${task.endTime}",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Light,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
