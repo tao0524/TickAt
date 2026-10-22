@@ -713,7 +713,8 @@ fun SettingsScreen(
                                         Tab(
                                             selected = selectedThemeTab == index,
                                             onClick  = { selectedThemeTab = index },
-                                            text     = { Text(title, fontSize = 12.sp) }
+                                            text     = { Text(title, fontSize = 12.sp) },
+                                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
