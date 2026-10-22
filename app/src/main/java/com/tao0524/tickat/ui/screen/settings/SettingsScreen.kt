@@ -74,6 +74,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -298,17 +301,23 @@ fun SettingsScreen(
         }
     }
 
-    var formatExpanded by remember { mutableStateOf(false) }
-    var showTimeSizeDialog by remember { mutableStateOf(false) }
-    var showDateSizeDialog by remember { mutableStateOf(false) }
-    var showMessageSizeDialog by remember { mutableStateOf(false) }
-    var showAmPmSizeDialog by remember { mutableStateOf(false) }
-    var showFontFamilyDialog by remember { mutableStateOf(false) }
-    var selectedThemeTab by remember { mutableStateOf(0) }
-    val pickerTarget = remember { mutableStateOf<String?>(null) }
+    var formatExpanded by rememberSaveable { mutableStateOf(false) }
+    var showTimeSizeDialog by rememberSaveable { mutableStateOf(false) }
+    var showDateSizeDialog by rememberSaveable { mutableStateOf(false) }
+    var showMessageSizeDialog by rememberSaveable { mutableStateOf(false) }
+    var showAmPmSizeDialog by rememberSaveable { mutableStateOf(false) }
+    var showFontFamilyDialog by rememberSaveable { mutableStateOf(false) }
+    var selectedThemeTab by rememberSaveable { mutableStateOf(0) }
+    val pickerTarget = rememberSaveable { mutableStateOf<String?>(null) }
     val previewVisible by viewModel.previewVisible.collectAsState()
     val previewSizePercent by viewModel.previewSizePercent.collectAsState()
-    val expandedSections = remember { mutableStateMapOf<String, Boolean>() }
+    // 開いている見出しの名前だけを保存し、画面の作り直しのあとに開き直す
+    val expandedSections = rememberSaveable(
+        saver = listSaver<SnapshotStateMap<String, Boolean>, String>(
+            save = { map -> map.filterValues { it }.keys.toList() },
+            restore = { names -> mutableStateMapOf<String, Boolean>().apply { names.forEach { put(it, true) } } }
+        )
+    ) { mutableStateMapOf<String, Boolean>() }
 
     val target = pickerTarget.value
     if (target != null) {
@@ -416,7 +425,7 @@ fun SettingsScreen(
 
     // --- 時刻のサイズ ---
     if (showTimeSizeDialog) {
-        var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        var tempBalance by rememberSaveable { mutableStateOf(draft.clockDateBalance) }
         val timeHint = when {
             tempBalance <= -6 -> "時計を大きく表示。寝室やデスクの置き時計向け。"
             tempBalance <= -2 -> "時計がやや大きめ。時刻を重視しつつ日付も確認できます。"
@@ -443,7 +452,7 @@ fun SettingsScreen(
 
     // --- 日付のサイズ ---
     if (showDateSizeDialog) {
-        var tempBalance by remember { mutableStateOf(draft.clockDateBalance) }
+        var tempBalance by rememberSaveable { mutableStateOf(draft.clockDateBalance) }
         val dateHint = when {
             tempBalance >= 6  -> "日付を大きく表示。スケジュール確認がメインの方に。"
             tempBalance >= 2  -> "日付がやや大きめ。曜日や予定の確認がしやすくなります。"
@@ -470,7 +479,7 @@ fun SettingsScreen(
 
     // --- メッセージのサイズ ---
     if (showMessageSizeDialog) {
-        var tempScale by remember { mutableStateOf(draft.messageScale) }
+        var tempScale by rememberSaveable { mutableStateOf(draft.messageScale) }
         val messageHint = when {
             tempScale <= 0.7f -> "メッセージを控えめに。時計・日付がメインの表示になります。"
             tempScale <= 1.1f -> "標準的なサイズ。時計の下にさりげなく情報を表示します。"
@@ -497,7 +506,7 @@ fun SettingsScreen(
 
     // --- AM/PMのサイズ ---
     if (showAmPmSizeDialog) {
-        var tempScale by remember { mutableStateOf(draft.amPmScale) }
+        var tempScale by rememberSaveable { mutableStateOf(draft.amPmScale) }
         SizeAdjustDialog(
             title        = "AM/PMのサイズ",
             previewDraft = draft.copy(amPmScale = tempScale),
@@ -528,7 +537,7 @@ fun SettingsScreen(
                     }
                 },
                 actions = {
-                    var menuExpanded by remember { mutableStateOf(false) }
+                    var menuExpanded by rememberSaveable { mutableStateOf(false) }
                     IconButton(onClick = { menuExpanded = true }) {
                         Icon(
                             Icons.Default.MoreVert,
@@ -678,7 +687,7 @@ fun SettingsScreen(
 
                 // --- テーマのタブの最初の位置 ---
                 val currentThemeMode by viewModel.themeMode.collectAsState()
-                var themeTabInitialized by remember { mutableStateOf(false) }
+                var themeTabInitialized by rememberSaveable { mutableStateOf(false) }
                 LaunchedEffect(saved.bgType, currentThemeMode) {
                     if (!themeTabInitialized) {
                         selectedThemeTab = when (saved.bgType) {
@@ -1571,9 +1580,9 @@ fun SettingsScreen(
                     onClick = { expandedSections["date"] = expandedSections["date"] != true }
                 )
                 AnimatedVisibility(visible = expandedSections["date"] == true) {
-                    var isCustomMode by remember { mutableStateOf(false) }
-                    var showTemplateDialog by remember { mutableStateOf(false) }
-                    var showSymbolHelp by remember { mutableStateOf(false) }
+                    var isCustomMode by rememberSaveable { mutableStateOf(false) }
+                    var showTemplateDialog by rememberSaveable { mutableStateOf(false) }
+                    var showSymbolHelp by rememberSaveable { mutableStateOf(false) }
 
                     Card(
                         shape    = RoundedCornerShape(14.dp),
@@ -1892,11 +1901,11 @@ private fun ColorPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (color: Long, alpha: Int) -> Unit
 ) {
-    var selectedColor by remember { mutableStateOf(initialColor) }
-    var selectedAlpha by remember { mutableStateOf(initialAlpha) }
-    var stage         by remember { mutableStateOf(1) }
+    var selectedColor by rememberSaveable { mutableStateOf(initialColor) }
+    var selectedAlpha by rememberSaveable { mutableStateOf(initialAlpha) }
+    var stage         by rememberSaveable { mutableStateOf(1) }
 
-    var hexInput1 by remember(selectedColor) {
+    var hexInput1 by rememberSaveable(selectedColor) {
         mutableStateOf(String.format("%06X", selectedColor and 0xFFFFFFL))
     }
 
@@ -1905,16 +1914,16 @@ private fun ColorPickerDialog(
             android.graphics.Color.colorToHSV((initialColor and 0xFFFFFFFFL).toInt(), it)
         }
     }
-    var hue by remember { mutableStateOf(initHsv[0]) }
-    var sat by remember { mutableStateOf(initHsv[1]) }
-    var bri by remember { mutableStateOf(initHsv[2]) }
+    var hue by rememberSaveable { mutableStateOf(initHsv[0]) }
+    var sat by rememberSaveable { mutableStateOf(initHsv[1]) }
+    var bri by rememberSaveable { mutableStateOf(initHsv[2]) }
 
     val stage2Color = remember(hue, sat, bri) {
         val argb = android.graphics.Color.HSVToColor(floatArrayOf(hue, sat, bri))
         argb.toLong() and 0xFFFFFFFFL
     }
 
-    var hexInput2 by remember(stage2Color, selectedAlpha) {
+    var hexInput2 by rememberSaveable(stage2Color, selectedAlpha) {
         val str = if (showAlpha) {
             val a = (selectedAlpha * 255 / 100).coerceIn(0, 255)
             String.format("%02X%06X", a, stage2Color and 0xFFFFFFL)
