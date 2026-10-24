@@ -161,7 +161,7 @@ fun AppSettingsScreen(
 
     var showFullScreenPermissionDialog by remember { mutableStateOf(false) }
 
-    // --- 全画面通知の許可のお願い（「フルスクリーン」を押した直後） ---
+    // --- 全画面通知の許可のお願い（「全画面」を押した直後） ---
     if (showFullScreenPermissionDialog) {
         FullScreenPermissionDialog(
             title          = FULL_SCREEN_SELECTED_TITLE,
@@ -303,14 +303,14 @@ fun AppSettingsScreen(
                     Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("FULLSCREEN" to "フルスクリーン", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
+                        listOf("FULLSCREEN" to "全画面", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
                             SelectOption(
                                 label      = label,
                                 isSelected = alertMode == value,
                                 modifier   = Modifier.weight(1f),
                                 onSelect   = {
                                     viewModel.saveAlertMode(value)
-                                    // 許可がないまま「フルスクリーン」を押したら知らせる（選んだままにする）
+                                    // 許可がないまま「全画面」を押したら知らせる（選んだままにする）
                                     if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
                                         showFullScreenPermissionDialog = true
                                     }

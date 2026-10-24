@@ -22,7 +22,7 @@ import androidx.compose.ui.Modifier
 const val FULL_SCREEN_PROMPT_TITLE = "全画面でのお知らせ"
 
 const val FULL_SCREEN_PROMPT_MESSAGE =
-    "TickAt は、予定の時刻に、画面全体でお知らせできます（右上の⚙ →「通知」→「フルスクリーン」）。\n\n" +
+    "TickAt は、予定の時刻に、画面全体でお知らせできます（右上の⚙ →「通知」→「全画面」）。\n\n" +
     "画面が真っ暗なときやロック画面のときにも全画面で出すには、スマホの設定で許可が必要です。\n\n" +
     "許可しない場合は、次のようにお知らせします。\n" +
     "スマホを使っているときは、画面のいちばん上に、通知が出ます（「止める」ボタン付き）。\n" +
