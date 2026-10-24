@@ -102,7 +102,9 @@ fun TickAtTheme(
             surfaceVariant   = TickAtLightSurfaceVariant,
             onSurfaceVariant = TickAtLightOnSurfaceVar,
             error            = TickAtLightError,
-            outline          = TickAtLightOutline
+            outline          = TickAtLightOutline,
+            // 指定しないと material3 の薄い紫の初期値になり、カードの上でほぼ見えない
+            outlineVariant   = TickAtLightOutline   // 「編集前に戻す」などの枠。outline と同じ
         )
     }
 
