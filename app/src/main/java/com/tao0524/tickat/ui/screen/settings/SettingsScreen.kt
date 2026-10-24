@@ -347,6 +347,8 @@ fun SettingsScreen(
                 "bg"       -> draft.bgAlpha
                 "bgColor2" -> draft.bgColor2Alpha
                 "gradEnd"  -> draft.bgGradientEndAlpha
+                // 日付の不透明度は色の値の上位 8 ビットに入っている（初期値 0x99 = 60%）
+                "date"     -> (((draft.dateTextColor shr 24) and 0xFFL) * 100f / 255f).roundToInt()
                 else       -> 100
             },
             showAlpha    = target == "bg" || target == "date" || target == "bgColor2" || target == "gradEnd",
@@ -355,7 +357,8 @@ fun SettingsScreen(
                 draft = when (target) {
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
                     "text"     -> draft.copy(textColor = color)
-                    "date"     -> draft.copy(dateTextColor = color)
+                    // スライダーの値を色の値の上位 8 ビットに入れて保存する（ウィジェットはこの値で描く）
+                    "date"     -> draft.copy(dateTextColor = (color and 0xFFFFFFL) or ((alpha * 255 / 100).coerceIn(0, 255).toLong() shl 24))
                     "message"  -> draft.copy(messageTextColor = color)
                     "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
                     "amPm"     -> draft.copy(amPmColor = color)
