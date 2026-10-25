@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -65,11 +66,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -728,17 +730,83 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column {
-                                TabRow(
-                                    selectedTabIndex = selectedThemeTab,
-                                    containerColor   = MaterialTheme.colorScheme.surface,
-                                    contentColor     = MaterialTheme.colorScheme.primary
+                                // タブの文字が折り返さないよう、横にスクロールするタブにする（一覧 41）
+                                val themeTabScroll = rememberScrollState()
+                                val themeTabBg     = MaterialTheme.colorScheme.surface
+                                val themeTabHint   = MaterialTheme.colorScheme.onSurfaceVariant
+                                // 最初に測るまでは maxValue が Int.MAX_VALUE、viewportSize が 0
+                                val themeTabMeasured by remember { derivedStateOf { themeTabScroll.viewportSize > 0 && themeTabScroll.maxValue != Int.MAX_VALUE } }
+                                val showTabLeftHint  by remember { derivedStateOf { themeTabMeasured && themeTabScroll.value > 0 } }
+                                val showTabRightHint by remember { derivedStateOf { themeTabMeasured && themeTabScroll.value < themeTabScroll.maxValue } }
+                                Box {
+                                    PrimaryScrollableTabRow(
+                                        selectedTabIndex = selectedThemeTab,
+                                        scrollState      = themeTabScroll,
+                                        containerColor   = themeTabBg,
+                                        contentColor     = MaterialTheme.colorScheme.primary,
+                                        edgePadding      = 0.dp,
+                                        divider          = {}
+                                    ) {
+                                        listOf("ダーク", "ライト", "グラデーション", "画像", "カスタム").forEachIndexed { index, title ->
+                                            Tab(
+                                                selected = selectedThemeTab == index,
+                                                onClick  = { selectedThemeTab = index },
+                                                text     = { Text(title, fontSize = 12.sp) },
+                                                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                    // 左右にまだタブがあることを示す目印（押しても何も起きない）。端の 26dp は背景の色、その手前 18dp で文字を背景の色に溶かす
+                                    if (showTabLeftHint) {
+                                        Row(modifier = Modifier.matchParentSize()) {
+                                            Box(
+                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("‹", color = themeTabHint, fontSize = 18.sp)
+                                            }
+                                            Box(
+                                                modifier = Modifier.width(18.dp).fillMaxHeight()
+                                                    .background(Brush.horizontalGradient(listOf(themeTabBg, themeTabBg.copy(alpha = 0f))))
+                                            )
+                                        }
+                                    }
+                                    if (showTabRightHint) {
+                                        Row(
+                                            modifier              = Modifier.matchParentSize(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.width(18.dp).fillMaxHeight()
+                                                    .background(Brush.horizontalGradient(listOf(themeTabBg.copy(alpha = 0f), themeTabBg)))
+                                            )
+                                            Box(
+                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text("›", color = themeTabHint, fontSize = 18.sp)
+                                            }
+                                        }
+                                    }
+                                }
+                                HorizontalDivider()
+                                // スクロールバー: 長さは「見える幅 ÷ 全体の幅」、位置はスクロールの位置に合わせる
+                                Canvas(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 3.dp)
+                                        .height(3.dp)
                                 ) {
-                                    listOf("ダーク", "ライト", "グラデーション", "画像", "カスタム").forEachIndexed { index, title ->
-                                        Tab(
-                                            selected = selectedThemeTab == index,
-                                            onClick  = { selectedThemeTab = index },
-                                            text     = { Text(title, fontSize = 12.sp) },
-                                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    if (themeTabMeasured) {
+                                        val max      = themeTabScroll.maxValue
+                                        val viewport = themeTabScroll.viewportSize
+                                        val thumbW   = size.width * viewport / (viewport + max).toFloat()
+                                        val thumbX   = if (max > 0) (size.width - thumbW) * themeTabScroll.value / max else 0f
+                                        drawRoundRect(
+                                            color        = lerp(themeTabBg, themeTabHint, 0.45f),
+                                            topLeft      = Offset(thumbX, 0f),
+                                            size         = Size(thumbW, size.height),
+                                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(size.height / 2f)
                                         )
                                     }
                                 }
