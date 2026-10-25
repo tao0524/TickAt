@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -271,6 +272,11 @@ private fun checkMarkColorOn(shown: Color): Color {
     return if (blackContrast >= whiteContrast) Color.Black else Color.White
 }
 
+// 文字の色の不透明度（0〜100%）は、色の値の上位 8 ビットに入れる（ウィジェットはこの値で描く）
+private fun alphaPercentOf(color: Long): Int = (((color shr 24) and 0xFFL) * 100f / 255f).roundToInt()
+private fun withAlphaPercent(color: Long, alpha: Int): Long =
+    (color and 0xFFFFFFL) or ((alpha * 255 / 100).coerceIn(0, 255).toLong() shl 24)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -351,23 +357,31 @@ fun SettingsScreen(
                 "gradEnd"  -> draft.bgGradientEndAlpha
                 // 日付の不透明度は色の値の上位 8 ビットに入っている（初期値 0x99 = 60%）
                 "date"     -> (((draft.dateTextColor shr 24) and 0xFFL) * 100f / 255f).roundToInt()
+                "text"     -> alphaPercentOf(draft.textColor)
+                "message"  -> alphaPercentOf(draft.messageTextColor)
+                "amPm"     -> alphaPercentOf(if (draft.amPmColor != 0L) draft.amPmColor else draft.textColor)
                 else       -> 100
             },
-            showAlpha    = target == "bg" || target == "date" || target == "bgColor2" || target == "gradEnd",
+            showAlpha    = target == "bg" || target == "date" || target == "bgColor2" || target == "gradEnd" ||
+                           target == "text" || target == "message" || target == "amPm",
             onDismiss    = { pickerTarget.value = null },
             onConfirm    = { color, alpha ->
                 draft = when (target) {
                     "bg"       -> draft.copy(bgColor = color, bgAlpha = alpha, bgGradientEnd = 0L)
-                    "text"     -> draft.copy(textColor = color)
+                    "text"     -> draft.copy(textColor = withAlphaPercent(color, alpha))
                     // スライダーの値を色の値の上位 8 ビットに入れて保存する（ウィジェットはこの値で描く）
                     "date"     -> draft.copy(dateTextColor = (color and 0xFFFFFFL) or ((alpha * 255 / 100).coerceIn(0, 255).toLong() shl 24))
-                    "message"  -> draft.copy(messageTextColor = color)
+                    "message"  -> draft.copy(messageTextColor = withAlphaPercent(color, alpha))
                     "gradEnd"  -> draft.copy(bgGradientEnd = color, bgGradientEndAlpha = alpha)
-                    "amPm"     -> draft.copy(amPmColor = color)
+                    // amPmColor の 0 は「時刻と同じ色」の印なので、黒の 0% だけは 1 にする（0% なので見た目は同じ）
+                    "amPm"     -> draft.copy(amPmColor = withAlphaPercent(color, alpha).let { if (it == 0L) 1L else it })
                     else       -> draft.copy(bgColor2 = color, bgColor2Alpha = alpha)
                 }
                 pickerTarget.value = null
-            }
+            },
+            onResetToTimeColor = if (target == "amPm") {
+                { draft = draft.copy(amPmColor = 0L); pickerTarget.value = null }
+            } else null
         )
     }
 
@@ -1973,7 +1987,8 @@ private fun ColorPickerDialog(
     initialAlpha: Int,
     showAlpha: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (color: Long, alpha: Int) -> Unit
+    onConfirm: (color: Long, alpha: Int) -> Unit,
+    onResetToTimeColor: (() -> Unit)? = null  // AM/PM のときだけ渡す。「時刻と同じ色に戻す」のボタンを出す
 ) {
     var selectedColor by rememberSaveable { mutableStateOf(initialColor) }
     var selectedAlpha by rememberSaveable { mutableStateOf(initialAlpha) }
@@ -2055,7 +2070,20 @@ private fun ColorPickerDialog(
                             Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(14.dp))
 
-                    ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        ColorPreviewBar(initialColor = initialColor, initialAlpha = beforeAlpha, afterColor = afterColor, afterAlpha = afterAlpha)
+                        if (onResetToTimeColor != null) {
+                            Spacer(Modifier.width(12.dp))
+                            OutlinedButton(
+                                onClick        = onResetToTimeColor,
+                                border         = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                modifier       = Modifier.weight(1f).padding(top = 4.dp)
+                            ) {
+                                Text("時刻と同じ色に戻す", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(16.dp))
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
