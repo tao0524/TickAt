@@ -757,10 +757,12 @@ fun SettingsScreen(
                                         }
                                     }
                                     // 左右にまだタブがあることを示す目印（押しても何も起きない）。端の 26dp は背景の色、その手前 18dp で文字を背景の色に溶かす
+                                    // 端の 26dp は押した指を受け止めて何もしない（下に隠れたタブが選ばれないように）
                                     if (showTabLeftHint) {
                                         Row(modifier = Modifier.matchParentSize()) {
                                             Box(
-                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg),
+                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg)
+                                                    .pointerInput(Unit) { awaitPointerEventScope { while (true) { awaitPointerEvent() } } },
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text("‹", color = themeTabHint, fontSize = 18.sp)
@@ -781,7 +783,8 @@ fun SettingsScreen(
                                                     .background(Brush.horizontalGradient(listOf(themeTabBg.copy(alpha = 0f), themeTabBg)))
                                             )
                                             Box(
-                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg),
+                                                modifier         = Modifier.width(26.dp).fillMaxHeight().background(themeTabBg)
+                                                    .pointerInput(Unit) { awaitPointerEventScope { while (true) { awaitPointerEvent() } } },
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text("›", color = themeTabHint, fontSize = 18.sp)
