@@ -321,7 +321,7 @@ fun AppSettingsScreen(
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = when (alertMode) {
-                            "FULLSCREEN"   -> "開始時に全画面で表示します"
+                            "FULLSCREEN"   -> "開始時に全画面で表示します（スマホを使っているときは、画面のいちばん上の通知になります）"
                             "NOTIFICATION" -> "開始時にバナー通知を表示します"
                             else           -> "通知を表示しません"
                         },
