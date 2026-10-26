@@ -38,10 +38,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -58,6 +56,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -71,6 +73,7 @@ import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -110,6 +113,7 @@ import android.view.LayoutInflater
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
@@ -295,6 +299,10 @@ fun SettingsScreen(
     // 編集中の内容（保存前）は ViewModel に持つ。
     // スマホ本体のダークモードの切り替えなどで画面が作り直されても消えないようにするため。
     var draft   by viewModel.draftState
+
+    // 「ウィジェットを初期状態に戻す」を押したあとに、画面の下に出すお知らせ（スナックバー）
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope     = rememberCoroutineScope()
 
     val bgImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -555,34 +563,12 @@ fun SettingsScreen(
                         )
                     }
                 },
-                actions = {
-                    var menuExpanded by rememberSaveable { mutableStateOf(false) }
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            Icons.Default.MoreVert,
-                            contentDescription = "メニュー",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("デフォルトに戻す") },
-                            onClick = {
-                                menuExpanded = false
-                                viewModel.reset()
-                                draft = AppSettings()
-                            }
-                        )
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             Column(
                 modifier = Modifier
@@ -1971,6 +1957,45 @@ fun SettingsScreen(
                             onToggle = { draft = draft.copy(compactBg = it) }
                         )
                     }
+                }
+
+                // このウィジェットの表示を初期状態に戻す。draft だけを変えるので、「保存」で確定し、保存する前なら「編集前に戻す」で取り消せる
+                // 押したら画面の下にスナックバーを出し、「元に戻す」で押す前の編集中の内容に戻せるようにする
+                OutlinedButton(
+                    onClick  = {
+                        val before = draft
+                        draft = AppSettings()
+                        snackbarScope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            val result = snackbarHostState.showSnackbar(
+                                message     = "表示を初期状態にしました\n「保存」を押すと確定します",
+                                actionLabel = "元に戻す",
+                                duration    = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) {
+                                draft = before
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    shape    = RoundedCornerShape(12.dp),
+                    border   = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(
+                        Icons.Filled.Refresh,
+                        contentDescription = null,
+                        tint     = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "ウィジェットを初期状態に戻す",
+                        color     = MaterialTheme.colorScheme.error,
+                        fontSize  = 14.sp,
+                        textAlign = TextAlign.Center
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))

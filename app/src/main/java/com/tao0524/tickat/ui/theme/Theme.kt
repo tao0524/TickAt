@@ -64,9 +64,12 @@ fun TickAtTheme(
             onSurface            = TickAtOnSurface,
             surfaceVariant       = TickAtSurfaceVariant,
             onSurfaceVariant     = Color(0xFFC3C6CF),
-            error                = TickAtError,
+            error                = Color(0xFFF2B8B5), // 「ダーク」と同じ
             outline              = Color(0xFF8D9199),
-            outlineVariant       = Color(0xFF8D9199)
+            outlineVariant       = Color(0xFF8D9199),
+            inverseSurface       = Color(0xFFE3E2E6), // スナックバーの帯。「ダーク」と同じ
+            inverseOnSurface     = Color(0xFF2F3033), // スナックバーの文字
+            inversePrimary       = Color(0xFF005FAF)  // スナックバーの「元に戻す」
         )
     } else if (isDark) {
         // 「ダーク」: 背景・カード・文字はウィジェットの設定の色を使う。
@@ -87,9 +90,12 @@ fun TickAtTheme(
             onSurface            = text,
             surfaceVariant       = blendToWhite(bg, 0.12f),
             onSurfaceVariant     = Color(0xFFC3C6CF),
-            error                = Color(0xFFCF6679),
+            error                = Color(0xFFF2B8B5), // Material 3 のダーク用の赤。紺色の背景の上で見やすい
             outline              = Color(0xFF8D9199),
-            outlineVariant       = Color(0xFF8D9199)  // 「編集前に戻す」などの枠。トーン30では見えないため outline と同じ
+            outlineVariant       = Color(0xFF8D9199), // 「編集前に戻す」などの枠。トーン30では見えないため outline と同じ
+            inverseSurface       = Color(0xFFE3E2E6), // スナックバーの帯。#1976D2 から作った neutral 90
+            inverseOnSurface     = Color(0xFF2F3033), // スナックバーの文字。neutral 20
+            inversePrimary       = Color(0xFF005FAF)  // スナックバーの「元に戻す」。primary 40
         )
     } else {
         lightColorScheme(
@@ -104,7 +110,8 @@ fun TickAtTheme(
             error            = TickAtLightError,
             outline          = TickAtLightOutline,
             // 指定しないと material3 の薄い紫の初期値になり、カードの上でほぼ見えない
-            outlineVariant   = TickAtLightOutline   // 「編集前に戻す」などの枠。outline と同じ
+            outlineVariant   = TickAtLightOutline,  // 「編集前に戻す」などの枠。outline と同じ
+            inversePrimary   = Color(0xFFA5C8FF)    // スナックバーの「元に戻す」。初期の薄い紫を使わない
         )
     }
 
