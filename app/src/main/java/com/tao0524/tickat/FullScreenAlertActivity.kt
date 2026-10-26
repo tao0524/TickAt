@@ -117,7 +117,8 @@ class FullScreenAlertActivity : ComponentActivity() {
 // ─── フルスクリーンUI ───
 
 private val BgColor      = Color(0xFF1C1B1F)
-private val AccentColor  = Color(0xFFBB86FC)
+private val AccentColor  = Color(0xFFA5C8FF) // 「ダーク」のボタンと同じ青
+private val OnAccent     = Color(0xFF00315F) // 「ダーク」のボタンの文字と同じ紺色
 private val TextPrimary  = Color(0xFFE6E1E5)
 private val TextSecond   = Color(0xFF9E9E9E)
 
@@ -178,7 +179,7 @@ private fun FullScreenAlertContent(
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = AccentColor,
-                    contentColor = Color.Black
+                    contentColor = OnAccent
                 ),
                 modifier = Modifier
                     .fillMaxWidth(0.6f)
