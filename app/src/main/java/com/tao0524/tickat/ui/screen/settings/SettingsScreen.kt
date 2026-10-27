@@ -155,7 +155,7 @@ private val gradientThemes = listOf(
     ThemePreset("横",   0xFF7B2FF7L, 0xFF2BC0E4L, 0xFFFFFFFFL, GradientDirection.HORIZONTAL),
     ThemePreset("斜め", 0xFFFC4A1AL, 0xFFF7B733L, 0xFFFFFFFFL, GradientDirection.DIAGONAL),
     ThemePreset("縦",   0xFF1A237EL, 0xFF4DD0E1L, 0xFFE8F5E9L, GradientDirection.VERTICAL),
-    ThemePreset("円系", 0xFFAD1457L, 0xFFFF6F00L, 0xFFFFFFFFL, GradientDirection.RADIAL),
+    ThemePreset("円形", 0xFFAD1457L, 0xFFFF6F00L, 0xFFFFFFFFL, GradientDirection.RADIAL),
 )
 
 private val colorPresets = listOf(
