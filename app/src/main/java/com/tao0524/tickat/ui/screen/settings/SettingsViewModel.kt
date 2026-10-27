@@ -92,7 +92,9 @@ enum class GradientCenter {
 }
 enum class WidgetFont(
     val displayName: String,
-    val assetPath: String? = null
+    val assetPath: String? = null,
+    // 可変フォントで、何も指定しないと細い太さで読まれるものは、ここで太さ（wght）を決める
+    val wght: Int? = null
 ) {
     // --- 既存（システムフォント） ---
     ROBOTO("Roboto"),
@@ -107,18 +109,18 @@ enum class WidgetFont(
     // --- 時計・ディスプレイ系 ---
     ORBITRON("Orbitron", "fonts/Orbitron-Regular.ttf"),
     CHAKRA_PETCH("Chakra Petch", "fonts/ChakraPetch-Regular.ttf"),
-    OXANIUM("Oxanium", "fonts/Oxanium-Regular.ttf"),
+    OXANIUM("Oxanium", "fonts/Oxanium-Regular.ttf", 400),
     RAJDHANI("Rajdhani", "fonts/Rajdhani-Regular.ttf"),
     EXO_2("Exo 2", "fonts/Exo2-Regular.ttf"),
     ALDRICH("Aldrich", "fonts/Aldrich-Regular.ttf"),
 
     // --- モダン・サンセリフ系 ---
-    MONTSERRAT("Montserrat", "fonts/Montserrat-Regular.ttf"),
+    MONTSERRAT("Montserrat", "fonts/Montserrat-Regular.ttf", 400),
     POPPINS("Poppins", "fonts/Poppins-Regular.ttf"),
     INTER("Inter", "fonts/Inter-Regular.ttf"),
     LATO("Lato", "fonts/Lato-Regular.ttf"),
     DM_SANS("DM Sans", "fonts/DMSans-Regular.ttf"),
-    RALEWAY("Raleway", "fonts/Raleway-Regular.ttf"),
+    RALEWAY("Raleway", "fonts/Raleway-Regular.ttf", 400),
     SPACE_GROTESK("Space Grotesk", "fonts/SpaceGrotesk-Regular.ttf"),
 
     // --- 個性系 ---
@@ -129,14 +131,27 @@ enum class WidgetFont(
     fun toTypeface(context: android.content.Context, style: Int = android.graphics.Typeface.NORMAL): android.graphics.Typeface {
         assetPath?.let { path ->
             return try {
-                val base = android.graphics.Typeface.createFromAsset(context.assets, path)
+                val base = if (wght != null) {
+                    android.graphics.Typeface.Builder(context.assets, path)
+                        .setFontVariationSettings("'wght' $wght")
+                        .setWeight(wght)
+                        .build()
+                } else {
+                    android.graphics.Typeface.createFromAsset(context.assets, path)
+                }
                 if (style == android.graphics.Typeface.NORMAL) base else android.graphics.Typeface.create(base, style)
             } catch (e: Exception) {
                 android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, style)
             }
         }
         return when (this) {
-            THIN      -> android.graphics.Typeface.create("sans-serif-thin", style)
+            // Roboto Thin（100）は細すぎて見えにくいので、Android 9 以上では少し太い 200（ExtraLight）にする
+            THIN      -> if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                val base = android.graphics.Typeface.create(android.graphics.Typeface.SANS_SERIF, 200, false)
+                if (style == android.graphics.Typeface.NORMAL) base else android.graphics.Typeface.create(base, style)
+            } else {
+                android.graphics.Typeface.create("sans-serif-thin", style)
+            }
             LIGHT     -> android.graphics.Typeface.create("sans-serif-light", style)
             MEDIUM    -> android.graphics.Typeface.create("sans-serif-medium", style)
             BLACK     -> android.graphics.Typeface.create("sans-serif-black", style)
