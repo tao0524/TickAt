@@ -80,7 +80,7 @@ private val features = listOf(
     FeatureInfo(
         title = "タイミングを逃さない通知",
         color = Feature2Color,
-        description = "スケジュールの開始と終了の時間に、メモと一緒に通知でお知らせします。"
+        description = "スケジュールの開始時に、メモと一緒に通知でお知らせします。タイムブロックは終了時にも通知します。"
     ),
     FeatureInfo(
         title = "2つのタスクタイプ",
