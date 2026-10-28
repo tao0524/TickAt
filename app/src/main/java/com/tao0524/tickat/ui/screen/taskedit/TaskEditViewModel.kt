@@ -29,7 +29,9 @@ data class TaskEditState(
     val repeat: RepeatType = RepeatType.DAILY,
     val memoText: String = "",
     val taskType: TaskType = TaskType.TIMEBLOCK,
-    val displayMode: WidgetDisplayMode = WidgetDisplayMode.COUNTDOWN
+    val displayMode: WidgetDisplayMode = WidgetDisplayMode.COUNTDOWN,
+    // オフの予定を編集して保存しても、オフのまま残す
+    val isEnabled: Boolean = true
 )
 
 private val KEY_HINT_TASKEDIT = booleanPreferencesKey("hint_taskedit")
@@ -66,7 +68,8 @@ class TaskEditViewModel(
                         repeat = task.repeat,
                         memoText = task.memoText,
                         taskType = task.taskType,
-                        displayMode = task.displayMode
+                        displayMode = task.displayMode,
+                        isEnabled = task.isEnabled
                     )
                 }
             }
@@ -103,7 +106,8 @@ class TaskEditViewModel(
                 repeat = s.repeat,
                 memoText = s.memoText,
                 taskType = s.taskType,
-                displayMode = s.displayMode
+                displayMode = s.displayMode,
+                isEnabled = s.isEnabled
             )
             repository.save(savedTask)
             TaskAlertScheduler.schedule(context, savedTask)

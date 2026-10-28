@@ -36,6 +36,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -63,6 +65,8 @@ import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 private fun TaskType.accentColor() = when (this) {
     TaskType.TIMEBLOCK -> Color(0xFFBB86FC)
@@ -170,14 +174,14 @@ fun TaskListScreen(
                         isEnabled = true,
                         onClick = { onEditTask(task.id) },
                         onDelete = { viewModel.delete(task) },
-                        onToggleEnabled = null
+                        onToggleEnabled = { checked -> viewModel.toggleEnabled(task, checked) }
                     )
                 }
 
                 if (disabledTasks.isNotEmpty()) {
                     item(key = "disabled_header") {
                         Text(
-                            text = "完了したタスク",
+                            text = "オフの予定",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
@@ -189,7 +193,7 @@ fun TaskListScreen(
                             isEnabled = false,
                             onClick = { onEditTask(task.id) },
                             onDelete = { viewModel.delete(task) },
-                            onToggleEnabled = { viewModel.toggleEnabled(task, true) }
+                            onToggleEnabled = { checked -> viewModel.toggleEnabled(task, checked) }
                         )
                     }
                 }
@@ -325,7 +329,7 @@ private fun TaskItem(
     isEnabled: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onToggleEnabled: (() -> Unit)?
+    onToggleEnabled: (Boolean) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val accentColor = if (isEnabled) task.taskType.accentColor() else Color(0xFF888888)
@@ -346,14 +350,15 @@ private fun TaskItem(
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
+            // スイッチは薄くしない（オフでも押せることがわかるように）。棒と文字だけを薄くする
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.alpha(contentAlpha)
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Canvas(
                     modifier = Modifier
                         .width(3.dp)
                         .height(64.dp)
+                        .alpha(contentAlpha)
                 ) {
                     drawRoundRect(
                         color = accentColor,
@@ -365,7 +370,8 @@ private fun TaskItem(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(vertical = 14.dp),
+                        .padding(vertical = 14.dp)
+                        .alpha(contentAlpha),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
@@ -389,18 +395,19 @@ private fun TaskItem(
                         TaskBadge(text = task.repeat.label())
                     }
                 }
-                if (!isEnabled && onToggleEnabled != null) {
-                    Text(
-                        text = "再有効化",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier
-                            .clickable(onClick = onToggleEnabled)
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
-                    )
-                } else {
-                    Spacer(Modifier.width(16.dp))
-                }
+                // オン・オフのスイッチ。オフにすると鳴らず、ウィジェットにも出ない（予定は消えない）
+                Spacer(Modifier.width(8.dp))
+                Switch(
+                    checked         = isEnabled,
+                    onCheckedChange = onToggleEnabled,
+                    colors          = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier        = Modifier
+                        .padding(end = 12.dp)
+                        .semantics { contentDescription = "${task.name}のオン・オフ" }
+                )
             }
         }
 
@@ -408,15 +415,6 @@ private fun TaskItem(
             expanded = showMenu,
             onDismissRequest = { showMenu = false }
         ) {
-            if (!isEnabled && onToggleEnabled != null) {
-                DropdownMenuItem(
-                    text = { Text(text = "再有効化") },
-                    onClick = {
-                        showMenu = false
-                        onToggleEnabled()
-                    }
-                )
-            }
             DropdownMenuItem(
                 text = {
                     Text(
