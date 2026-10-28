@@ -15,6 +15,7 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.needsRepeatDays
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
@@ -41,6 +42,15 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 val repeat    = intent.getStringExtra("task_repeat") ?: ""
                 val taskType  = intent.getStringExtra("task_type")  ?: "TIMEBLOCK"
                 val alertType = intent.getStringExtra("alert_type") ?: "START"
+
+                // データベースの今の予定を読む。曜日がまだ決まっていない「曜日を選ぶ」の予定は、鳴らさず次も予約しない
+                // （前の版で予約した「週1回」の通知が、アップデートのあとに届いたとき）
+                val dbTask = try {
+                    AppDatabase.getInstance(context).taskDao().getTaskById(taskId)
+                } catch (_: Exception) {
+                    null
+                }
+                if (dbTask != null && dbTask.needsRepeatDays()) return@launch
 
                 val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
 
@@ -79,7 +89,7 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 }
 
                 // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
-                rescheduleIfNeeded(context, taskId, taskName, start, end, memo, repeat, taskType)
+                rescheduleIfNeeded(context, dbTask, taskId, taskName, start, end, memo, repeat, taskType)
 
                 // ONCEタスクの自動オフ（アラーム発火後にタスクを無効化）
                 if (repeat == RepeatType.ONCE.name) {
@@ -118,11 +128,17 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
     private fun rescheduleIfNeeded(
         context: Context,
+        dbTask: Task?,
         taskId: String, taskName: String,
         start: String, end: String, memo: String, repeat: String,
         taskType: String
     ) {
         if (repeat.isEmpty() || repeat == RepeatType.ONCE.name) return
+        // データベースの予定が読めたときは、それで次を予約する（選んだ曜日を使うため）
+        if (dbTask != null) {
+            TaskAlertScheduler.schedule(context, dbTask)
+            return
+        }
         try {
             val task = Task(
                 id        = taskId,

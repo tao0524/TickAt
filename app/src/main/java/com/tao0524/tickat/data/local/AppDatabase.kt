@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.TypeConverters
 import com.tao0524.tickat.domain.model.Task
 
-@Database(entities = [Task::class], version = 7, exportSchema = false)
+@Database(entities = [Task::class], version = 8, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
@@ -69,13 +69,19 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("UPDATE tasks SET displayMode = 'SIMPLE' WHERE taskType = 'REMINDER' AND displayMode = 'COUNTDOWN'")
             }
         }
+        // 「曜日を選ぶ」の曜日（repeatDays）を足す。前の版の「週1回」は 0（曜日がまだ決まっていない）になる
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN repeatDays INTEGER NOT NULL DEFAULT 0")
+            }
+        }
         fun getInstance(context: Context): AppDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "tickat_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build().also { INSTANCE = it }
             }
     }
 }

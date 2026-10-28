@@ -124,6 +124,7 @@ import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.Alignment
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.repeatsOn
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.ui.draw.rotate
@@ -2673,9 +2674,9 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
 
                     val messageText = run {
                         val nowLocal = java.time.LocalTime.now()
-                        // 「平日」の予定は、土曜・日曜には見本にも出さない（ウィジェットと同じ）
-                        val isWeekend = java.time.LocalDate.now().dayOfWeek.value > 5
-                        val dayTasks = tasks.filter { !(isWeekend && it.repeat == com.tao0524.tickat.domain.model.RepeatType.WEEKDAY) }
+                        // 今日が繰り返す曜日でない予定は、見本にも出さない（ウィジェットと同じ）
+                        val todayDow = java.time.LocalDate.now().dayOfWeek
+                        val dayTasks = tasks.filter { it.repeatsOn(todayDow) }
                         val activeBlock = dayTasks.firstOrNull { nowLocal >= it.startTime && nowLocal < it.endTime }
                         if (activeBlock != null && draft.showTaskName) {
                             val fmt = if (draft.use24Hour) "H:mm" else "h:mm"

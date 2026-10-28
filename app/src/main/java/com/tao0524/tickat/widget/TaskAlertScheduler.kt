@@ -8,6 +8,8 @@ import android.os.Build
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.needsRepeatDays
+import com.tao0524.tickat.domain.model.repeatsOn
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -20,13 +22,19 @@ object TaskAlertScheduler {
 
     fun schedule(context: Context, task: Task) {
         if (!task.isEnabled) return
+        // 曜日がまだ決まっていない「曜日を選ぶ」の予定は予約しない（前の版の予約も取り消す）
+        if (task.needsRepeatDays()) {
+            cancel(context, task.id)
+            return
+        }
 
         val now = LocalDateTime.now()
-        var nextStart = LocalDate.now().atTime(task.startTime)
+        val today = LocalDate.now()
+        var nextStart = today.atTime(task.startTime)
 
-        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）
+        // TIMEBLOCK: 現在進行中なら今日の終了アラームを先に登録（ONCE早期returnの前に実行）。今日が繰り返す曜日のときだけ
         var endScheduled = false
-        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime) {
+        if (task.taskType == TaskType.TIMEBLOCK && task.endTime > task.startTime && task.repeatsOn(today.dayOfWeek)) {
             val todayEnd = LocalDate.now().atTime(task.endTime)
             if (!now.isBefore(LocalDate.now().atTime(task.startTime)) && now.isBefore(todayEnd)) {
                 scheduleEndAlarm(context, task, todayEnd)
@@ -34,30 +42,14 @@ object TaskAlertScheduler {
             }
         }
 
-        if (nextStart.isAfter(now)) {
-            // 今日の開始時刻がまだ来ていない
-            when (task.repeat) {
-                RepeatType.WEEKDAY -> {
-                    val dow = nextStart.dayOfWeek.value
-                    if (dow > 5) {
-                        nextStart = nextStart.plusDays((8 - dow).toLong())
-                    }
-                }
-                else -> { /* 今日のまま */ }
-            }
-        } else {
-            // 今日の開始時刻は既に過ぎた → 次回を計算
-            when (task.repeat) {
-                RepeatType.DAILY -> nextStart = nextStart.plusDays(1)
-                RepeatType.WEEKDAY -> {
-                    nextStart = nextStart.plusDays(1)
-                    while (nextStart.dayOfWeek.value > 5) {
-                        nextStart = nextStart.plusDays(1)
-                    }
-                }
-                RepeatType.WEEKLY -> nextStart = nextStart.plusWeeks(1)
-                RepeatType.ONCE -> nextStart = nextStart.plusDays(1) // 翌日にスケジュール（発火後に自動オフ）
-            }
+        if (task.repeat == RepeatType.ONCE) {
+            // 今日の開始時刻が過ぎていれば翌日にスケジュール（発火後に自動オフ）
+            if (!nextStart.isAfter(now)) nextStart = nextStart.plusDays(1)
+        } else if (!(nextStart.isAfter(now) && task.repeatsOn(today.dayOfWeek))) {
+            // 今日の開始時刻が過ぎたか、今日が繰り返す曜日でない → 繰り返す曜日のうち、次の日にする
+            var days = 1L
+            while (days <= 7L && !task.repeatsOn(today.plusDays(days).dayOfWeek)) days++
+            nextStart = today.plusDays(days).atTime(task.startTime)
         }
 
         val triggerMillis = nextStart

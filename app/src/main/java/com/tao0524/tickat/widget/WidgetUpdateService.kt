@@ -73,6 +73,7 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.domain.model.WidgetDisplayMode
+import com.tao0524.tickat.domain.model.repeatsOn
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
@@ -317,9 +318,9 @@ class WidgetUpdateService : Service() {
             return
         }
         val now = java.time.LocalTime.now()
-        // 「平日」の予定は、土曜・日曜にはウィジェットに出さない（通知と同じく月〜金だけ）
-        val isWeekend = java.time.LocalDate.now().dayOfWeek.value > 5
-        val enabledTasks = cachedTasks.filter { it.isEnabled && !(isWeekend && it.repeat == RepeatType.WEEKDAY) }
+        // 今日が繰り返す曜日でない予定は、ウィジェットに出さない（通知と同じ曜日だけ。「1回のみ」はいつでも出す）
+        val todayDow = java.time.LocalDate.now().dayOfWeek
+        val enabledTasks = cachedTasks.filter { it.isEnabled && it.repeatsOn(todayDow) }
         val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
         val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
 
