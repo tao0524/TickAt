@@ -2673,13 +2673,16 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
 
                     val messageText = run {
                         val nowLocal = java.time.LocalTime.now()
-                        val activeBlock = tasks.firstOrNull { nowLocal >= it.startTime && nowLocal < it.endTime }
+                        // 「平日」の予定は、土曜・日曜には見本にも出さない（ウィジェットと同じ）
+                        val isWeekend = java.time.LocalDate.now().dayOfWeek.value > 5
+                        val dayTasks = tasks.filter { !(isWeekend && it.repeat == com.tao0524.tickat.domain.model.RepeatType.WEEKDAY) }
+                        val activeBlock = dayTasks.firstOrNull { nowLocal >= it.startTime && nowLocal < it.endTime }
                         if (activeBlock != null && draft.showTaskName) {
                             val fmt = if (draft.use24Hour) "H:mm" else "h:mm"
                             val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
                             "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-                        } else if (activeBlock == null && draft.showCountdown && tasks.any { it.startTime > nowLocal }) {
-                            val nextBlock = tasks.filter { it.startTime > nowLocal }.minByOrNull { it.startTime }!!
+                        } else if (activeBlock == null && draft.showCountdown && dayTasks.any { it.startTime > nowLocal }) {
+                            val nextBlock = dayTasks.filter { it.startTime > nowLocal }.minByOrNull { it.startTime }!!
                             val minutes = java.time.Duration.between(nowLocal, nextBlock.startTime).toMinutes()
                             when {
                                 minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"

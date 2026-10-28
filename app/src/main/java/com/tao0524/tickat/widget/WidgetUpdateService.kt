@@ -317,7 +317,9 @@ class WidgetUpdateService : Service() {
             return
         }
         val now = java.time.LocalTime.now()
-        val enabledTasks = cachedTasks.filter { it.isEnabled }
+        // 「平日」の予定は、土曜・日曜にはウィジェットに出さない（通知と同じく月〜金だけ）
+        val isWeekend = java.time.LocalDate.now().dayOfWeek.value > 5
+        val enabledTasks = cachedTasks.filter { it.isEnabled && !(isWeekend && it.repeat == RepeatType.WEEKDAY) }
         val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
         val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
 
