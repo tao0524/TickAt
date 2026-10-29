@@ -28,6 +28,10 @@ import com.tao0524.tickat.ui.component.FULL_SCREEN_PROMPT_TITLE
 import com.tao0524.tickat.ui.component.FULL_SCREEN_PROMPT_MESSAGE
 import com.tao0524.tickat.ui.component.needsFullScreenPermission
 import com.tao0524.tickat.ui.component.openFullScreenPermissionSettings
+import com.tao0524.tickat.ui.component.RepeatDaysDialog
+import com.tao0524.tickat.ui.component.withChosenRepeatDays
+import com.tao0524.tickat.domain.model.Task
+import com.tao0524.tickat.domain.model.needsRepeatDays
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -95,6 +99,9 @@ class MainActivity : ComponentActivity() {
             var onboardingState by remember { mutableStateOf<Boolean?>(null) }
             var fullScreenPromptShown by remember { mutableStateOf(true) }
             var showFullScreenPrompt by remember { mutableStateOf(false) }
+            // 予定の一覧（読み込む前は null）。曜日のない「週1回」の予定があれば、曜日を選ぶ画面を出す
+            val allTasks: List<Task>? by repository.allTasks.collectAsState(initial = null)
+            val pendingDaysTask = allTasks?.firstOrNull { it.needsRepeatDays() }
 
             LaunchedEffect(Unit) {
                 val prefs = dataStore.data.first()
@@ -131,7 +138,19 @@ class MainActivity : ComponentActivity() {
                         }
                     )
 
-                    if (showFullScreenPrompt) {
+                    if (pendingDaysTask != null) {
+                        // 前の版の「週1回」の予定に、曜日を選んでもらう。全部選び終わるまで、全画面のお知らせより先に出す
+                        RepeatDaysDialog(
+                            task      = pendingDaysTask,
+                            onConfirm = { days ->
+                                val updated = pendingDaysTask.withChosenRepeatDays(days)
+                                lifecycleScope.launch {
+                                    repository.save(updated)
+                                    TaskAlertScheduler.schedule(applicationContext, updated)
+                                }
+                            }
+                        )
+                    } else if (showFullScreenPrompt && allTasks != null) {
                         val closePrompt: () -> Unit = {
                             showFullScreenPrompt = false
                             fullScreenPromptShown = true
