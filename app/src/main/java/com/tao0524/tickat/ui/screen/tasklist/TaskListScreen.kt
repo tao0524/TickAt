@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,6 +63,8 @@ import androidx.compose.ui.unit.sp
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
+import com.tao0524.tickat.domain.model.needsRepeatDays
+import com.tao0524.tickat.domain.model.repeatDayMask
 import com.tao0524.tickat.ui.component.FirstTimeHint
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.draw.alpha
@@ -380,19 +383,27 @@ private fun TaskItem(
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // 入りきらない印は、押しつぶさずに次の行へ送る
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Text(
                             text = if (task.taskType == TaskType.REMINDER) task.startTime.toString()
                             else "${task.startTime} – ${task.endTime}",
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Light,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterVertically)
                         )
-                        TaskBadge(text = task.taskType.label())
-                        TaskBadge(text = task.repeat.label())
+                        TaskBadge(
+                            text = task.taskType.label(),
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
+                        TaskBadge(
+                            text = task.repeatLabel(),
+                            modifier = Modifier.align(Alignment.CenterVertically)
+                        )
                     }
                 }
                 // オン・オフのスイッチ。オフにすると鳴らず、ウィジェットにも出ない（予定は消えない）
@@ -432,8 +443,9 @@ private fun TaskItem(
 }
 
 @Composable
-private fun TaskBadge(text: String) {
+private fun TaskBadge(text: String, modifier: Modifier = Modifier) {
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(50),
         color = MaterialTheme.colorScheme.surfaceVariant
     ) {
@@ -451,10 +463,17 @@ private fun TaskType.label() = when (this) {
     TaskType.REMINDER  -> "リマインダー"
 }
 
-private fun RepeatType.label() = when (this) {
+private val dayLabels = listOf("月", "火", "水", "木", "金", "土", "日")
+
+// 行の印。「曜日を選ぶ」は「毎週 月・水・金」のように選んだ曜日。曜日がまだ決まっていなければ「曜日を選んでください」
+private fun Task.repeatLabel(): String = when (repeat) {
     RepeatType.DAILY   -> "毎日"
     RepeatType.WEEKDAY -> "平日"
-    RepeatType.WEEKLY  -> "週1回"
+    RepeatType.WEEKLY  ->
+        if (needsRepeatDays()) "曜日を選んでください"
+        else "毎週 " + dayLabels.indices
+            .filter { (repeatDayMask() and (1 shl it)) != 0 }
+            .joinToString("・") { dayLabels[it] }
     RepeatType.ONCE    -> "1回のみ"
 }
 

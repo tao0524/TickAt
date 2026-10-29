@@ -1,6 +1,7 @@
 package com.tao0524.tickat.ui.screen.taskedit
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -53,10 +55,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.domain.model.WidgetDisplayMode
+import java.time.DayOfWeek
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.tao0524.tickat.ui.component.FirstTimeHint
@@ -169,7 +174,8 @@ fun TaskEditScreen(
     val hintShown by viewModel.hintTaskEditShown.collectAsState()
 
     val isSaveEnabled = state.name.isNotBlank() &&
-            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime))
+            (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime)) &&
+            !(state.repeat == RepeatType.WEEKLY && state.repeatDays == 0)
 
     Scaffold(
         topBar = {
@@ -411,6 +417,62 @@ fun TaskEditScreen(
                         )
                     }
                 }
+                // 「1回のみ」以外のとき、7つの曜日のボタンを1行に同じ幅で並べる。いくつでも選べる
+                if (state.repeat != RepeatType.ONCE) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        DayOfWeek.values().forEach { day ->
+                            val selected = (state.repeatDays and (1 shl (day.value - 1))) != 0
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(32.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.outline,
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .toggleable(
+                                        value = selected,
+                                        role = Role.Checkbox,
+                                        onValueChange = { viewModel.onRepeatDayToggle(day) }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = day.shortLabel(),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    if (state.repeat == RepeatType.WEEKLY && state.repeatDays == 0) {
+                        Text(
+                            text = "曜日を1つ以上選んでください",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text(
+                            text = nextStartText(state.startTime, state.repeatDays),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -442,6 +504,26 @@ fun TaskEditScreen(
 private fun RepeatType.label() = when (this) {
     RepeatType.DAILY   -> "毎日"
     RepeatType.WEEKDAY -> "平日"
-    RepeatType.WEEKLY  -> "週1回"
+    RepeatType.WEEKLY  -> "曜日を選ぶ"
     RepeatType.ONCE    -> "1回のみ"
+}
+
+private val dayLabels = listOf("月", "火", "水", "木", "金", "土", "日")
+
+private fun DayOfWeek.shortLabel() = dayLabels[value - 1]
+
+private val nextTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("H:mm")
+
+// 「次は 10月30日（金）9:00」。TaskAlertScheduler.schedule と同じ考え（今日の開始がまだで今日が選んだ曜日なら今日、そうでなければ次の選んだ曜日）
+private fun nextStartText(startTime: LocalTime, days: Int): String {
+    val now = LocalDateTime.now()
+    val today = now.toLocalDate()
+    for (d in 0L..7L) {
+        val date = today.plusDays(d)
+        val on = (days and (1 shl (date.dayOfWeek.value - 1))) != 0
+        if (on && (d > 0L || date.atTime(startTime).isAfter(now))) {
+            return "次は ${date.monthValue}月${date.dayOfMonth}日（${date.dayOfWeek.shortLabel()}）${startTime.format(nextTimeFormatter)}"
+        }
+    }
+    return ""
 }
