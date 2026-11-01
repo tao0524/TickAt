@@ -61,6 +61,8 @@ class TaskAlertService : Service() {
     // タイマー終了後の静的通知で再利用するタスク情報
     private var taskName: String = ""
     private var contentText: String = ""
+    // 一言メモがあるか（鳴り終わったあとの通知でも、広げてメモを読めるようにするため）
+    private var hasMemo: Boolean = false
     private var alertMode: String = "NOTIFICATION"
     private var taskStartTime: String = ""
     private var taskEndTime: String = ""
@@ -85,6 +87,7 @@ class TaskAlertService : Service() {
         taskStartTime = intent.getStringExtra("task_start") ?: ""
         taskEndTime = intent.getStringExtra("task_end") ?: ""
         val memo = intent.getStringExtra("task_memo") ?: ""
+        hasMemo = memo.isNotEmpty()
         val taskType = intent.getStringExtra("task_type") ?: "TIMEBLOCK"
         alertMode = intent.getStringExtra("alert_mode") ?: "NOTIFICATION"
         val soundUriStr = intent.getStringExtra("sound_uri") ?: ""
@@ -306,14 +309,20 @@ class TaskAlertService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(this, STATIC_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, STATIC_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(taskName)
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingOpen)
             .setAutoCancel(true)
-            .build()
+
+        // 鳴っている間の通知と同じく、メモがあるときは広げてメモを読めるようにする（Android 11 以下では、これがないと広げられない）
+        if (hasMemo) {
+            builder.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
+        }
+
+        val notification = builder.build()
 
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(currentNotificationId, notification)
