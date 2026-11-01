@@ -1217,7 +1217,7 @@ fun SettingsScreen(
                 // --- フォント ---
                 AccordionHeader(
                     title = "フォント",
-                    summary = "${draft.fontFamily.name} / ${draft.fontWeight.name}",
+                    summary = "${draft.fontFamily.displayName} / " + if (draft.fontWeight == TextWeight.BOLD) "太め" else "標準",
                     expanded = expandedSections["font"] == true,
                     onClick = { expandedSections["font"] = expandedSections["font"] != true }
                 )
