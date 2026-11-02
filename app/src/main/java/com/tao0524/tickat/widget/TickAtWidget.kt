@@ -47,16 +47,8 @@ object TickAtWidget {
             settings.isItalic                                           -> Typeface.ITALIC
             else                                                        -> Typeface.NORMAL
         }
-        val typeface = when (settings.fontFamily) {
-            WidgetFont.THIN      -> Typeface.create("sans-serif-thin", typefaceStyle)
-            WidgetFont.LIGHT     -> Typeface.create("sans-serif-light", typefaceStyle)
-            WidgetFont.MEDIUM    -> Typeface.create("sans-serif-medium", typefaceStyle)
-            WidgetFont.BLACK     -> Typeface.create("sans-serif-black", typefaceStyle)
-            WidgetFont.CONDENSED -> Typeface.create("sans-serif-condensed", typefaceStyle)
-            WidgetFont.SERIF     -> Typeface.create(Typeface.SERIF, typefaceStyle)
-            WidgetFont.MONO      -> Typeface.create(Typeface.MONOSPACE, typefaceStyle)
-            else                 -> Typeface.create(Typeface.DEFAULT, typefaceStyle)
-        }
+        // 秒ごとの描き直し（buildTimeOnlyViews）と同じ選び方にする（アプリに入れたフォントも使う）
+        val typeface = settings.fontFamily.toTypeface(context, typefaceStyle)
 
         // フォントサイズ（px変換）
         val hasDate = settings.datePattern.isNotEmpty() || !settings.showTime
@@ -86,7 +78,7 @@ object TickAtWidget {
         val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
         val timeBitmap = if (settings.use24Hour) {
             val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
-            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+            buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, TIME_HEIGHT_REF, alignDigits = true)
         } else {
             val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
             val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
@@ -105,7 +97,7 @@ object TickAtWidget {
         if (displayDate.isNotEmpty()) {
             views.setImageViewBitmap(
                 R.id.widget_date_img,
-                buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow)
+                buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow, dateHeightRef(settings.datePattern.ifEmpty { "M/d" }))
             )
         }
 
@@ -179,29 +171,120 @@ internal fun calcFontSizes(
     )
 }
 
+// ─── 数字の見え方をそろえる（フォントによって、数字の幅・高さ・大きさが違うため） ───
+// 時刻の画像の高さと、文字を置く線の位置を決める見本の文字
+internal const val TIME_HEIGHT_REF = "0123456789:"
+// メッセージの画像の高さを決める見本の文字（数字と日本語）
+internal const val MESSAGE_HEIGHT_REF = "0123456789:あ漢"
+private const val DIGITS = "0123456789"
+
+// 選んだフォントの数字が Roboto の数字と同じ高さに見えるようにする倍率（Roboto は 1）。
+// 数字のうち、いちばん上に出る数字の高さで比べる。下に出る数字の形はそのまま
+internal fun digitSizeScale(typeface: Typeface): Float {
+    val bounds = android.graphics.Rect()
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = 200f
+    }
+    paint.getTextBounds(DIGITS, 0, DIGITS.length, bounds)
+    val fontTop = -bounds.top
+    val refPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = Typeface.create(Typeface.DEFAULT, typeface.style)
+        this.textSize = 200f
+    }
+    refPaint.getTextBounds(DIGITS, 0, DIGITS.length, bounds)
+    val refTop = -bounds.top
+    if (fontTop <= 0 || refTop <= 0) return 1f
+    return (refTop.toFloat() / fontTop.toFloat()).coerceIn(0.5f, 2.0f)
+}
+
+// 日付の画像の高さを決める見本。同じ形式で、12か月と7つの曜日を書いた文字をつなげる
+internal fun dateHeightRef(pattern: String): String {
+    val fmt = try {
+        SimpleDateFormat(pattern, Locale.getDefault())
+    } catch (e: IllegalArgumentException) {
+        return ""
+    }
+    val cal = Calendar.getInstance()
+    val sb = StringBuilder()
+    for (month in 0 until 12) {
+        cal.set(2026, month, 28)
+        sb.append(fmt.format(cal.time))
+    }
+    for (day in 1..7) {
+        cal.set(2026, Calendar.JUNE, day)
+        sb.append(fmt.format(cal.time))
+    }
+    return sb.toString()
+}
+
+// 文字を描く Paint。フォントの中に幅のそろった数字（tnum）があれば、それを使う
+private fun newTextPaint(typeface: Typeface, sizePx: Float, color: Int): Paint =
+    Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.typeface = typeface
+        this.textSize = sizePx
+        this.color    = color
+        this.fontFeatureSettings = "tnum"
+    }
+
+private fun isAsciiDigit(c: Char): Boolean = c in '0'..'9'
+
+// 数字の幅がそろっていないフォントでは、数字1つ分の幅をいちばん広い数字に合わせる（そろっていれば null）
+private fun digitCellWidth(paint: Paint): Float? {
+    val max = DIGITS.maxOf { paint.measureText(it.toString()) }
+    val min = DIGITS.minOf { paint.measureText(it.toString()) }
+    return if (max - min < 0.5f) null else max
+}
+
+private fun cellTextWidth(text: String, paint: Paint, cell: Float?): Float =
+    if (cell == null) paint.measureText(text)
+    else text.fold(0f) { acc, c -> acc + (if (isAsciiDigit(c)) cell else paint.measureText(c.toString())) }
+
+// 数字は、数字1つ分の場所のまん中に描く
+private fun drawCellText(canvas: Canvas, text: String, x: Float, baseline: Float, paint: Paint, cell: Float?) {
+    if (cell == null) {
+        canvas.drawText(text, x, baseline, paint)
+        return
+    }
+    var cx = x
+    for (c in text) {
+        val s = c.toString()
+        val w = paint.measureText(s)
+        if (isAsciiDigit(c)) {
+            canvas.drawText(s, cx + (cell - w) / 2f, baseline, paint)
+            cx += cell
+        } else {
+            canvas.drawText(s, cx, baseline, paint)
+            cx += w
+        }
+    }
+}
+
 internal fun buildTextBitmap(
     text:       String,
     textSizePx: Float,
     textColor:  Int,
     typeface:   Typeface,
-    hasShadow:  Boolean
+    hasShadow:  Boolean,
+    heightRef:  String  = MESSAGE_HEIGHT_REF,
+    alignDigits: Boolean = false
 ): Bitmap {
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = textSizePx
-        this.color    = textColor
+    val paint = newTextPaint(typeface, textSizePx * digitSizeScale(typeface), textColor).apply {
         if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
+    // 画像の高さと文字を置く線の位置は、見本の文字で決める（中身が変わっても上下に動かない）
     val bounds = android.graphics.Rect()
-    paint.getTextBounds(text, 0, text.length, bounds)
-    val textWidth = paint.measureText(text)
+    val ref = heightRef + text
+    paint.getTextBounds(ref, 0, ref.length, bounds)
+    val cell      = if (alignDigits) digitCellWidth(paint) else null
+    val textWidth = cellTextWidth(text, paint, cell)
     val padX      = 8f
     val shadowPadY = if (hasShadow) 18 else 0 // 影が見切れないための余白
     val bitmapW   = (textWidth + padX * 2).toInt().coerceAtLeast(1)
     val bitmapH   = (bounds.height() + shadowPadY).coerceAtLeast(1)
     val bitmap    = Bitmap.createBitmap(bitmapW, bitmapH, Bitmap.Config.ARGB_8888)
     val canvas    = Canvas(bitmap)
-    canvas.drawText(text, padX, -bounds.top.toFloat(), paint)
+    drawCellText(canvas, text, padX, -bounds.top.toFloat(), paint, cell)
     return bitmap
 }
 
@@ -217,29 +300,29 @@ internal fun buildTimeWithAmPmBitmap(
     amPmColor:   Int = 0
 ): Bitmap {
     val padX        = 8f
-    val amPmPx      = clockPx * amPmScale
+    val timePx      = clockPx * digitSizeScale(typeface)
+    val amPmPx      = timePx * amPmScale
     val gap         = 6f
     val resolvedAmPmColor = if (amPmColor != 0) amPmColor else textColor
 
-    val timePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = clockPx
-        this.color    = textColor
+    val timePaint = newTextPaint(typeface, timePx, textColor).apply {
         if (hasShadow) setShadowLayer(10f, 8f, 8f, (textColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
-    val amPmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.typeface = typeface
-        this.textSize = amPmPx
-        this.color    = resolvedAmPmColor
+    val amPmPaint = newTextPaint(typeface, amPmPx, resolvedAmPmColor).apply {
         if (hasShadow) setShadowLayer(6f, 3f, 3f, (resolvedAmPmColor and 0x00FFFFFF) or 0x99000000.toInt())
     }
 
+    // 高さと文字を置く線の位置は、見本の文字で決める（時刻が変わっても上下に動かない）
     val timeBounds = android.graphics.Rect()
-    timePaint.getTextBounds(timeText, 0, timeText.length, timeBounds)
+    val timeRef = TIME_HEIGHT_REF + timeText
+    timePaint.getTextBounds(timeRef, 0, timeRef.length, timeBounds)
+    // 午前・午後（または AM・PM）のどちらでも同じ高さになるよう、両方を見本にする
     val amPmBounds = android.graphics.Rect()
-    amPmPaint.getTextBounds(amPmText, 0, amPmText.length, amPmBounds)
+    val amPmRef = (if (amPmText.any { it.code > 127 }) "午前午後" else "AMPM") + amPmText
+    amPmPaint.getTextBounds(amPmRef, 0, amPmRef.length, amPmBounds)
 
-    val timeW  = timePaint.measureText(timeText)
+    val timeCell = digitCellWidth(timePaint)
+    val timeW  = cellTextWidth(timeText, timePaint, timeCell)
     val amPmW  = amPmPaint.measureText(amPmText)
 
     val shadowPadY = if (hasShadow) 18 else 0
@@ -254,12 +337,12 @@ internal fun buildTimeWithAmPmBitmap(
 
     when (amPmPosition) {
         AmPmPosition.AFTER  -> {
-            canvas.drawText(timeText, padX, timeBaseline, timePaint)
+            drawCellText(canvas, timeText, padX, timeBaseline, timePaint, timeCell)
             canvas.drawText(amPmText, padX + timeW + gap, amPmBaseline, amPmPaint)
         }
         AmPmPosition.BEFORE -> {
             canvas.drawText(amPmText, padX, amPmBaseline, amPmPaint)
-            canvas.drawText(timeText, padX + amPmW + gap, timeBaseline, timePaint)
+            drawCellText(canvas, timeText, padX + amPmW + gap, timeBaseline, timePaint, timeCell)
         }
     }
 
@@ -283,7 +366,7 @@ internal fun buildTimeOnlyViews(
     val timeLocale = if (settings.amPmLabel == AmPmLabel.ENGLISH) Locale.ENGLISH else Locale.JAPANESE
     val timeBitmap = if (settings.use24Hour) {
         val fmt = if (settings.showSeconds) "HH:mm:ss" else "HH:mm"
-        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow)
+        buildTextBitmap(SimpleDateFormat(fmt, Locale.getDefault()).format(now.time), clockPx, settings.textColor.toInt(), typeface, settings.showTextShadow, TIME_HEIGHT_REF, alignDigits = true)
     } else {
         val fmt      = if (settings.showSeconds) "h:mm:ss" else "h:mm"
         val timeOnly = SimpleDateFormat(fmt, Locale.getDefault()).format(now.time)
@@ -297,7 +380,7 @@ internal fun buildTimeOnlyViews(
     val displayDate = dateText.ifEmpty { fallbackDate }
     views.setImageViewBitmap(R.id.widget_time_img, timeBitmap)
     if (displayDate.isNotEmpty()) {
-        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow))
+        views.setImageViewBitmap(R.id.widget_date_img, buildTextBitmap(displayDate, datePx, settings.dateTextColor.toInt(), typeface, settings.showTextShadow, dateHeightRef(settings.datePattern.ifEmpty { "M/d" })))
     }
     views.setViewVisibility(R.id.widget_time_img, if (settings.showTime) View.VISIBLE else View.GONE)
     views.setViewVisibility(R.id.widget_date_img, if (displayDate.isNotEmpty()) View.VISIBLE else View.GONE)

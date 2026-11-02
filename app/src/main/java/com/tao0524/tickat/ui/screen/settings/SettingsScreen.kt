@@ -2667,7 +2667,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                     val timeLocale = if (draft.amPmLabel == AmPmLabel.ENGLISH) java.util.Locale.ENGLISH else java.util.Locale.JAPANESE
                     val timeBitmap = if (draft.use24Hour) {
                         val fmt = if (draft.showSeconds) "HH:mm:ss" else "HH:mm"
-                        buildTextBitmap(java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time), clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow)
+                        buildTextBitmap(java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time), clockPx, draft.textColor.toInt(), typeface, draft.showTextShadow, com.tao0524.tickat.widget.TIME_HEIGHT_REF, alignDigits = true)
                     } else {
                         val fmt      = if (draft.showSeconds) "h:mm:ss" else "h:mm"
                         val timeOnly = java.text.SimpleDateFormat(fmt, java.util.Locale.getDefault()).format(now.time)
@@ -2682,7 +2682,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                     val displayDate = dateText.ifEmpty { fallbackDate }
 // --- 個別ビットマップ構築 ---
                     val dateBitmap = if (displayDate.isNotEmpty())
-                        buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow)
+                        buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow, com.tao0524.tickat.widget.dateHeightRef(draft.datePattern.ifEmpty { "M/d" }))
                     else null
 
                     val messageText = run {
