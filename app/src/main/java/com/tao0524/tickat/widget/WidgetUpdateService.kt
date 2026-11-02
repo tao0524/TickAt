@@ -75,6 +75,7 @@ import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import com.tao0524.tickat.domain.model.repeatsOn
 import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_COUNTDOWN
+import com.tao0524.tickat.ui.screen.settings.KEY_SHOW_NEXT_ALARM
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_TEXT_COLOR
 import com.tao0524.tickat.ui.screen.settings.KEY_MESSAGE_SCALE
 import com.tao0524.tickat.ui.screen.settings.displaySettingsDataStore
@@ -237,6 +238,7 @@ class WidgetUpdateService : Service() {
                     timeOffset           = prefs[KEY_TIME_OFFSET]           ?: 0,
                     showTaskName         = prefs[KEY_SHOW_TASK_NAME]        ?: true,
                     showCountdown        = prefs[KEY_SHOW_COUNTDOWN]        ?: true,
+                    showNextAlarm        = prefs[KEY_SHOW_NEXT_ALARM]       ?: true,
                     messageTextColor     = prefs[KEY_MESSAGE_TEXT_COLOR]    ?: 0x99E6E1E5L,
                     messageScale         = prefs[KEY_MESSAGE_SCALE]        ?: 1.0f
                 )
