@@ -1217,7 +1217,9 @@ fun SettingsScreen(
                 // --- フォント ---
                 AccordionHeader(
                     title = "フォント",
-                    summary = "${draft.fontFamily.displayName} / " + if (draft.fontWeight == TextWeight.BOLD) "太め" else "標準",
+                    // Roboto Black はいちばん太いので、太さ（標準・太め）は出さない
+                    summary = if (draft.fontFamily == WidgetFont.BLACK) draft.fontFamily.displayName
+                              else "${draft.fontFamily.displayName} / " + if (draft.fontWeight == TextWeight.BOLD) "太め" else "標準",
                     expanded = expandedSections["font"] == true,
                     onClick = { expandedSections["font"] = expandedSections["font"] != true }
                 )
@@ -1285,6 +1287,8 @@ fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                             Text("フォントウェイト", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 10.dp))
+                            // Roboto Black（太さ 900）は、太めにしても Roboto の上限の 900 のままで見た目が変わらないので、押せなくする
+                            val weightEnabled = draft.fontFamily != WidgetFont.BLACK
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf(
                                     TextWeight.REGULAR to "Regular\n標準",
@@ -1294,9 +1298,18 @@ fun SettingsScreen(
                                         label      = label,
                                         isSelected = draft.fontWeight == weight,
                                         modifier   = Modifier.weight(1f),
+                                        enabled    = weightEnabled,
                                         onSelect   = { draft = draft.copy(fontWeight = weight) }
                                     )
                                 }
+                            }
+                            if (!weightEnabled) {
+                                Text(
+                                    "Roboto Black はいちばん太いフォントのため、太さは変えられません",
+                                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
                             }
                         }
 
@@ -2990,22 +3003,37 @@ internal fun SelectOption(
     label: String,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    // false のときは押せない形（選んでいる印も出さず、文字と枠を薄くする。M3 の無効の表示: 文字 38%・枠 12%）
+    enabled: Boolean = true,
     onSelect: () -> Unit
 ) {
+    val shown = isSelected && enabled
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+            .background(if (shown) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
             .border(
-                width = if (isSelected) 1.5.dp else 0.5.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF49454F),
+                width = if (shown) 1.5.dp else 0.5.dp,
+                color = when {
+                    !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                    shown    -> MaterialTheme.colorScheme.primary
+                    else     -> Color(0xFF49454F)
+                },
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable(onClick = onSelect)
+            .clickable(enabled = enabled, onClick = onSelect)
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = label, color = if (isSelected) MaterialTheme.colorScheme.onSurface else Color(0xFF9E9E9E), fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 18.sp)
+        Text(
+            text = label,
+            color = when {
+                !enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                shown    -> MaterialTheme.colorScheme.onSurface
+                else     -> Color(0xFF9E9E9E)
+            },
+            fontSize = 12.sp, textAlign = TextAlign.Center, lineHeight = 18.sp
+        )
     }
 }
 
