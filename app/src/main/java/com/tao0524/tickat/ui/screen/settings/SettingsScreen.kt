@@ -1956,21 +1956,21 @@ fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
                             label    = "スケジュール名を表示",
-                            sub      = "ウィジェットに現在のスケジュール名を表示",
+                            sub      = "進行中のスケジュールの名前と時間を表示（次の予定・次のアラームより優先）",
                             checked  = draft.showTaskName,
                             onToggle = { draft = draft.copy(showTaskName = it) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
                             label    = "次の予定を表示",
-                            sub      = "ウィジェットに次の予定の情報を表示（表示形式はタスクごとに設定）",
+                            sub      = "進行中のスケジュールがないとき、または「スケジュール名を表示」が OFF のときに、次の予定を表示",
                             checked  = draft.showCountdown,
                             onToggle = { draft = draft.copy(showCountdown = it) }
                         )
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                         SwitchRow(
                             label    = "次のアラームを表示",
-                            sub      = "スケジュールがない時間帯にシステムの次のアラーム時刻を表示",
+                            sub      = "スケジュール名も次の予定も表示されないときに、時計アプリなどでセットした次のアラームの時刻を表示",
                             checked  = draft.showNextAlarm,
                             onToggle = { draft = draft.copy(showNextAlarm = it) }
                         )
