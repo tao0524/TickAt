@@ -696,10 +696,21 @@ fun SettingsScreen(
                 var themeTabInitialized by rememberSaveable { mutableStateOf(false) }
                 LaunchedEffect(saved.bgType, currentThemeMode) {
                     if (!themeTabInitialized) {
-                        selectedThemeTab = when (saved.bgType) {
-                            BackgroundType.LINEAR, BackgroundType.RADIAL -> 2
-                            BackgroundType.IMAGE       -> 3
-                            BackgroundType.TRANSPARENT -> 4
+                        // ウィジェットの色と同じテーマか（カードに ✓ が付く条件と同じ）
+                        val sameColors = { theme: ThemePreset ->
+                            saved.bgColor == theme.bgColor &&
+                                saved.bgGradientEnd == theme.bgGradientEnd &&
+                                saved.textColor == theme.textColor
+                        }
+                        selectedThemeTab = when {
+                            saved.bgType == BackgroundType.IMAGE       -> 3
+                            saved.bgType == BackgroundType.TRANSPARENT -> 4
+                            // 「完全透明」のカードは「ダーク」のタブにある
+                            saved.bgAlpha == 0 -> 0
+                            saved.bgType == BackgroundType.LINEAR || saved.bgType == BackgroundType.RADIAL -> 2
+                            darkThemes.any(sameColors)  -> 0
+                            lightThemes.any(sameColors) -> 1
+                            // 同じテーマがないときは、アプリテーマで決める
                             else -> when (currentThemeMode) {
                                 ThemeMode.DARK   -> 0
                                 ThemeMode.LIGHT  -> 1
