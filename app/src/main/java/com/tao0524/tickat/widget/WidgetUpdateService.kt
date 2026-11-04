@@ -340,7 +340,7 @@ class WidgetUpdateService : Service() {
                 val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
                 val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
                 "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-            } else if (settings.showCountdown) {
+            } else {
                 // 全タスクからdisplayModeに応じて候補を収集
                 data class Candidate(val minutesUntil: Long, val text: String)
                 val candidates = mutableListOf<Candidate>()
@@ -380,8 +380,9 @@ class WidgetUpdateService : Service() {
                     }
                 }
 
-                // 直近のものを選択、なければシステムアラーム
-                val nearest = candidates.minByOrNull { it.minutesUntil }
+                // 「次の予定を表示」がオンなら直近の予定。出す予定がないときは、「次のアラームを表示」がオンならシステムアラーム
+                // （「次の予定を表示」がオフでも、「次のアラームを表示」がオンならアラームを出す）
+                val nearest = if (settings.showCountdown) candidates.minByOrNull { it.minutesUntil } else null
                 if (nearest != null) {
                     nearest.text
                 } else if (settings.showNextAlarm) {
@@ -409,7 +410,7 @@ class WidgetUpdateService : Service() {
                         } else ""
                     } else ""
                 } else ""
-            } else ""
+            }
 
             val resolvedDisplayText = displayText
 
