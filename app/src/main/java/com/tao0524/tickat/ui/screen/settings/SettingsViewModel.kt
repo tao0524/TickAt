@@ -372,9 +372,8 @@ class SettingsViewModel(
         }
     }
 
-    val timeblockTasks: StateFlow<List<Task>> = if (taskRepository != null) {
+    val allTasks: StateFlow<List<Task>> = if (taskRepository != null) {
         taskRepository.allTasks
-            .map { list -> list.filter { it.taskType == TaskType.TIMEBLOCK } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
     } else {
         kotlinx.coroutines.flow.MutableStateFlow(emptyList())

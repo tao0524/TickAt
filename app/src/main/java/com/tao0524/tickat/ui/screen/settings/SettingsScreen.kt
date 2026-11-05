@@ -118,6 +118,7 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
+import com.tao0524.tickat.widget.buildMessageText
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 import androidx.compose.foundation.text.KeyboardActions
 import com.tao0524.tickat.ui.component.FirstTimeHint
@@ -292,7 +293,7 @@ fun SettingsScreen(
     val saved   by viewModel.settings.collectAsState()
     val hintShown by viewModel.hintSettingsShown.collectAsState()
     val fontTipVisible by viewModel.fontTipVisible.collectAsState()
-    val tasks by viewModel.timeblockTasks.collectAsState()
+    val tasks by viewModel.allTasks.collectAsState()
     val context = LocalContext.current
 
     if (!isLoaded) return
@@ -2696,52 +2697,17 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                     else null
 
                     val messageText = run {
-                        val nowLocal = java.time.LocalTime.now()
-                        // 今日が繰り返す曜日でない予定は、見本にも出さない（ウィジェットと同じ）
-                        val todayDow = java.time.LocalDate.now().dayOfWeek
-                        val dayTasks = tasks.filter { it.repeatsOn(todayDow) }
-                        val activeBlock = dayTasks.firstOrNull { nowLocal >= it.startTime && nowLocal < it.endTime }
-                        if (activeBlock != null && draft.showTaskName) {
-                            val fmt = if (draft.use24Hour) "H:mm" else "h:mm"
-                            val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
-                            "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
-                        } else if (activeBlock == null && draft.showCountdown && dayTasks.any { it.startTime > nowLocal }) {
-                            val nextBlock = dayTasks.filter { it.startTime > nowLocal }.minByOrNull { it.startTime }!!
-                            val minutes = java.time.Duration.between(nowLocal, nextBlock.startTime).toMinutes()
-                            when {
-                                minutes >= 60 -> "${nextBlock.name}まで あと${minutes / 60}時間${minutes % 60}分"
-                                minutes >= 1  -> "${nextBlock.name}まで あと${minutes}分"
-                                else          -> "${nextBlock.name}まで あと1分未満"
-                            }
+                        // ホーム画面のウィジェットと同じ計算で決める（WidgetMessage.kt）
+                        val real = buildMessageText(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek)
+                        if (real.isNotEmpty()) {
+                            real
+                        } else if (draft.showNextAlarm) {
+                            "⏰ アラーム未設定"
                         } else {
-                            if (draft.showNextAlarm) {
-                                val alarmManager = context.getSystemService(android.content.Context.ALARM_SERVICE) as android.app.AlarmManager
-                                val nextAlarm = alarmManager.nextAlarmClock
-                                if (nextAlarm?.showIntent != null) {
-                                    val cal = java.util.Calendar.getInstance().apply { timeInMillis = nextAlarm.triggerTime }
-                                    val isSystemAlarm = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0
-                                            && cal.get(java.util.Calendar.MINUTE) == 0
-                                            && cal.get(java.util.Calendar.SECOND) == 0
-                                            && cal.get(java.util.Calendar.MILLISECOND) == 0
-                                    if (!isSystemAlarm) {
-                                        if (draft.use24Hour) {
-                                            val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
-                                            val m = cal.get(java.util.Calendar.MINUTE)
-                                            "⏰ %d:%02d".format(h, m)
-                                        } else {
-                                            val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
-                                            val m = cal.get(java.util.Calendar.MINUTE)
-                                            val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
-                                            "⏰ $amPm$h:%02d".format(m)
-                                        }
-                                    } else "⏰ アラーム未設定"
-                                } else "⏰ アラーム未設定"
-                            } else {
-                                when {
-                                    draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                                    draft.showCountdown -> "次の予定まで あと30分"
-                                    else -> ""
-                                }
+                            when {
+                                draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
+                                draft.showCountdown -> "次の予定まで あと30分"
+                                else -> ""
                             }
                         }
                     }
