@@ -511,7 +511,7 @@ fun SettingsScreen(
         val messageHint = when {
             tempScale <= 0.7f -> "メッセージを控えめに。時計・日付がメインの表示になります。"
             tempScale <= 1.1f -> "標準的なサイズ。時計の下にさりげなく情報を表示します。"
-            tempScale <= 1.5f -> "メッセージがやや大きめ。タスク名やカウントダウンが目立ちます。"
+            tempScale <= 1.5f -> "メッセージがやや大きめ。スケジュール名やカウントダウンが目立ちます。"
             tempScale <= 2.0f -> "メッセージを大きく表示。予定の確認を重視したい方に。"
             else              -> "メッセージを最大限に強調。重要な予定を見逃しません。"
         }
@@ -1915,7 +1915,7 @@ fun SettingsScreen(
                 // --- レイアウト ---
                 AccordionHeader(
                     title = "レイアウト",
-                    summary = "${(draft.cornerRadiusRatio * 100).toInt()}% / タスク名" + if (draft.showTaskName) "ON" else "OFF",
+                    summary = "${(draft.cornerRadiusRatio * 100).toInt()}% / スケジュール名" + if (draft.showTaskName) "ON" else "OFF",
                     expanded = expandedSections["layout"] == true,
                     onClick = { expandedSections["layout"] = expandedSections["layout"] != true }
                 )
