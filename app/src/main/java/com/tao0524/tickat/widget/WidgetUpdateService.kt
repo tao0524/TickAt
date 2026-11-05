@@ -422,7 +422,7 @@ class WidgetUpdateService : Service() {
                 buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
             if (resolvedDisplayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow)
+                val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow, alignDigits = true)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {

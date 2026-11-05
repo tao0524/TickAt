@@ -2746,7 +2746,7 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         }
                     }
                     val messageBitmap = if (messageText.isNotEmpty())
-                        buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow)
+                        buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow, alignDigits = true)
                     else null
 
                     // --- 合成ビットマップ（AM/PMと同じ原理：1枚に統合して内部比率を保存） ---

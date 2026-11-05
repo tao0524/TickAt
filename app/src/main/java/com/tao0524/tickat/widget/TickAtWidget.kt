@@ -236,28 +236,51 @@ private fun digitCellWidth(paint: Paint): Float? {
     return if (max - min < 0.5f) null else max
 }
 
-private fun cellTextWidth(text: String, paint: Paint, cell: Float?): Float =
-    if (cell == null) paint.measureText(text)
-    else text.fold(0f) { acc, c -> acc + (if (isAsciiDigit(c)) cell else paint.measureText(c.toString())) }
+private fun cellTextWidth(text: String, paint: Paint, cell: Float?): Float {
+    if (cell == null) return paint.measureText(text)
+    // 数字以外の文字は、まとめて測る（絵文字など、2つの文字でできた文字を分けない）
+    var width = 0f
+    val run = StringBuilder()
+    for (c in text) {
+        if (isAsciiDigit(c)) {
+            if (run.isNotEmpty()) { width += paint.measureText(run.toString()); run.setLength(0) }
+            width += cell
+        } else {
+            run.append(c)
+        }
+    }
+    if (run.isNotEmpty()) width += paint.measureText(run.toString())
+    return width
+}
 
-// 数字は、数字1つ分の場所のまん中に描く
+// 数字は、数字1つ分の場所のまん中に描く。数字以外の文字は、まとめて描く
 private fun drawCellText(canvas: Canvas, text: String, x: Float, baseline: Float, paint: Paint, cell: Float?) {
     if (cell == null) {
         canvas.drawText(text, x, baseline, paint)
         return
     }
     var cx = x
+    val run = StringBuilder()
+    fun flushRun() {
+        if (run.isNotEmpty()) {
+            val s = run.toString()
+            canvas.drawText(s, cx, baseline, paint)
+            cx += paint.measureText(s)
+            run.setLength(0)
+        }
+    }
     for (c in text) {
-        val s = c.toString()
-        val w = paint.measureText(s)
         if (isAsciiDigit(c)) {
+            flushRun()
+            val s = c.toString()
+            val w = paint.measureText(s)
             canvas.drawText(s, cx + (cell - w) / 2f, baseline, paint)
             cx += cell
         } else {
-            canvas.drawText(s, cx, baseline, paint)
-            cx += w
+            run.append(c)
         }
     }
+    flushRun()
 }
 
 internal fun buildTextBitmap(
