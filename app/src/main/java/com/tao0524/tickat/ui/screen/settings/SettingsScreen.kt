@@ -963,7 +963,6 @@ fun SettingsScreen(
                                                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                                                             ) {
                                                                 Text("完全透明", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                                                Text("bgAlpha = 0", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp)
                                                             }
                                                             if (isTransparentSelected) {
                                                                 Box(
