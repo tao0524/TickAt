@@ -1,17 +1,9 @@
 package com.tao0524.tickat.widget
 
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.net.Uri
-import androidx.core.app.NotificationCompat
 import com.tao0524.tickat.FullScreenAlertActivity
-import com.tao0524.tickat.MainActivity
-import com.tao0524.tickat.R
 import com.tao0524.tickat.domain.model.RepeatType
 import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
@@ -68,7 +60,7 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 val alertMode = prefs?.get(KEY_ALERT_MODE) ?: "NOTIFICATION"
                 val soundUriStr = prefs?.get(KEY_NOTIFICATION_SOUND) ?: ""
 
-                // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
+                // 終了通知の場合：再スケジュール不要
                 if (alertType == "END") {
                     if (offAtEnd) {
                         try {
@@ -79,26 +71,22 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                         // 最中に TickAt を開いたり再起動したりすると、明日の開始が予約し直されているので取り消す
                         TaskAlertScheduler.cancel(context, taskId)
                     }
-                    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    val activeChannelId = createChannelIfNeeded(manager, soundUriStr)
-
-                    val openIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    // 終了の通知も、開始と同じく TaskAlertService で出し、「カウントダウン通知音」を「再生時間」のあいだ鳴らす
+                    // （スマホに鳴らしてもらうと、TickAt の中にコピーした音は読めずに鳴らないため）。
+                    // 全画面にはせず、「スケジュール開始時の表示」が OFF のときも出す（今までどおり）
+                    val endDuration = prefs?.get(KEY_NOTIFICATION_DURATION) ?: 5
+                    val endIntent = Intent(context, TaskAlertService::class.java).apply {
+                        putExtra("task_id", taskId)
+                        putExtra("task_name", taskName)
+                        putExtra("task_start", start)
+                        putExtra("task_end", end)
+                        putExtra("task_type", taskType)
+                        putExtra("alert_mode", "NOTIFICATION")
+                        putExtra("alert_type", "END")
+                        putExtra("sound_uri", soundUriStr)
+                        putExtra("duration", endDuration)
                     }
-                    val pendingOpen = PendingIntent.getActivity(
-                        context, taskId.hashCode(), openIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-
-                    val notification = NotificationCompat.Builder(context, activeChannelId)
-                        .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("$taskName 終了")
-                        .setContentText("$start〜$end")
-                        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                        .setContentIntent(pendingOpen)
-                        .setAutoCancel(true)
-                        .build()
-                    manager.notify(("end_$taskId").hashCode(), notification)
+                    context.startForegroundService(endIntent)
                     return@launch
                 }
 
@@ -166,50 +154,6 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
             TaskAlertScheduler.schedule(context, task)
         } catch (_: Exception) {
             // パース失敗時は再スケジュールしない
-        }
-    }
-
-    companion object {
-        private const val BASE_CHANNEL_ID = "tickat_task_start"
-
-        fun createChannelIfNeeded(manager: NotificationManager, soundUriStr: String): String {
-            val currentChannelId = if (soundUriStr.isEmpty()) {
-                BASE_CHANNEL_ID
-            } else {
-                "${BASE_CHANNEL_ID}_${System.currentTimeMillis()}"
-            }
-
-            // 同じ通知音のチャンネルが既に存在すればスキップ
-            if (manager.getNotificationChannel(currentChannelId) != null) {
-                return currentChannelId
-            }
-
-            // 古いTickAtチャンネルを削除
-            for (channel in manager.notificationChannels) {
-                if (channel.id.startsWith(BASE_CHANNEL_ID) && channel.id != currentChannelId) {
-                    manager.deleteNotificationChannel(channel.id)
-                }
-            }
-
-            // 新しいチャンネルを作成
-            val channel = NotificationChannel(
-                currentChannelId,
-                "スケジュール開始通知",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "スケジュールの開始時刻に通知します"
-                enableVibration(true)
-                if (soundUriStr.isNotEmpty()) {
-                    val audioAttributes = AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-                        .build()
-                    setSound(Uri.parse(soundUriStr), audioAttributes)
-                }
-            }
-            manager.createNotificationChannel(channel)
-
-            return currentChannelId
         }
     }
 }

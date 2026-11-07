@@ -34,6 +34,8 @@ class TaskAlertService : Service() {
         const val ACTION_DISMISS = "com.tao0524.tickat.ACTION_ALERT_DISMISS"
         private const val SILENT_CHANNEL_ID = "tickat_alert_silent"
         private const val STATIC_CHANNEL_ID = "tickat_alert_static"
+        // 前の版で終了の通知に使っていた種類の名前の始まり（tickat_task_start と tickat_task_start_数字）
+        private const val OLD_END_CHANNEL_PREFIX = "tickat_task_start"
 
         // 通知を押して開く画面に付ける印（この印があるときだけ通知音を止める）
         private const val EXTRA_STOP_ALERT = "com.tao0524.tickat.EXTRA_STOP_ALERT"
@@ -60,6 +62,8 @@ class TaskAlertService : Service() {
 
     // タイマー終了後の静的通知で再利用するタスク情報
     private var taskName: String = ""
+    // 通知の題（開始は予定の名前、終了は「（予定の名前） 終了」）
+    private var notificationTitle: String = ""
     private var contentText: String = ""
     // 一言メモがあるか（鳴り終わったあとの通知でも、広げてメモを読めるようにするため）
     private var hasMemo: Boolean = false
@@ -83,10 +87,26 @@ class TaskAlertService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        // --- 鳴っている途中に次の通知が来たとき ---
+        // 前の音を止め、前の通知は鳴り終わったあとの通知（音なし）に置き換えて残してから、新しい通知を鳴らす
+        // （続けて入れたタイムブロックでは、前の予定の終了と次の予定の開始が同じ時刻に来る）
+        if (soundJob?.isActive == true) {
+            releasePlayer()
+            soundJob?.cancel()
+            try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
+            postStaticNotification()
+        }
+
+        val alertType = intent.getStringExtra("alert_type") ?: "START"
+        val isEnd = alertType == "END"
         taskName = intent.getStringExtra("task_name") ?: ""
         taskStartTime = intent.getStringExtra("task_start") ?: ""
         taskEndTime = intent.getStringExtra("task_end") ?: ""
-        val memo = intent.getStringExtra("task_memo") ?: ""
+        // 終了の通知には一言メモを出さない（今までどおり）
+        val memo = if (isEnd) "" else intent.getStringExtra("task_memo") ?: ""
         hasMemo = memo.isNotEmpty()
         val taskType = intent.getStringExtra("task_type") ?: "TIMEBLOCK"
         alertMode = intent.getStringExtra("alert_mode") ?: "NOTIFICATION"
@@ -97,18 +117,21 @@ class TaskAlertService : Service() {
         // リマインダーには終了時刻がないので、全画面の画面には開始時刻だけを出す
         val timeRange = if (taskType == "REMINDER") taskStartTime else "$taskStartTime〜$taskEndTime"
 
-        contentText = when (taskType) {
+        notificationTitle = if (isEnd) "$taskName 終了" else taskName
+        contentText = if (isEnd) {
+            "$taskStartTime〜$taskEndTime"
+        } else when (taskType) {
             "TIMEBLOCK" -> if (memo.isNotEmpty()) "$taskStartTime〜$taskEndTime\n💬 $memo"
             else "$taskStartTime〜$taskEndTime"
             "REMINDER"  -> if (memo.isNotEmpty()) "💬 $memo" else ""
             else        -> "$taskStartTime〜$taskEndTime"
         }
 
-        currentNotificationId = ("start_$taskId").hashCode()
-        ringingNotificationId = ("ring_$taskId").hashCode()
+        // 終了の通知は、開始の通知とは別の番号にする（終了は前の版と同じ番号）
+        currentNotificationId = (if (isEnd) "end_$taskId" else "start_$taskId").hashCode()
+        ringingNotificationId = (if (isEnd) "ringend_$taskId" else "ring_$taskId").hashCode()
 
         // --- サイレント通知チャンネル作成 ---
-        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         ensureChannels(manager)
 
         // --- フォアグラウンド通知を構築 ---
@@ -139,7 +162,7 @@ class TaskAlertService : Service() {
 
         val builder = NotificationCompat.Builder(this, SILENT_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(taskName)
+            .setContentTitle(notificationTitle)
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(tapPending)
@@ -276,6 +299,12 @@ class TaskAlertService : Service() {
                 }
             )
         }
+        // 前の版で終了の通知に使っていた種類（「スケジュール開始通知」）は、もう使わないので消す
+        for (channel in manager.notificationChannels) {
+            if (channel.id.startsWith(OLD_END_CHANNEL_PREFIX)) {
+                manager.deleteNotificationChannel(channel.id)
+            }
+        }
     }
 
     // ---------------------------------------------------------------
@@ -311,7 +340,7 @@ class TaskAlertService : Service() {
 
         val builder = NotificationCompat.Builder(this, STATIC_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(taskName)
+            .setContentTitle(notificationTitle)
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingOpen)
