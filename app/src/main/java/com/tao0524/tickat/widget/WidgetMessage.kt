@@ -23,7 +23,10 @@ internal fun buildMessageText(
     // 今日が繰り返す曜日でない予定は出さない（通知と同じ曜日だけ。「1回のみ」はいつでも出す）
     val enabledTasks = tasks.filter { it.isEnabled && it.repeatsOn(todayDow) }
     val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
-    val activeBlock = timeblocks.firstOrNull { now >= it.startTime && now < it.endTime }
+    // 「非表示」を選んだ予定は、やっている最中もウィジェットに出さない
+    val activeBlock = timeblocks.firstOrNull {
+        it.displayMode != WidgetDisplayMode.HIDDEN && now >= it.startTime && now < it.endTime
+    }
 
     return if (activeBlock != null && settings.showTaskName) {
         // 進行中のタイムブロックは最優先
