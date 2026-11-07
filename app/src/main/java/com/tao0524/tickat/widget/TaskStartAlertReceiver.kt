@@ -54,6 +54,11 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
                 val featureLabel = if (taskType == "TIMEBLOCK") "タイムブロック" else "リマインダー"
 
+                // 「1回のみ」のタイムブロックは、やっている最中もウィジェットに名前と時間を出すため、終了の時刻にオフにする。
+                // リマインダーと、終了が開始より後でないタイムブロック（終了の通知を予約しない）は、今までどおり開始の時刻にオフにする
+                val endsLater = runCatching { LocalTime.parse(end).isAfter(LocalTime.parse(start)) }.getOrDefault(false)
+                val offAtEnd = repeat == RepeatType.ONCE.name && taskType == "TIMEBLOCK" && endsLater
+
                 // DataStoreからアラートモード・通知音を読み込む
                 val prefs = try {
                     context.displaySettingsDataStore.data.first()
@@ -65,6 +70,15 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
 
                 // 終了通知の場合：再スケジュール不要、常にNOTIFICATION
                 if (alertType == "END") {
+                    if (offAtEnd) {
+                        try {
+                            AppDatabase.getInstance(context).taskDao().updateTaskEnabled(taskId, false)
+                        } catch (_: Exception) {
+                            // DB更新失敗時はタスクが有効のまま残る（安全側に倒す）
+                        }
+                        // 最中に TickAt を開いたり再起動したりすると、明日の開始が予約し直されているので取り消す
+                        TaskAlertScheduler.cancel(context, taskId)
+                    }
                     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     val activeChannelId = createChannelIfNeeded(manager, soundUriStr)
 
@@ -91,8 +105,8 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                 // 繰り返しスケジュールは次回分を再スケジュール（モードに関係なく常に実行）
                 rescheduleIfNeeded(context, dbTask, taskId, taskName, start, end, memo, repeat, taskType)
 
-                // ONCEタスクの自動オフ（アラーム発火後にタスクを無効化）
-                if (repeat == RepeatType.ONCE.name) {
+                // ONCEタスクの自動オフ（アラーム発火後にタスクを無効化）。終了でオフにするタイムブロックは除く
+                if (repeat == RepeatType.ONCE.name && !offAtEnd) {
                     try {
                         AppDatabase.getInstance(context).taskDao().updateTaskEnabled(taskId, false)
                     } catch (_: Exception) {
