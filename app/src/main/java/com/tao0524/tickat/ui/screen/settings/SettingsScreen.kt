@@ -516,10 +516,14 @@ fun SettingsScreen(
             tempScale <= 2.0f -> "メッセージを大きく表示。予定の確認を重視したい方に。"
             else              -> "メッセージを最大限に強調。重要な予定を見逃しません。"
         }
+        // ウィジェットにメッセージが出ていないときは、見本の文で大きさを見せ、そのことを書き添える
+        val noMessageNow = buildMessageText(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek).isEmpty()
         SizeAdjustDialog(
             title        = "メッセージのサイズ",
-            previewDraft = draft.copy(messageScale = tempScale, showTaskName = true, showCountdown = true),
+            previewDraft = draft.copy(messageScale = tempScale),
             tasks        = tasks,
+            showSampleMessage = true,
+            note         = if (noMessageNow) "いまはウィジェットにメッセージは出ていません" else null,
             canPlus      = tempScale < 2.5f,
             canMinus     = tempScale > 0.5f,
             onPlus       = { tempScale = (tempScale + 0.1f).coerceIn(0.5f, 2.5f) },
@@ -2588,7 +2592,7 @@ private fun AlphaSliderRow(alpha: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), sizePercent: Int = 90) {
+private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), sizePercent: Int = 90, showSampleMessage: Boolean = false) {
     val context = LocalContext.current
     var bgBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
 
@@ -2696,23 +2700,24 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         buildTextBitmap(displayDate, datePx, draft.dateTextColor.toInt(), typeface, draft.showTextShadow, com.tao0524.tickat.widget.dateHeightRef(draft.datePattern.ifEmpty { "M/d" }))
                     else null
 
-                    val messageText = run {
-                        // ホーム画面のウィジェットと同じ計算で決める（WidgetMessage.kt）
-                        val real = buildMessageText(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek)
-                        if (real.isNotEmpty()) {
-                            real
-                        } else if (draft.showNextAlarm) {
-                            "⏰ アラーム未設定"
-                        } else {
-                            when {
-                                draft.showTaskName  -> "サンプルタスク 8:00〜17:00"
-                                draft.showCountdown -> "次の予定まで あと30分"
-                                else -> ""
-                            }
-                        }
-                    }
+                    // ホーム画面のウィジェットと同じ計算で決める（WidgetMessage.kt）。ウィジェットに出ないときは、プレビューにも出さない
+                    val realMessage = buildMessageText(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek)
+                    // 「メッセージのサイズ」の小さな画面だけは、ウィジェットに出ていないときも見本の文で大きさを見せる
+                    val messageText = if (realMessage.isEmpty() && showSampleMessage) "次の予定まで あと30分" else realMessage
+                    // 3つのスイッチが全部オフのときはメッセージの大きさが 0 になるので、見本の文の大きさだけを別に求める（時刻・日付の大きさは変えない）
+                    val messagePxUsed = if (hasMessage) messagePx else calcFontSizes(
+                        widgetHeightDp = actualH.toInt(),
+                        balance = draft.clockDateBalance,
+                        fontScale = draft.fontScale,
+                        showClock = draft.showTime,
+                        showDate = hasDate,
+                        showMessage = true,
+                        messageScale = draft.messageScale,
+                        use24Hour = draft.use24Hour,
+                        amPmScale = draft.amPmScale
+                    ).third * previewScale * scaledDensity
                     val messageBitmap = if (messageText.isNotEmpty())
-                        buildTextBitmap(messageText, messagePx, draft.messageTextColor.toInt(), typeface, draft.showTextShadow, alignDigits = true)
+                        buildTextBitmap(messageText, messagePxUsed, draft.messageTextColor.toInt(), typeface, draft.showTextShadow, alignDigits = true)
                     else null
 
                     // --- 合成ビットマップ（AM/PMと同じ原理：1枚に統合して内部比率を保存） ---
@@ -2768,7 +2773,9 @@ private fun SizeAdjustDialog(
     onMinus: () -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
-    hint: String? = null
+    hint: String? = null,
+    showSampleMessage: Boolean = false,
+    note: String? = null
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -2786,7 +2793,16 @@ private fun SizeAdjustDialog(
                     color      = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(16.dp))
-                WidgetPreview(draft = previewDraft, tasks = tasks)
+                WidgetPreview(draft = previewDraft, tasks = tasks, showSampleMessage = showSampleMessage)
+                if (note != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        note,
+                        fontSize  = 12.sp,
+                        color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
