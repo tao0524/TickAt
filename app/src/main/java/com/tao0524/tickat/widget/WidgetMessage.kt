@@ -32,7 +32,18 @@ internal fun buildMessageText(
         // 進行中のタイムブロックは最優先
         val fmt = if (settings.use24Hour) "H:mm" else "h:mm"
         val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
-        "${activeBlock.name} ${activeBlock.startTime.format(sf)}〜${activeBlock.endTime.format(sf)}"
+        val start = activeBlock.startTime.format(sf)
+        val end = activeBlock.endTime.format(sf)
+        // 12時間制では、同じ行の「時刻表示」の予定と同じく「午前」「午後」を付ける。
+        // 始まりと終わりが同じ午前（午後）なら最初だけ、またがるときは両方に付ける（Unicode CLDR の日本語の時間の範囲の書き方）
+        val range = if (settings.use24Hour) {
+            "$start〜$end"
+        } else {
+            val startAmPm = if (activeBlock.startTime.hour < 12) "午前" else "午後"
+            val endAmPm = if (activeBlock.endTime.hour < 12) "午前" else "午後"
+            if (startAmPm == endAmPm) "$startAmPm$start〜$end" else "$startAmPm$start〜$endAmPm$end"
+        }
+        "${activeBlock.name} $range"
     } else {
         // 全タスクからdisplayModeに応じて候補を収集
         data class Candidate(val minutesUntil: Long, val text: String)
