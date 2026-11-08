@@ -459,7 +459,7 @@ fun SettingsScreen(
             tempBalance <= -6 -> "時計を大きく表示。寝室やデスクの置き時計向け。"
             tempBalance <= -2 -> "時計がやや大きめ。時刻を重視しつつ日付も確認できます。"
             tempBalance <= 2  -> "時計と日付のバランスが取れた標準的な表示です。"
-            tempBalance <= 6  -> "時計がやや小さめ。日付やメッセージの視認性が上がります。"
+            tempBalance <= 6  -> "時計がやや小さめ。そのぶん日付が大きくなります。"
             else              -> "時計を最小限に。情報表示をメインにしたい場合に。"
         }
         SizeAdjustDialog(
@@ -483,8 +483,8 @@ fun SettingsScreen(
     if (showDateSizeDialog) {
         var tempBalance by rememberSaveable { mutableStateOf(draft.clockDateBalance) }
         val dateHint = when {
-            tempBalance >= 6  -> "日付を大きく表示。スケジュール確認がメインの方に。"
-            tempBalance >= 2  -> "日付がやや大きめ。曜日や予定の確認がしやすくなります。"
+            tempBalance >= 6  -> "日付を大きく表示。日付の確認がメインの方に。"
+            tempBalance >= 2  -> "日付がやや大きめ。そのぶん時計が小さくなります。"
             tempBalance >= -2 -> "時計と日付のバランスが取れた標準的な表示です。"
             tempBalance >= -6 -> "日付がやや小さめ。時刻表示を優先します。"
             else              -> "日付を最小限に。シンプルな時計として使いたい場合に。"
