@@ -2,12 +2,15 @@ package com.tao0524.tickat.ui.screen.appsettings
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +48,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,6 +82,10 @@ fun AppSettingsScreen(
     val savedSoundUri by viewModel.notificationSoundUri.collectAsState()
     val savedSoundName by viewModel.notificationSoundName.collectAsState()
     val notificationDuration by viewModel.notificationDuration.collectAsState()
+    val endAlertMode by viewModel.endAlertMode.collectAsState()
+    val endSoundUri by viewModel.endSoundUri.collectAsState()
+    val endSoundName by viewModel.endSoundName.collectAsState()
+    val endDuration by viewModel.endDuration.collectAsState()
     val hintShown by viewModel.hintShown.collectAsState()
     val context = LocalContext.current
 
@@ -87,56 +95,41 @@ fun AppSettingsScreen(
     LaunchedEffect(savedSoundUri) { currentSoundUri = savedSoundUri }
 
     val soundName = remember(currentSoundUri, savedSoundName) {
-        when {
-            currentSoundUri.isEmpty() -> "既定の通知音"
-            currentSoundUri.startsWith("/") -> savedSoundName.ifEmpty { "カスタム音" }
-            else -> runCatching {
-                RingtoneManager.getRingtone(context, Uri.parse(currentSoundUri))?.getTitle(context) ?: "カスタム音"
-            }.getOrElse { "カスタム音" }
-        }
+        soundDisplayName(context, currentSoundUri, savedSoundName)
+    }
+    // 終了の音は、まだ選んでいないときは「開始と同じ」と出す
+    val endSoundLabel = remember(endSoundUri, endSoundName) {
+        endSoundUri?.let { soundDisplayName(context, it, endSoundName) } ?: "開始と同じ"
     }
 
+    // 開始の音の選択画面（選んだ音は notification_sounds/custom_sound にコピーする）
     val ringtonePickerLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            @Suppress("DEPRECATION")
-            val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
-            if (uri == null) {
-                currentSoundUri = ""
-                viewModel.saveNotificationSound("")
-                return@rememberLauncherForActivityResult
-            }
+        savePickedSound(context, result, "custom_sound") { uri, name ->
+            currentSoundUri = uri
+            viewModel.saveNotificationSound(uri, name)
+        }
+    }
 
-            val uriStr = uri.toString()
+    // 終了の音の選択画面（開始とは別の notification_sounds/custom_sound_end にコピーする。
+    // 同じ場所だと、開始の音を選び直したときに終了の音も変わってしまうため）
+    val endRingtonePickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        savePickedSound(context, result, "custom_sound_end") { uri, name ->
+            viewModel.saveEndNotificationSound(uri, name)
+        }
+    }
 
-            if (uriStr.startsWith("content://settings/")) {
-                currentSoundUri = uriStr
-                viewModel.saveNotificationSound(uriStr)
-                return@rememberLauncherForActivityResult
-            }
-
-            try {
-                val soundDir = java.io.File(context.filesDir, "notification_sounds")
-                if (!soundDir.exists()) soundDir.mkdirs()
-                val destFile = java.io.File(soundDir, "custom_sound")
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    destFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                val displayName = runCatching {
-                    context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                        if (cursor.moveToFirst()) cursor.getString(0)?.replace(Regex("\\.[^.]+$"), "") else null
-                    }
-                }.getOrNull() ?: "カスタム音"
-                val internalUri = destFile.absolutePath
-                currentSoundUri = internalUri
-                viewModel.saveNotificationSound(internalUri, displayName)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(context, "通知音のコピーに失敗しました", Toast.LENGTH_SHORT).show()
-            }
+    // どちらの音を選ぼうとしているか（ストレージの許可をもらったあとに、同じほうの選択画面を開くため）
+    var soundPickerTarget by rememberSaveable { mutableStateOf("start") }
+    val launchSoundPicker: (String) -> Unit = { target ->
+        if (target == "end") {
+            // 終了の音をまだ選んでいないときは、開始の音を選んだ形で開く
+            endRingtonePickerLauncher.launch(soundPickerIntent(endSoundUri ?: savedSoundUri))
+        } else {
+            ringtonePickerLauncher.launch(soundPickerIntent(savedSoundUri))
         }
     }
 
@@ -144,18 +137,21 @@ fun AppSettingsScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                if (savedSoundUri.isNotEmpty() && !savedSoundUri.startsWith("/")) {
-                    putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(savedSoundUri))
-                }
-            }
-            ringtonePickerLauncher.launch(intent)
+            launchSoundPicker(soundPickerTarget)
         } else {
             Toast.makeText(context, "ストレージへのアクセスが許可されていません", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val openSoundPicker: (String) -> Unit = { target ->
+        if (Build.VERSION.SDK_INT <= 32 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            soundPickerTarget = target
+            storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        } else {
+            launchSoundPicker(target)
         }
     }
 
@@ -292,7 +288,7 @@ fun AppSettingsScreen(
                 }
             }
 
-            // --- 通知 ---
+            // --- 通知（1枚目は開始、2枚目はタイムブロックの終了。どれも押した瞬間に保存する） ---
             SectionHeader("通知")
             Card(
                 shape    = RoundedCornerShape(14.dp),
@@ -300,33 +296,37 @@ fun AppSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                    Text("スケジュール開始時の表示", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("FULLSCREEN" to "全画面", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
-                            SelectOption(
-                                label      = label,
-                                isSelected = alertMode == value,
-                                modifier   = Modifier.weight(1f),
-                                onSelect   = {
-                                    viewModel.saveAlertMode(value)
-                                    // 許可がないまま「全画面」を押したら知らせる（選んだままにする）
-                                    if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
-                                        showFullScreenPermissionDialog = true
-                                    }
-                                }
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = when (alertMode) {
+                    AlertModeSelector(
+                        title       = "スケジュール開始時の表示",
+                        selected    = alertMode,
+                        description = when (alertMode) {
                             "FULLSCREEN"   -> "開始時に全画面で表示します（スマホを使っているときは、画面のいちばん上の通知になります）"
                             "NOTIFICATION" -> "開始時にバナー通知を表示します"
-                            else           -> "通知を表示しません"
+                            else           -> "開始時の通知を表示しません"
                         },
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
+                        onSelect    = { value ->
+                            viewModel.saveAlertMode(value)
+                            // 許可がないまま「全画面」を押したら知らせる（選んだままにする）
+                            if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
+                                showFullScreenPermissionDialog = true
+                            }
+                        }
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    SoundSelector(
+                        title      = "開始の通知音",
+                        soundLabel = soundName,
+                        resetLabel = if (currentSoundUri.isNotEmpty()) "デフォルト\nに戻す" else null,
+                        onPick     = { openSoundPicker("start") },
+                        onReset    = {
+                            currentSoundUri = ""
+                            viewModel.saveNotificationSound("")
+                        }
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    DurationSelector(
+                        selected = notificationDuration,
+                        onSelect = { viewModel.saveNotificationDuration(it) }
                     )
                 }
             }
@@ -337,63 +337,193 @@ fun AppSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
-                    Text("カウントダウン通知音", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape    = RoundedCornerShape(8.dp),
-                            color    = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.weight(1f).clickable {
-                                if (Build.VERSION.SDK_INT <= 32 &&
-                                    ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
-                                    != PackageManager.PERMISSION_GRANTED
-                                ) {
-                                    storagePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                                } else {
-                                    val intent = android.content.Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
-                                        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
-                                        if (savedSoundUri.isNotEmpty() && !savedSoundUri.startsWith("/")) {
-                                            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(savedSoundUri))
-                                        }
-                                    }
-                                    ringtonePickerLauncher.launch(intent)
-                                }
-                            }
-                        ) {
-                            Text(soundName, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))
-                        }
-                        if (currentSoundUri.isNotEmpty()) {
-                            TextButton(onClick = {
-                                currentSoundUri = ""
-                                viewModel.saveNotificationSound("")
-                            }) {
-                                Text("デフォルト\nに戻す", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center)
+                    AlertModeSelector(
+                        title       = "スケジュール終了時の表示",
+                        selected    = endAlertMode,
+                        description = when (endAlertMode) {
+                            "FULLSCREEN"   -> "タイムブロックの終了時に全画面で表示します（スマホを使っているときは、画面のいちばん上の通知になります）"
+                            "NOTIFICATION" -> "タイムブロックの終了時にバナー通知を表示します"
+                            else           -> "終了時の通知を表示しません"
+                        },
+                        onSelect    = { value ->
+                            viewModel.saveEndAlertMode(value)
+                            // 開始と同じく、許可がないまま「全画面」を押したら知らせる（選んだままにする）
+                            if (value == "FULLSCREEN" && needsFullScreenPermission(context)) {
+                                showFullScreenPermissionDialog = true
                             }
                         }
-                    }
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    SoundSelector(
+                        title      = "終了の通知音",
+                        soundLabel = endSoundLabel,
+                        resetLabel = if (endSoundUri != null) "開始と同じ\nに戻す" else null,
+                        onPick     = { openSoundPicker("end") },
+                        onReset    = { viewModel.resetEndNotificationSound() }
+                    )
                     Spacer(Modifier.height(12.dp))
-                    Text("再生時間", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(3, 5, 10, 15, 30).forEach { sec ->
-                            SelectOption(
-                                label      = "${sec}秒",
-                                isSelected = notificationDuration == sec,
-                                modifier   = Modifier.weight(1f),
-                                onSelect   = { viewModel.saveNotificationDuration(sec) }
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text("タップして端末の着信音・通知音から選択できます", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
-                    Spacer(Modifier.height(4.dp))
-                    Text("※ この設定はTickAtの通知にのみ適用されます。端末の時計アプリなど他のアプリのアラーム音には影響しません。", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f), fontSize = 10.sp)
+                    // 終了の再生時間をまだ選んでいないときは、開始と同じ秒数のボタンが選ばれた形で出す
+                    DurationSelector(
+                        selected = endDuration ?: notificationDuration,
+                        onSelect = { viewModel.saveEndNotificationDuration(it) }
+                    )
                 }
             }
+            // 2つの注意書きは、開始と終了の両方の音に当てはまるので、2枚のカードの下に1回だけ出す
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "タップして端末の着信音・通知音から選択できます",
+                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "※ この設定はTickAtの通知にのみ適用されます。端末の時計アプリなど他のアプリのアラーム音には影響しません。",
+                color    = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontSize = 10.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+// 「全画面」「通知」「OFF」の3つのボタンと、選んでいるものの説明（開始と終了で同じ形）
+@Composable
+private fun AlertModeSelector(
+    title: String,
+    selected: String,
+    description: String,
+    onSelect: (String) -> Unit
+) {
+    Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("FULLSCREEN" to "全画面", "NOTIFICATION" to "通知", "OFF" to "OFF").forEach { (value, label) ->
+            SelectOption(
+                label      = label,
+                isSelected = selected == value,
+                modifier   = Modifier.weight(1f),
+                onSelect   = { onSelect(value) }
+            )
+        }
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(
+        text = description,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        fontSize = 11.sp
+    )
+}
+
+// 通知音の欄（押すと選択画面が開く）と、その横の戻すボタン（resetLabel が null のときは出さない）
+@Composable
+private fun SoundSelector(
+    title: String,
+    soundLabel: String,
+    resetLabel: String?,
+    onPick: () -> Unit,
+    onReset: () -> Unit
+) {
+    Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
+    Spacer(Modifier.height(10.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(
+            shape    = RoundedCornerShape(8.dp),
+            color    = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier.weight(1f).clickable(onClick = onPick)
+        ) {
+            Text(soundLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp))
+        }
+        if (resetLabel != null) {
+            TextButton(onClick = onReset) {
+                Text(resetLabel, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+// 「再生時間」の5つのボタン
+@Composable
+private fun DurationSelector(
+    selected: Int,
+    onSelect: (Int) -> Unit
+) {
+    Text("再生時間", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, modifier = Modifier.padding(bottom = 8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(3, 5, 10, 15, 30).forEach { sec ->
+            SelectOption(
+                label      = "${sec}秒",
+                isSelected = selected == sec,
+                modifier   = Modifier.weight(1f),
+                onSelect   = { onSelect(sec) }
+            )
+        }
+    }
+}
+
+// 音の欄に出す名前。"" は端末の既定の通知音、"/" で始まるのは TickAt の中にコピーした音（選んだときの名前）、それ以外はスマホの音の名前
+private fun soundDisplayName(context: Context, uri: String, savedName: String): String = when {
+    uri.isEmpty() -> "既定の通知音"
+    uri.startsWith("/") -> savedName.ifEmpty { "カスタム音" }
+    else -> runCatching {
+        RingtoneManager.getRingtone(context, Uri.parse(uri))?.getTitle(context) ?: "カスタム音"
+    }.getOrElse { "カスタム音" }
+}
+
+// 着信音・通知音の選択画面を開く Intent。前に選んだスマホの音があれば、それを選んだ形で開く
+private fun soundPickerIntent(existingUri: String): Intent =
+    Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
+        putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_NOTIFICATION)
+        putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "通知音を選択")
+        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, true)
+        putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+        if (existingUri.isNotEmpty() && !existingUri.startsWith("/")) {
+            putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, Uri.parse(existingUri))
+        }
+    }
+
+// 選択画面で選んだ音を保存する（開始と終了で同じ処理。コピーするファイルの名前だけ違う）
+private fun savePickedSound(
+    context: Context,
+    result: ActivityResult,
+    fileName: String,
+    save: (uri: String, name: String?) -> Unit
+) {
+    if (result.resultCode != Activity.RESULT_OK) return
+    @Suppress("DEPRECATION")
+    val uri: Uri? = result.data?.getParcelableExtra(RingtoneManager.EXTRA_RINGTONE_PICKED_URI)
+    if (uri == null) {
+        save("", null)
+        return
+    }
+
+    val uriStr = uri.toString()
+
+    if (uriStr.startsWith("content://settings/")) {
+        save(uriStr, null)
+        return
+    }
+
+    try {
+        val soundDir = java.io.File(context.filesDir, "notification_sounds")
+        if (!soundDir.exists()) soundDir.mkdirs()
+        val destFile = java.io.File(soundDir, fileName)
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            destFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+        val displayName = runCatching {
+            context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0)?.replace(Regex("\\.[^.]+$"), "") else null
+            }
+        }.getOrNull() ?: "カスタム音"
+        save(destFile.absolutePath, displayName)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "通知音のコピーに失敗しました", Toast.LENGTH_SHORT).show()
     }
 }

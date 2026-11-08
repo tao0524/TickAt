@@ -135,11 +135,12 @@ class TaskAlertService : Service() {
         ensureChannels(manager)
 
         // --- フォアグラウンド通知を構築 ---
+        // 全画面の画面にも、通知の題と同じ名前を出す（終了のときは「（予定の名前） 終了」）
         // 通知を押したときは、画面を直接開く（Android 12 以上では、サービスから画面を開けないため）
         val tapIntent = if (alertMode == "FULLSCREEN") {
             Intent(this, FullScreenAlertActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("task_name", taskName)
+                putExtra("task_name", notificationTitle)
                 putExtra("task_type_label", featureLabel)
                 putExtra("time_range", timeRange)
                 putExtra(EXTRA_STOP_ALERT, true)
@@ -180,7 +181,7 @@ class TaskAlertService : Service() {
         if (alertMode == "FULLSCREEN") {
             val fullScreenIntent = Intent(this, FullScreenAlertActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("task_name", taskName)
+                putExtra("task_name", notificationTitle)
                 putExtra("task_type_label", featureLabel)
                 putExtra("time_range", timeRange)
             }

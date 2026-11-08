@@ -9,6 +9,9 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.domain.model.needsRepeatDays
 import com.tao0524.tickat.ui.screen.settings.KEY_ALERT_MODE
+import com.tao0524.tickat.ui.screen.settings.KEY_END_ALERT_MODE
+import com.tao0524.tickat.ui.screen.settings.KEY_END_NOTIFICATION_DURATION
+import com.tao0524.tickat.ui.screen.settings.KEY_END_NOTIFICATION_SOUND
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_SOUND
 import com.tao0524.tickat.ui.screen.settings.KEY_NOTIFICATION_DURATION
 import com.tao0524.tickat.data.local.AppDatabase
@@ -71,19 +74,24 @@ class TaskStartAlertReceiver : BroadcastReceiver() {
                         // 最中に TickAt を開いたり再起動したりすると、明日の開始が予約し直されているので取り消す
                         TaskAlertScheduler.cancel(context, taskId)
                     }
-                    // 終了の通知も、開始と同じく TaskAlertService で出し、「カウントダウン通知音」を「再生時間」のあいだ鳴らす
-                    // （スマホに鳴らしてもらうと、TickAt の中にコピーした音は読めずに鳴らないため）。
-                    // 全画面にはせず、「スケジュール開始時の表示」が OFF のときも出す（今までどおり）
-                    val endDuration = prefs?.get(KEY_NOTIFICATION_DURATION) ?: 5
+                    // 終了の通知は「スケジュール終了時の表示」「終了の通知音」と終了の「再生時間」で出す。
+                    // 表示をまだ選んでいないときは「通知」（前の版と同じ動き）。音と再生時間は、選ぶまでは開始と同じ
+                    val endAlertMode = prefs?.get(KEY_END_ALERT_MODE) ?: "NOTIFICATION"
+                    if (endAlertMode == "OFF") return@launch
+                    val endSoundUriStr = prefs?.get(KEY_END_NOTIFICATION_SOUND) ?: soundUriStr
+                    // 開始と同じく TaskAlertService で出し、TickAt が音を鳴らす
+                    // （スマホに鳴らしてもらうと、TickAt の中にコピーした音は読めずに鳴らないため）
+                    val endDuration = prefs?.get(KEY_END_NOTIFICATION_DURATION)
+                        ?: prefs?.get(KEY_NOTIFICATION_DURATION) ?: 5
                     val endIntent = Intent(context, TaskAlertService::class.java).apply {
                         putExtra("task_id", taskId)
                         putExtra("task_name", taskName)
                         putExtra("task_start", start)
                         putExtra("task_end", end)
                         putExtra("task_type", taskType)
-                        putExtra("alert_mode", "NOTIFICATION")
+                        putExtra("alert_mode", endAlertMode)
                         putExtra("alert_type", "END")
-                        putExtra("sound_uri", soundUriStr)
+                        putExtra("sound_uri", endSoundUriStr)
                         putExtra("duration", endDuration)
                     }
                     context.startForegroundService(endIntent)
