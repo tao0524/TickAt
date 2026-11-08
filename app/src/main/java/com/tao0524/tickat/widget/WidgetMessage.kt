@@ -6,9 +6,16 @@ import com.tao0524.tickat.domain.model.Task
 import com.tao0524.tickat.domain.model.TaskType
 import com.tao0524.tickat.domain.model.WidgetDisplayMode
 import com.tao0524.tickat.domain.model.repeatsOn
+import com.tao0524.tickat.ui.screen.settings.AmPmLabel
 import com.tao0524.tickat.ui.screen.settings.AppSettings
 import java.time.DayOfWeek
 import java.time.LocalTime
+
+// 12時間制の時刻に、表示設定の「AM/PM表記」に合わせて午前・午後（AM・PM）を付ける。hour は 0〜23、text は「8:00」の形。
+// 日本語は前に付けて「午前8:00」、英語は後ろに空白を入れて「8:00 AM」（Unicode CLDR の日本語・英語の時刻の書き方）
+private fun withAmPm(hour: Int, text: String, label: AmPmLabel): String =
+    if (label == AmPmLabel.ENGLISH) "$text ${if (hour < 12) "AM" else "PM"}"
+    else "${if (hour < 12) "午前" else "午後"}$text"
 
 // ウィジェットの時計の下に出す行（メッセージ）を決める。
 // ホーム画面のウィジェット（WidgetUpdateService）と、表示設定のプレビュー（SettingsScreen）の両方がこの関数を使う。
@@ -34,14 +41,20 @@ internal fun buildMessageText(
         val sf = java.time.format.DateTimeFormatter.ofPattern(fmt)
         val start = activeBlock.startTime.format(sf)
         val end = activeBlock.endTime.format(sf)
-        // 12時間制では、同じ行の「時刻表示」の予定と同じく「午前」「午後」を付ける。
-        // 始まりと終わりが同じ午前（午後）なら最初だけ、またがるときは両方に付ける（Unicode CLDR の日本語の時間の範囲の書き方）
+        // 12時間制では、同じ行の「時刻表示」の予定と同じく、「AM/PM表記」に合わせて午前・午後（AM・PM）を付ける。
+        // 始まりと終わりが同じ午前（午後）なら、日本語は最初だけ「午前6:00〜6:30」、英語は最後だけ「6:00〜6:30 AM」。
+        // またがるときは両方に付ける（Unicode CLDR の日本語・英語の時間の範囲の書き方。区切りはアプリのほかの所と同じ「〜」）
         val range = if (settings.use24Hour) {
             "$start〜$end"
         } else {
-            val startAmPm = if (activeBlock.startTime.hour < 12) "午前" else "午後"
-            val endAmPm = if (activeBlock.endTime.hour < 12) "午前" else "午後"
-            if (startAmPm == endAmPm) "$startAmPm$start〜$end" else "$startAmPm$start〜$endAmPm$end"
+            val startHour = activeBlock.startTime.hour
+            val endHour = activeBlock.endTime.hour
+            when {
+                (startHour < 12) != (endHour < 12) ->
+                    "${withAmPm(startHour, start, settings.amPmLabel)}〜${withAmPm(endHour, end, settings.amPmLabel)}"
+                settings.amPmLabel == AmPmLabel.ENGLISH -> "$start〜${withAmPm(endHour, end, settings.amPmLabel)}"
+                else -> "${withAmPm(startHour, start, settings.amPmLabel)}〜$end"
+            }
         }
         "${activeBlock.name} $range"
     } else {
@@ -71,8 +84,7 @@ internal fun buildMessageText(
                     val timeStr = if (settings.use24Hour) {
                         task.startTime.format(java.time.format.DateTimeFormatter.ofPattern("H:mm"))
                     } else {
-                        val amPm = if (task.startTime.hour < 12) "午前" else "午後"
-                        "$amPm${task.startTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm"))}"
+                        withAmPm(task.startTime.hour, task.startTime.format(java.time.format.DateTimeFormatter.ofPattern("h:mm")), settings.amPmLabel)
                     }
                     val label = if (task.repeat == RepeatType.ONCE) {
                         if (task.startTime > now) "今日" else "明日"
@@ -108,8 +120,7 @@ internal fun buildMessageText(
                     } else {
                         val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
                         val m = cal.get(java.util.Calendar.MINUTE)
-                        val amPm = if (cal.get(java.util.Calendar.AM_PM) == java.util.Calendar.AM) "午前" else "午後"
-                        "⏰ $amPm$h:%02d".format(m)
+                        "⏰ " + withAmPm(cal.get(java.util.Calendar.HOUR_OF_DAY), "%d:%02d".format(h, m), settings.amPmLabel)
                     }
                 } else ""
             } else ""
