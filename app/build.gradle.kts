@@ -35,7 +35,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 でコードを縮小・最適化・難読化する（Google Play の DEX コードの最適化の要件。2027年2月から）
+            isMinifyEnabled = true
+            // 使っていないリソースを取り除く
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
