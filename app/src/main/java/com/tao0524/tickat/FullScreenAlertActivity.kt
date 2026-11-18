@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tao0524.tickat.ui.screen.settings.ThemeMode
@@ -158,8 +159,13 @@ private fun FullScreenAlertContent(
                 text = taskName,
                 color = TextPrimary,
                 fontSize = 32.sp,
+                // 2行以上になっても上下の字が重ならないよう、行の高さを決める（Material 3 の headlineLarge と同じ 32/40）
+                lineHeight = 40.sp,
                 fontWeight = FontWeight.Light,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                // 長い名前でも「止める」ボタンが画面の外に押し出されないよう、3行までにして「…」で省く
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(Modifier.height(16.dp))
