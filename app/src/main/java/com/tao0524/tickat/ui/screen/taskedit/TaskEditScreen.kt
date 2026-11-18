@@ -70,6 +70,9 @@ private val AccentColor = Color(0xFFBB86FC)
 
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
+// 件名の文字数の上限
+private const val TASK_NAME_MAX_LENGTH = 16
+
 @Composable
 private fun SectionHeader(text: String) {
     Row(
@@ -173,7 +176,10 @@ fun TaskEditScreen(
     val state by viewModel.state.collectAsState()
     val hintShown by viewModel.hintTaskEditShown.collectAsState()
 
-    val isSaveEnabled = state.name.isNotBlank() &&
+    // 件名は16文字まで（「件名」の欄に全部見える文字数。日本語の変換中に入力が止まらないよう、超えても入力はでき、保存だけを止める）
+    val nameLength = state.name.codePointCount(0, state.name.length)
+    val isNameTooLong = nameLength > TASK_NAME_MAX_LENGTH
+    val isSaveEnabled = state.name.isNotBlank() && !isNameTooLong &&
             (state.taskType == TaskType.REMINDER || state.endTime.isAfter(state.startTime)) &&
             !(state.repeat == RepeatType.WEEKLY && state.repeatDays == 0)
 
@@ -350,6 +356,21 @@ fun TaskEditScreen(
                     placeholder = { Text("例：朝のルーティン") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
+                    isError = isNameTooLong,
+                    // 右下に「入力した数 / 上限」を出す（Material のガイドライン）。超えたときは、欄とこの行が赤になる
+                    supportingText = {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            if (isNameTooLong) {
+                                Text(
+                                    text = "件名は${TASK_NAME_MAX_LENGTH}文字以内にしてください。くわしいことは「一言メモ」に書けます",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                            Text(text = "$nameLength / $TASK_NAME_MAX_LENGTH")
+                        }
+                    },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
