@@ -311,6 +311,59 @@ internal fun buildTextBitmap(
     return bitmap
 }
 
+// メッセージの行の画像の横幅（buildTextBitmap の alignDigits = true と同じ計算。左右の余白を含む）
+private fun messageBitmapWidth(text: String, textSizePx: Float, typeface: Typeface): Float {
+    val paint = newTextPaint(typeface, textSizePx * digitSizeScale(typeface), 0)
+    return cellTextWidth(text, paint, digitCellWidth(paint)) + 8f * 2
+}
+
+// メッセージの行を、ウィジェットの横幅に合わせて決める。返すのは、描く文と文字の大きさ（px）。
+// ・横幅に入らないときは、今までと同じように画面の部品（ImageView）が縮めて出す。
+// ・縮めると minPx（12sp）より小さくなるときは、minPx で描き、予定の名前の終わりを「…」で省く。
+//   時刻などの名前以外の部分は省かない。名前は少なくとも1文字残す（それでも入らないときだけ、部品がさらに縮める）。
+// ・「メッセージのサイズ」で初めから minPx より小さくしているときは、それより縮めず、その大きさで省く。
+// availablePx は、メッセージの画像を置ける横幅（px）。0 以下のとき（横幅がわからないとき）は省かない。
+internal fun fitMessage(
+    parts: MessageParts,
+    textSizePx: Float,
+    minPx: Float,
+    availablePx: Float,
+    typeface: Typeface
+): Pair<String, Float> {
+    val full = parts.text
+    if (availablePx <= 0f || parts.name.isEmpty()) return full to textSizePx
+    val fullWidth = messageBitmapWidth(full, textSizePx, typeface)
+    if (fullWidth <= availablePx) return full to textSizePx
+    val floorPx = minOf(minPx, textSizePx)
+    // 部品が縮めたときの大きさが floorPx 以上なら、今までどおり部品に縮めてもらう
+    if (textSizePx * availablePx / fullWidth >= floorPx) return full to textSizePx
+    // 名前を、文字の区切り（絵文字など、2つの文字でできた文字を分けない）で短くしていく
+    val breaks = java.text.BreakIterator.getCharacterInstance()
+    breaks.setText(parts.name)
+    val ends = mutableListOf<Int>()
+    var end = breaks.next()
+    while (end != java.text.BreakIterator.DONE) {
+        if (end < parts.name.length) ends.add(end)
+        end = breaks.next()
+    }
+    fun candidate(nameEnd: Int) = parts.before + parts.name.substring(0, nameEnd) + "…" + parts.after
+    if (ends.isEmpty()) return full to floorPx
+    // 横幅に入るいちばん長い名前を、二分探索で探す（入らなければ1文字だけ残す）
+    var lo = 0
+    var hi = ends.size - 1
+    var best = 0
+    while (lo <= hi) {
+        val mid = (lo + hi) / 2
+        if (messageBitmapWidth(candidate(ends[mid]), floorPx, typeface) <= availablePx) {
+            best = mid
+            lo = mid + 1
+        } else {
+            hi = mid - 1
+        }
+    }
+    return candidate(ends[best]) to floorPx
+}
+
 internal fun buildTimeWithAmPmBitmap(
     timeText:    String,
     amPmText:    String,

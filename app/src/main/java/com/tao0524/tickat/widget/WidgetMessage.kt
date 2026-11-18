@@ -17,6 +17,12 @@ private fun withAmPm(hour: Int, text: String, label: AmPmLabel): String =
     if (label == AmPmLabel.ENGLISH) "$text ${if (hour < 12) "AM" else "PM"}"
     else "${if (hour < 12) "午前" else "午後"}$text"
 
+// メッセージの行を、予定の名前の前の部分・名前・名前の後ろの部分に分けたもの。
+// ウィジェットの横幅に入りきらないときは、名前の終わりだけを「…」で省く（時刻などの部分は省かない）
+internal data class MessageParts(val before: String = "", val name: String = "", val after: String = "") {
+    val text: String get() = before + name + after
+}
+
 // ウィジェットの時計の下に出す行（メッセージ）を決める。
 // ホーム画面のウィジェット（WidgetUpdateService）と、表示設定のプレビュー（SettingsScreen）の両方がこの関数を使う。
 // 出すものがないときは "" を返す。
@@ -26,7 +32,16 @@ internal fun buildMessageText(
     tasks: List<Task>,
     now: LocalTime,
     todayDow: DayOfWeek
-): String {
+): String = buildMessageParts(context, settings, tasks, now, todayDow).text
+
+// buildMessageText と同じ行を、名前の前・名前・名前の後ろに分けて返す。出すものがないときは中身がすべて ""
+internal fun buildMessageParts(
+    context: Context,
+    settings: AppSettings,
+    tasks: List<Task>,
+    now: LocalTime,
+    todayDow: DayOfWeek
+): MessageParts {
     // 今日が繰り返す曜日でない予定は出さない（通知と同じ曜日だけ。「1回のみ」はいつでも出す）
     val enabledTasks = tasks.filter { it.isEnabled && it.repeatsOn(todayDow) }
     val timeblocks = enabledTasks.filter { it.taskType == TaskType.TIMEBLOCK }
@@ -56,10 +71,10 @@ internal fun buildMessageText(
                 else -> "${withAmPm(startHour, start, settings.amPmLabel)}〜$end"
             }
         }
-        "${activeBlock.name} $range"
+        MessageParts(name = activeBlock.name, after = " $range")
     } else {
         // 全タスクからdisplayModeに応じて候補を収集
-        data class Candidate(val minutesUntil: Long, val text: String)
+        data class Candidate(val minutesUntil: Long, val parts: MessageParts)
         val candidates = mutableListOf<Candidate>()
 
         for (task in enabledTasks) {
@@ -73,12 +88,12 @@ internal fun buildMessageText(
 
             when (task.displayMode) {
                 WidgetDisplayMode.COUNTDOWN -> {
-                    val text = when {
-                        minutesUntil >= 60 -> "${task.name}まで あと${minutesUntil / 60}時間${minutesUntil % 60}分"
-                        minutesUntil >= 1  -> "${task.name}まで あと${minutesUntil}分"
-                        else               -> "${task.name}まで あと1分未満"
+                    val after = when {
+                        minutesUntil >= 60 -> "まで あと${minutesUntil / 60}時間${minutesUntil % 60}分"
+                        minutesUntil >= 1  -> "まで あと${minutesUntil}分"
+                        else               -> "まで あと1分未満"
                     }
-                    candidates.add(Candidate(minutesUntil, text))
+                    candidates.add(Candidate(minutesUntil, MessageParts(name = task.name, after = after)))
                 }
                 WidgetDisplayMode.SIMPLE -> {
                     val timeStr = if (settings.use24Hour) {
@@ -90,7 +105,7 @@ internal fun buildMessageText(
                         if (task.startTime > now) "今日" else "明日"
                     } else ""
                     val prefix = if (label.isNotEmpty()) "$label " else ""
-                    candidates.add(Candidate(minutesUntil, "$prefix$timeStr ${task.name}"))
+                    candidates.add(Candidate(minutesUntil, MessageParts(before = "$prefix$timeStr ", name = task.name)))
                 }
                 else -> { /* HIDDEN — already filtered */ }
             }
@@ -100,7 +115,7 @@ internal fun buildMessageText(
         // （「次の予定を表示」がオフでも、「次のアラームを表示」がオンならアラームを出す）
         val nearest = if (settings.showCountdown) candidates.minByOrNull { it.minutesUntil } else null
         if (nearest != null) {
-            nearest.text
+            nearest.parts
         } else if (settings.showNextAlarm) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
             val nextAlarm = alarmManager.nextAlarmClock
@@ -116,14 +131,14 @@ internal fun buildMessageText(
                     if (settings.use24Hour) {
                         val h = cal.get(java.util.Calendar.HOUR_OF_DAY)
                         val m = cal.get(java.util.Calendar.MINUTE)
-                        "⏰ %d:%02d".format(h, m)
+                        MessageParts(before = "⏰ %d:%02d".format(h, m))
                     } else {
                         val h = cal.get(java.util.Calendar.HOUR).let { if (it == 0) 12 else it }
                         val m = cal.get(java.util.Calendar.MINUTE)
-                        "⏰ " + withAmPm(cal.get(java.util.Calendar.HOUR_OF_DAY), "%d:%02d".format(h, m), settings.amPmLabel)
+                        MessageParts(before = "⏰ " + withAmPm(cal.get(java.util.Calendar.HOUR_OF_DAY), "%d:%02d".format(h, m), settings.amPmLabel))
                     }
-                } else ""
-            } else ""
-        } else ""
+                } else MessageParts()
+            } else MessageParts()
+        } else MessageParts()
     }
 }

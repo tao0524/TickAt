@@ -331,19 +331,27 @@ class WidgetUpdateService : Service() {
             val bgBitmap  = cachedBgBitmapMap[id]
             val needFullRedraw = fullRedrawNeededMap[id] ?: true
 
-            val displayText: String = buildMessageText(this, settings, cachedTasks, now, todayDow)
-
-            val resolvedDisplayText = displayText
+            val messageParts = buildMessageParts(this, settings, cachedTasks, now, todayDow)
 
             val opts = manager.getAppWidgetOptions(id)
             val h    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 44)
+            // 縦向きの横幅（公式資料: 縦向きはセルの横幅が狭い。AOSP の Launcher3 は、いちばん狭い横幅を MIN_WIDTH に入れる）。
+            // メッセージの画像を置ける横幅は、レイアウトの左右の余白（2dp ずつ）を引いた分
+            val w    = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val density = resources.displayMetrics.density
+            val availablePx = if (w > 0) (w - 4) * density else 0f
+            val (resolvedDisplayText, messageDrawPx) = fitMessage(
+                messageParts, messagePx,
+                TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 12f, resources.displayMetrics),
+                availablePx, typeface
+            )
             val views = if (needFullRedraw) {
                 TickAtWidget.buildViews(this, settings, h)
             } else {
                 buildTimeOnlyViews(this, settings, typeface, clockPx, datePx, bgBitmap)
             }
             if (resolvedDisplayText.isNotEmpty()) {
-                val msgBitmap = buildTextBitmap(resolvedDisplayText, messagePx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow, alignDigits = true)
+                val msgBitmap = buildTextBitmap(resolvedDisplayText, messageDrawPx, settings.messageTextColor.toInt(), typeface, settings.showTextShadow, alignDigits = true)
                 views.setImageViewBitmap(R.id.widget_task_name, msgBitmap)
                 views.setViewVisibility(R.id.widget_task_name, View.VISIBLE)
             } else {

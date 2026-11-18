@@ -118,7 +118,10 @@ import com.tao0524.tickat.R
 import com.tao0524.tickat.widget.buildBackgroundBitmap
 import com.tao0524.tickat.widget.calcFontSizes
 import com.tao0524.tickat.widget.buildTextBitmap
+import com.tao0524.tickat.widget.MessageParts
+import com.tao0524.tickat.widget.buildMessageParts
 import com.tao0524.tickat.widget.buildMessageText
+import com.tao0524.tickat.widget.fitMessage
 import com.tao0524.tickat.widget.buildTimeWithAmPmBitmap
 import androidx.compose.foundation.text.KeyboardActions
 import com.tao0524.tickat.ui.component.FirstTimeHint
@@ -2701,9 +2704,9 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                     else null
 
                     // ホーム画面のウィジェットと同じ計算で決める（WidgetMessage.kt）。ウィジェットに出ないときは、プレビューにも出さない
-                    val realMessage = buildMessageText(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek)
+                    val realMessage = buildMessageParts(context, draft, tasks, java.time.LocalTime.now(), java.time.LocalDate.now().dayOfWeek)
                     // 「メッセージのサイズ」の小さな画面だけは、ウィジェットに出ていないときも見本の文で大きさを見せる
-                    val messageText = if (realMessage.isEmpty() && showSampleMessage) "次の予定まで あと30分" else realMessage
+                    val messageParts = if (realMessage.text.isEmpty() && showSampleMessage) MessageParts(name = "次の予定", after = "まで あと30分") else realMessage
                     // 3つのスイッチが全部オフのときはメッセージの大きさが 0 になるので、見本の文の大きさだけを別に求める（時刻・日付の大きさは変えない）
                     val messagePxUsed = if (hasMessage) messagePx else calcFontSizes(
                         widgetHeightDp = actualH.toInt(),
@@ -2716,40 +2719,42 @@ private fun WidgetPreview(draft: AppSettings, tasks: List<Task> = emptyList(), s
                         use24Hour = draft.use24Hour,
                         amPmScale = draft.amPmScale
                     ).third * previewScale * scaledDensity
+                    // 「…」で省くかどうかは、拡大する前のウィジェットの本当の横幅（MIN_WIDTH）と大きさで決める（ホーム画面と同じところで省く）。
+                    // 決めた文と大きさを、プレビューの倍率で拡大して描く
+                    val displayMetrics = view.context.resources.displayMetrics
+                    val (messageText, messageRealPx) = fitMessage(
+                        messageParts,
+                        messagePxUsed / previewScale,
+                        android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 12f, displayMetrics),
+                        (actualW - 4f) * displayMetrics.density,
+                        typeface
+                    )
                     val messageBitmap = if (messageText.isNotEmpty())
-                        buildTextBitmap(messageText, messagePxUsed, draft.messageTextColor.toInt(), typeface, draft.showTextShadow, alignDigits = true)
+                        buildTextBitmap(messageText, messageRealPx * previewScale, draft.messageTextColor.toInt(), typeface, draft.showTextShadow, alignDigits = true)
                     else null
 
-                    // --- 合成ビットマップ（AM/PMと同じ原理：1枚に統合して内部比率を保存） ---
-                    val compositeParts = mutableListOf<android.graphics.Bitmap>()
-                    if (draft.showTime) compositeParts.add(timeBitmap)
-                    dateBitmap?.let { compositeParts.add(it) }
-                    messageBitmap?.let { compositeParts.add(it) }
-
-                    if (compositeParts.isNotEmpty()) {
-                        val maxW = compositeParts.maxOf { it.width }
-                        val spacingPx = (4 * view.context.resources.displayMetrics.density).toInt()
-                        val totalH = compositeParts.sumOf { it.height } + spacingPx * (compositeParts.size - 1)
-                        val composite = android.graphics.Bitmap.createBitmap(maxW, totalH, android.graphics.Bitmap.Config.ARGB_8888)
-                        val compCanvas = android.graphics.Canvas(composite)
-                        var drawY = 0f
-                        compositeParts.forEachIndexed { index, bmp ->
-                            compCanvas.drawBitmap(bmp, (maxW - bmp.width) / 2f, drawY, null)
-                            drawY += bmp.height
-                            if (index < compositeParts.size - 1) drawY += spacingPx
-                        }
-                        view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
-                            scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-                            adjustViewBounds = true
-                            setImageBitmap(composite)
-                            visibility = android.view.View.VISIBLE
-                        }
-                    } else {
-                        view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.visibility = android.view.View.GONE
+                    // --- ホーム画面のウィジェットと同じく、時刻・日付・メッセージを1行ずつの画像で出す ---
+                    // （横幅に入りきらない行は、その行だけが縮む。ホーム画面と同じ見え方）
+                    view.findViewById<android.widget.ImageView>(R.id.widget_time_img)?.apply {
+                        setImageBitmap(timeBitmap)
+                        visibility = if (draft.showTime) android.view.View.VISIBLE else android.view.View.GONE
                     }
-                    // 個別ImageViewは非表示（合成ビットマップに統合済み）
-                    view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.visibility = android.view.View.GONE
-                    view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.visibility = android.view.View.GONE
+                    view.findViewById<android.widget.ImageView>(R.id.widget_date_img)?.apply {
+                        if (dateBitmap != null) {
+                            setImageBitmap(dateBitmap)
+                            visibility = android.view.View.VISIBLE
+                        } else {
+                            visibility = android.view.View.GONE
+                        }
+                    }
+                    view.findViewById<android.widget.ImageView>(R.id.widget_task_name)?.apply {
+                        if (messageBitmap != null) {
+                            setImageBitmap(messageBitmap)
+                            visibility = android.view.View.VISIBLE
+                        } else {
+                            visibility = android.view.View.GONE
+                        }
+                    }
 
                     bgBitmap?.let {
                         view.findViewById<android.widget.ImageView>(R.id.widget_bg)?.setImageBitmap(it)
